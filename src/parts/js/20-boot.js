@@ -343,6 +343,8 @@ function boot(){
       },
       win: bossDie,
       lose: failLevel,
+      /* 直接对勇者造成伤害，用于测试「血量归零」这条失败路径 */
+      hurtHero: heroHit,
       addMilk: addMilk,
       eff: buildEff,
       save: saveMeta,

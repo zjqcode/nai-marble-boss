@@ -51,6 +51,8 @@ function bossDie(){
   setTimeout(function(){ if(state.mode === 'victory') showWin(); }, 1450);
 }
 
+/* 失败路径之二：超时。
+   另一条路径是 10-boss.js 的 heroDown（血量归零），两边都要播失败音效。 */
 function failLevel(){
   if(state.mode !== 'play') return;
   state.mode = 'lose';

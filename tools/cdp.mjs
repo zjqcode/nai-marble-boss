@@ -181,7 +181,7 @@ export class Session {
   }
 }
 
-export async function launch({ width = 390, height = 844, dsf = 2, port } = {}) {
+export async function launch({ width = 390, height = 844, dsf = 2, port, autoplayPolicy = 'no-user-gesture-required' } = {}) {
   const exe = EDGE_CANDIDATES.find((p) => fs.existsSync(p));
   if (!exe) throw new Error('找不到 Edge/Chrome 可执行文件');
   if (!port) port = 9300 + Math.floor(Math.random() * 500);
@@ -197,7 +197,7 @@ export async function launch({ width = 390, height = 844, dsf = 2, port } = {}) 
     '--disable-background-networking',
     '--mute-audio',
     '--hide-scrollbars',
-    '--autoplay-policy=no-user-gesture-required',
+    `--autoplay-policy=${autoplayPolicy}`,
     'about:blank',
   ], { stdio: 'ignore' });
 

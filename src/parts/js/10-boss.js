@@ -199,6 +199,9 @@ function dodgeSuccess(){
   Sound.dodge();
 }
 
+/* 失败路径之一：血量归零（最常见的死法）。
+   注意失败有两条路径——这里和 13-settle.js 的 failLevel（超时），
+   两边都必须播失败音效，改一处别忘了另一处。 */
 function heroDown(reason){
   if(state.mode !== 'play') return;
   state.mode = 'lose';
@@ -209,6 +212,7 @@ function heroDown(reason){
   state.comboQ = 0;
   setWarn(false);
   Sound.bgmStop();
+  playLoseAudio();
   Sound.lose();
   state.flash = Math.max(state.flash, .6);
   state.shake = Math.max(state.shake, 18);

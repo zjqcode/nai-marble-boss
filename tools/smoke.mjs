@@ -290,6 +290,40 @@ await check('失败时播放失败音效（独立音轨、循环、音量低于�
   return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol} < 胜利${st.winVol} / 循环，换关即停`;
 });
 
+// ---------- 5c. 失败有两条路径：血量归零 / 超时，都要出声 ----------
+await check('两条失败路径（血量归零 / 超时）都会播放失败音效', async () => {
+  const out = {};
+  for (const path of ['hp', 'timeout']) {
+    await session.goto(`${fileUrl}?debug&level=1`);
+    await waitImages();
+    await session.waitFor(
+      `(() => { const a = document.getElementById('loseSnd'); return !!a && a.readyState >= 1; })()`,
+      15000, '音频元数据加载'
+    );
+    await session.evaluate(`window.__NAI__.step(170)`);
+
+    if (path === 'hp') {
+      /* 最常见的死法：被 Boss 反击打到 0 心 */
+      await session.evaluate(`(() => { const N = window.__NAI__; N.state.heroHP = 1; N.hurtHero(5, '测试'); })()`);
+    } else {
+      /* 另一条：时间耗尽 */
+      await session.evaluate(`(() => { const N = window.__NAI__; N.state.timer = 0.01; N.step(3); })()`);
+    }
+
+    const mode = await session.evaluate(`window.__NAI__.state.mode`);
+    assert(mode === 'lose', `[${path}] 未进入失败态，mode=${mode}`);
+    const label = path === 'hp' ? '血量归零' : '超时';
+    await session.waitFor(
+      `(() => { const a = document.getElementById('loseSnd'); return !a.paused && a.currentTime > 0.05; })()`,
+      10000, `${label} 后失败音效未播放`
+    );
+    out[path] = await session.evaluate(`
+      (() => { const a = document.getElementById('loseSnd');
+               return { t: +a.currentTime.toFixed(2), loop: a.loop }; })()`);
+  }
+  return `血量归零 @${out.hp.t}s / 超时 @${out.timeout.t}s，均循环`;
+});
+
 // ---------- 6. 血瓶：受伤才可用、回 1 心、0.5s 冷却、满血/暂停/阵亡禁用 ----------
 await check('血瓶：受伤可用 +1 心，冷却/满血/暂停/阵亡都不可用', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);
