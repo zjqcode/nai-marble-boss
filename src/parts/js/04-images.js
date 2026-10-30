@@ -29,7 +29,7 @@ function recalcRadii(){
 
 function loadImages(){
   var chart = new Image();
-  chart.src = ASSET_DATA ? ASSET_DATA.chart : 'assets/chart.webp';
+  chart.src = ASSET_DATA ? ASSET_DATA.chart : ASSET_BASE + 'chart.webp';
   IMG.chart = chart;
   var loaded = 0;
   CHARS.forEach(function(c){

@@ -9,6 +9,7 @@
  *   node build.js --check                      只校验「现有产物 == 重新构建结果」，不一致则退出码 1
  *   node build.js --emit-source                把组装好的源码写到 dist/source.html（便于单文件调试）
  *   node build.js --web [目录]                 生成「外置资源」的网页部署版（默认 dist/web）
+ *   node build.js --web --asset-base <url>     把素材前缀改写成绝对地址（素材放国内仓库/CDN，HTML 放任何地方）
  *   node build.js --png                        优先使用 png/jpg 素材（默认优先 webp）
  *   node build.js --no-alias                   不额外生成 index.html
  */
@@ -33,12 +34,19 @@ const webDirArg = (() => {
   const next = argv[i + 1];
   return next && !next.startsWith('--') ? next : null;
 })();
-/* positional：排除 --flag，以及 --web 后面那个「输出目录」值 */
+/* positional：排除 --flag，以及 --web / --asset-base 后面那个「取值」 */
 const positional = argv.filter((a, i) => {
   if (a.startsWith('--')) return false;
-  if (webDirArg !== null && i > 0 && argv[i - 1] === '--web') return false;
+  if (i > 0 && (argv[i - 1] === '--web' || argv[i - 1] === '--asset-base')) return false;
   return true;
 });
+/* --asset-base：素材前缀改写目标，例如 https://gitee.com/<user>/<repo>/raw/master/assets/ */
+const assetBaseArg = (() => {
+  const i = argv.indexOf('--asset-base');
+  if (i < 0) return null;
+  const next = argv[i + 1];
+  return next && !next.startsWith('--') ? next : null;
+})();
 
 const srcArg = positional[0] || null;
 const outArg = positional[1] || '奶系弹珠_弹射讨伐.html';
@@ -130,19 +138,35 @@ if (webMode) {
   fs.rmSync(webDir, { recursive: true, force: true });
   fs.mkdirSync(webDir, { recursive: true });
 
-  fs.writeFileSync(path.join(webDir, 'index.html'), html, 'utf8');
-  fs.cpSync(assetsDir, path.join(webDir, 'assets'), { recursive: true });
+  /* 可选：把素材前缀改成绝对地址（素材放国内仓库，HTML 放任意托管商）。
+     只改这一行常量，立绘/图鉴/音效全部走同一个前缀。 */
+  let webHtml = html;
+  if (assetBaseArg) {
+    const base = assetBaseArg.endsWith('/') ? assetBaseArg : assetBaseArg + '/';
+    const def = "var ASSET_BASE = 'assets/';";
+    if (!webHtml.includes(def)) throw new Error('源码里找不到 ASSET_BASE 定义，无法改写素材前缀');
+    webHtml = webHtml.replace(def, () => `var ASSET_BASE = ${JSON.stringify(base)};`);
+    console.log(`asset-base: ${base}`);
+  }
+
+  fs.writeFileSync(path.join(webDir, 'index.html'), webHtml, 'utf8');
+  /* 绝对地址模式下素材不随包发布 */
+  if (!assetBaseArg) fs.cpSync(assetsDir, path.join(webDir, 'assets'), { recursive: true });
 
   const listDir = (d) => fs.readdirSync(d).map((f) => ({ f, size: fs.statSync(path.join(d, f)).size }));
-  const htmlBytes = Buffer.byteLength(html, 'utf8');
-  const assets = listDir(path.join(webDir, 'assets'));
+  const htmlBytes = Buffer.byteLength(webHtml, 'utf8');
+  const assets = assetBaseArg ? [] : listDir(path.join(webDir, 'assets'));
   const assetBytes = assets.reduce((s, a) => s + a.size, 0);
 
   console.log(`web: ${path.join(webDir, 'index.html')}`);
   console.log(`  index.html : ${(htmlBytes / 1024).toFixed(0)} KB（未内联素材，gzip 后通常 < 60 KB）`);
-  console.log(`  assets/    : ${assets.length} 个文件，${(assetBytes / 1024).toFixed(0)} KB`);
-  for (const a of assets) console.log(`     ${a.f.padEnd(20)} ${(a.size / 1024).toFixed(0)} KB`);
-  console.log(`  合计       : ${((htmlBytes + assetBytes) / 1024 / 1024).toFixed(2)} MB（首次访问；之后素材走缓存）`);
+  if (assetBaseArg) {
+    console.log('  assets/    : 不随包输出（已指向 ' + assetBaseArg + '）');
+  } else {
+    console.log(`  assets/    : ${assets.length} 个文件，${(assetBytes / 1024).toFixed(0)} KB`);
+    for (const a of assets) console.log(`     ${a.f.padEnd(20)} ${(a.size / 1024).toFixed(0)} KB`);
+    console.log(`  合计       : ${((htmlBytes + assetBytes) / 1024 / 1024).toFixed(2)} MB（首次访问；之后素材走缓存）`);
+  }
   process.exit(0);
 }
 

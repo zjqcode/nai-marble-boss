@@ -809,13 +809,17 @@ function store(k,v){
     localStorage.setItem(k,v);
   }catch(e){ return null; }
 }
-/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回 assets/ 相对路径。
+/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回相对路径。
    扩展名必须统一在这里决定——之前调用方各自传 'png'，而素材是 .webp，
-   单文件版看不出问题（data URI 不看扩展名），外置资源版就整片 404。 */
+   单文件版看不出问题（data URI 不看扩展名），外置资源版就整片 404。
+
+   ASSET_BASE 是素材目录前缀，构建时可用 --asset-base 改写成 CDN / 仓库的绝对地址，
+   这样 HTML 可以放在任意托管商，素材继续从国内仓库加载。 */
 var SPRITE_EXT = 'webp';
+var ASSET_BASE = 'assets/';
 function assetURL(name){
   if(ASSET_DATA) return ASSET_DATA.sprites[name] || '';
-  return 'assets/' + name + '.' + SPRITE_EXT;
+  return ASSET_BASE + name + '.' + SPRITE_EXT;
 }
 
 /* =========================================================
@@ -1441,7 +1445,7 @@ function recalcRadii(){
 
 function loadImages(){
   var chart = new Image();
-  chart.src = ASSET_DATA ? ASSET_DATA.chart : 'assets/chart.webp';
+  chart.src = ASSET_DATA ? ASSET_DATA.chart : ASSET_BASE + 'chart.webp';
   IMG.chart = chart;
   var loaded = 0;
   CHARS.forEach(function(c){
@@ -5729,14 +5733,14 @@ function boot(){
   /* 音效：单文件版走内联 data URI；外置资源版（部署网站用）回退到 assets/ 相对路径 */
   bgmEl = $id('bgm');
   if(bgmEl){
-    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : 'assets/laugh.mp3';
+    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : ASSET_BASE + 'laugh.mp3';
     bgmEl.volume = 0.72;
     bgmEl.loop = true;
     bgmEl.pause();
   }
   loseEl = $id('loseSnd');
   if(loseEl){
-    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : 'assets/lose.mp3';
+    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : ASSET_BASE + 'lose.mp3';
     loseEl.volume = 0.62;
     loseEl.loop = true;
     loseEl.pause();
