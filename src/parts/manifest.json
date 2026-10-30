@@ -1,0 +1,29 @@
+{
+  "skeleton": "index.html",
+  "style": "style.css",
+  "js": [
+    "js/00-prologue.js",
+    "js/00-utils.js",
+    "js/01-data.js",
+    "js/02-save.js",
+    "js/03-audio.js",
+    "js/04-images.js",
+    "js/05-state.js",
+    "js/06-level.js",
+    "js/07-launch.js",
+    "js/08-physics.js",
+    "js/09-rocks.js",
+    "js/10-boss.js",
+    "js/11-effects.js",
+    "js/12-gadgets.js",
+    "js/125-items.js",
+    "js/13-settle.js",
+    "js/14-hud.js",
+    "js/15-loop.js",
+    "js/16-render.js",
+    "js/17-codex.js",
+    "js/18-panels.js",
+    "js/19-ui.js",
+    "js/20-boot.js"
+  ]
+}

@@ -1,9 +1,13 @@
 /* Build a single self-contained HTML game from a source template + assets.
  *
+ * 源码结构：默认从 src/parts/manifest.json 组装（骨架 index.html + style.css + js/*.js），
+ * 所有 JS 片段按 manifest 顺序拼进同一个 <script>，因此仍共享同一个 IIFE 作用域。
+ *
  * 用法:
- *   node build.js                              构建默认产物（src/boss.html -> 奶系弹珠_弹射讨伐.html + index.html）
- *   node build.js <src.html> <out.html>        指定源与产物
+ *   node build.js                              构建默认产物（src/parts -> 奶系弹珠_弹射讨伐.html + index.html）
+ *   node build.js <src.html> <out.html>        直接用一个单文件源码构建（兼容旧用法）
  *   node build.js --check                      只校验「现有产物 == 重新构建结果」，不一致则退出码 1
+ *   node build.js --emit-source                把组装好的源码写到 dist/source.html（便于单文件调试）
  *   node build.js --png                        优先使用 png/jpg 素材（默认优先 webp）
  *   node build.js --no-alias                   不额外生成 index.html
  */
@@ -12,17 +16,23 @@ const path = require('path');
 
 const root = __dirname;
 const assetsDir = path.join(root, 'assets');
+const partsDir = path.join(root, 'src', 'parts');
+const partsManifest = path.join(partsDir, 'manifest.json');
+
+const STYLE_MARK = '/*__STYLE__*/';
+const JS_MARK = '/*__JS__*/';
 
 const argv = process.argv.slice(2);
 const flags = new Set(argv.filter((a) => a.startsWith('--')));
 const positional = argv.filter((a) => !a.startsWith('--'));
 
-const srcArg = positional[0] || path.join(root, 'src', 'boss.html');
+const srcArg = positional[0] || null;
 const outArg = positional[1] || '奶系弹珠_弹射讨伐.html';
 const outFile = path.resolve(root, outArg);
 const checkOnly = flags.has('--check');
 const noAlias = flags.has('--no-alias');
 const preferPng = flags.has('--png');
+const emitSource = flags.has('--emit-source');
 
 const MIME = {
   '.png': 'image/png',
@@ -73,8 +83,27 @@ for (const stem of [...stems].sort()) {
 }
 
 /* ---------- 2. 读取源码 ---------- */
-if (!fs.existsSync(srcArg)) throw new Error('源码不存在: ' + srcArg);
-let html = fs.readFileSync(srcArg, 'utf8');
+/* 优先从 src/parts 组装；显式给了单文件路径则直接读那个文件 */
+function assembleFromParts() {
+  if (!fs.existsSync(partsManifest)) {
+    throw new Error('找不到 ' + partsManifest + '，请显式传入源码文件');
+  }
+  const manifest = JSON.parse(fs.readFileSync(partsManifest, 'utf8'));
+  const skeleton = fs.readFileSync(path.join(partsDir, manifest.skeleton), 'utf8');
+  const style = fs.readFileSync(path.join(partsDir, manifest.style), 'utf8');
+  const js = manifest.js.map((f) => fs.readFileSync(path.join(partsDir, f), 'utf8')).join('');
+  if (!skeleton.includes(STYLE_MARK)) throw new Error('骨架缺少样式占位符 ' + STYLE_MARK);
+  if (!skeleton.includes(JS_MARK)) throw new Error('骨架缺少脚本占位符 ' + JS_MARK);
+  return skeleton.replace(STYLE_MARK, () => style).replace(JS_MARK, () => js);
+}
+
+let html;
+if (srcArg) {
+  if (!fs.existsSync(srcArg)) throw new Error('源码不存在: ' + srcArg);
+  html = fs.readFileSync(srcArg, 'utf8');
+} else {
+  html = assembleFromParts();
+}
 
 /* ---------- 3. 组装素材表 ---------- */
 const bg = pick('bg-thunder', PHOTO_EXTS);
@@ -107,9 +136,12 @@ if (charsBlock) {
   problems.push('产物里找不到 CHARS 数据表，无法校验立绘完整性');
 }
 
-/* 外部相对路径只应作为「直接打开源码调试」时的回退，不能真的被用到 */
-const externalRefs = (html.match(/assets\/[A-Za-z0-9_\u4e00-\u9fa5-]+\.(?:png|webp|jpg|jpeg|mp4)/g) || []);
-if (externalRefs.length) console.warn(`[warn] 产物含 ${externalRefs.length} 处 assets/ 回退路径（正常，仅调试用）`);
+/* 外部相对路径只应作为「直接打开组装源码调试」时的回退，正常产物里不会走到。
+   这里仅在 --verbose 时提示，避免每次构建都刷屏。 */
+if (flags.has('--verbose')) {
+  const externalRefs = (html.match(/assets\/[A-Za-z0-9_\u4e00-\u9fa5-]+\.(?:png|webp|jpg|jpeg|mp4)/g) || []);
+  if (externalRefs.length) console.log(`[verbose] 产物含 ${externalRefs.length} 处 assets/ 回退路径（仅调试用，正常）`);
+}
 
 if (problems.length) {
   console.error('\n构建校验失败:');
@@ -119,6 +151,15 @@ if (problems.length) {
 
 /* ---------- 5. 输出 ---------- */
 const bytes = Buffer.from(html, 'utf8');
+
+/* 可选：导出一份「未内联素材」的组装源码。
+   放在项目根目录，这样它里面的 assets/ 回退路径能正常解析，可直接双击调试。 */
+if (emitSource) {
+  const srcOut = path.join(root, '_source.html');
+  const unbuilt = srcArg ? fs.readFileSync(srcArg, 'utf8') : assembleFromParts();
+  fs.writeFileSync(srcOut, unbuilt, 'utf8');
+  console.log('source: ' + srcOut + '  (未内联素材，可直接在主目录打开调试)');
+}
 
 function report(label) {
   console.log(`${label}: ${outFile}`);
