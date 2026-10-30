@@ -580,3 +580,8 @@ body.playing #bPlate.arm{
 #noscript{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
   background:#050a12;color:#f8f3e7;font-family:var(--font);font-size:15px;line-height:1.8;
   text-align:center;padding:24px;box-sizing:border-box}
+
+/* ---------- 隐藏 Netlify 注入的角标 ----------
+   #nl-badge-frame 不是我们 HTML 里的元素，是 Netlify 在页面里插入的 iframe。
+   用 !important 是因为它自带的样式优先级不确定。 */
+#nl-badge-frame{display:none !important}

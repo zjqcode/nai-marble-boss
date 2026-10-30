@@ -65,10 +65,12 @@ else bad(`大括号不平衡：结尾深度 ${depth}，最小深度 ${minDepth}`
 /* 4. 选择器引用的元素 id 是否真的在骨架里（先排除 #rrggbb 这类色值） */
 console.log('\n[CSS] id 选择器是否存在于 DOM');
 const HEX = /^[0-9a-fA-F]{3,8}$/;
+/* 这些 id 由第三方（如 Netlify）在运行时注入，本来就不在骨架里，属于合法例外 */
+const EXTERNAL_IDS = new Set(['nl-badge-frame']);
 const idSelectors = [...new Set([...css.matchAll(/#([a-zA-Z][\w-]*)/g)].map((m) => m[1]))]
   .filter((id) => !HEX.test(id));
-const missing = idSelectors.filter((id) => !skeleton.includes(`id="${id}"`));
-if (!missing.length) ok(`${idSelectors.length} 个 id 选择器全部能对上`);
+const missing = idSelectors.filter((id) => !skeleton.includes(`id="${id}"`) && !EXTERNAL_IDS.has(id));
+if (!missing.length) ok(`${idSelectors.length} 个 id 选择器全部能对上（含 ${EXTERNAL_IDS.size} 个第三方注入例外）`);
 else bad('CSS 里有、DOM 里没有的 id: ' + missing.join(', '));
 
 /* 5. 脚本里引用的 $id('x') 是否存在 */
