@@ -1,4 +1,4 @@
-﻿# 奶系弹珠 · 弹射讨伐
+# 奶系弹珠 · 弹射讨伐
 
 弹弓 × 合成 × 打 Boss。拖拽蓄力发射奶球，相同奶球碰撞合体；**所有等级都能伤害 Boss**，
 而且**奶球命中 Boss 后不会被消耗**，会弹开继续留在场上——所以可以一直弹、一直合，
@@ -9,6 +9,8 @@
 ## 打开
 
 双击 `奶系弹珠_弹射讨伐.html`（Chrome / Edge / Safari / 微信）。单文件离线可玩，手机竖屏最佳。
+
+素材使用 WebP，需要 Safari 14+ / iOS 14+；Chrome、Edge、安卓微信不受限制。
 
 ## 操作
 
@@ -95,10 +97,68 @@
 - 点击场地空白处向上发射中等力度球；拖动可瞄准，蓄力显示百分比。
 - 顶部 HUD 区域点击不会误发射；发射/合体/受击有轻震动。
 
+## 画面预览
+
+| 开始 | 开场 VS | 战斗 |
+|:---:|:---:|:---:|
+| ![开始](preview/intro.jpg) | ![开场 VS](preview/vs.jpg) | ![战斗](preview/play.jpg) |
+
+| 危险区 / 闪避 | 讨伐章节 | 角色图鉴 |
+|:---:|:---:|:---:|
+| ![危险区](preview/dodge.jpg) | ![讨伐章节](preview/levels.jpg) | ![角色图鉴](preview/gallery.jpg) |
+
+| 奶瓶商店 | 胜利结算 |
+|:---:|:---:|
+| ![奶瓶商店](preview/shop.jpg) | ![胜利结算](preview/win.jpg) |
+
+## 工程结构
+
+```
+my_game/
+├─ src/parts/              源码（按分节拆开，构建时拼回单文件）
+│  ├─ index.html           骨架：head + body + <style>/<script> 占位符
+│  ├─ style.css            全部样式
+│  ├─ manifest.json        组装顺序（唯一权威）
+│  └─ js/                 01-data.js / 03-audio.js / 16-render.js …
+├─ assets/                 素材：WebP 立绘 + 背景 + 图鉴 + bgm.mp4
+├─ preview/                README 截图（由 tools/shots.mjs 生成）
+├─ tools/                  构建与测试工具（零依赖，无需 npm install）
+├─ build.js                构建脚本
+├─ 奶系弹珠_弹射讨伐.html     构建产物（单文件，双击即玩）
+└─ index.html              产物别名（部署到静态站时避开中文文件名的 URL 编码）
+```
+
 ## 构建
 
 ```bash
-node build.js src/boss.html 奶系弹珠_弹射讨伐.html
+node build.js                 # 组装源码 + 内联素材 -> 单文件产物
+node build.js --check         # 校验「现有产物 == 重新构建结果」，退出码 0/1，可进 CI
+node build.js --emit-source   # 导出未内联素材的源码到 _source.html，便于调试
 ```
 
-调试：`?debug`、`?level=5`。章节难度字段（`breakPct / dodgeW / tele / dodgeRate / combo / enragePct`）都在 `CHAPTERS` 数据表里。源码 `src/boss.html`，素材在 `assets/`。
+产物约 1.15 MB，其中 92% 是 base64 素材。构建是**可复现**的：素材遍历顺序固定、
+占位符用函数式替换，同一份源码在任何机器上产出的 sha256 都一致。
+
+## 测试
+
+```bash
+npm run smoke            # 无头 Edge 冒烟测试，15 项
+node tools/shots.mjs     # 重新生成 preview/ 截图
+```
+
+冒烟测试通过 `tools/cdp.mjs` 直连 DevTools 协议（零依赖）。它把 `requestAnimationFrame` 换成
+手动队列、`performance.now` 虚拟化成逐帧时钟、`Math.random` 固定种子——于是每次运行的游戏状态
+完全一致，既能断言也能做跨版本像素对比。
+
+覆盖内容：素材解码、画布渲染、8 个章节各跑 30 秒逻辑（不崩 / 无 NaN / 有真实命中）、
+「命中 Boss 不消耗球」核心机制、胜利后存档推进、损坏存档回落、存档跨刷新保留。
+
+## 调试参数
+
+- `?debug` —— 暴露 `window.__NAI__`（`step(n)` / `spawn()` / `setBossHp()` / `damage()` / `win()` / `lose()` 等），冒烟测试就建立在它上面。
+- `?level=5` —— 直接进第 5 章。
+- `?autoplay` —— 自动开打第 1 章（跳过开场）。
+
+章节难度字段（`breakPct / dodgeW / tele / dodgeRate / combo / enragePct`）都在 `src/parts/js/01-data.js` 的 `CHAPTERS` 表里。
+
+> `?debug` 在正式产物里同样生效。单人离线游戏无所谓，但将来若加排行榜，需要先关掉它。

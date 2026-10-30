@@ -536,3 +536,8 @@ body.playing #itemBar{opacity:1;pointer-events:auto}
 }
 .buff-chip.fire{background:rgba(255,110,40,.18);border-color:rgba(255,150,80,.5);color:#ffd6b0}
 .shop-grid{display:flex;flex-direction:column;gap:7px;margin:10px 0 12px}
+
+/* ---------- noscript 兜底（脚本被禁用时给一句人话，而不是白屏） ---------- */
+#noscript{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:#050a12;color:#f8f3e7;font-family:var(--font);font-size:15px;line-height:1.8;
+  text-align:center;padding:24px;box-sizing:border-box}
