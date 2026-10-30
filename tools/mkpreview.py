@@ -10,7 +10,7 @@ shots = os.path.join(root, "dist", "shots")
 preview = os.path.join(root, "preview")
 os.makedirs(preview, exist_ok=True)
 
-W, H, Q = 390, 844, 88
+W, H, Q = 844, 390, 88
 total = 0
 names = []
 for f in sorted(os.listdir(shots)):

@@ -122,29 +122,8 @@ function bindEvents(){
     useItem(btn.getAttribute('data-item'));
   });
 
-  /* 炮台移动按钮：按住持续移动。按钮在 canvas 之上，不会触发瞄准 */
-  function bindMove(id, dir){
-    var btn = $id(id);
-    if(!btn) return;
-    var hold = function(e){
-      Sound.init(); Sound.resume();
-      state.moveDir = dir;
-      btn.classList.add('held');
-      e.preventDefault();
-    };
-    var rel = function(e){
-      if(state.moveDir === dir) state.moveDir = 0;
-      btn.classList.remove('held');
-      if(e) e.preventDefault();
-    };
-    btn.addEventListener('pointerdown', hold);
-    btn.addEventListener('pointerup', rel);
-    btn.addEventListener('pointercancel', rel);
-    btn.addEventListener('pointerleave', rel);
-    btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-  }
-  bindMove('bMoveL', -1);
-  bindMove('bMoveR', 1);
+  /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
+  bindSticks();
 
   $id('bFull').addEventListener('click', function(){
     Sound.ui();
@@ -239,7 +218,7 @@ function bindEvents(){
   }
 
   $id('bRotateOk').addEventListener('click', function(){
-    document.body.classList.add('landscape-ok');
+    document.body.classList.add('portrait-ok');
     Sound.ui();
     setTimeout(layout, 60);
   });

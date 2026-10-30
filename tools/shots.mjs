@@ -23,7 +23,8 @@ fs.mkdirSync(outDir, { recursive: true });
 const fileUrl = pathToFileURL(target).href;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const s = await launch({ width: 390, height: 844, dsf: 2 });
+/* 游戏已改为横屏优先，截图也走横屏 */
+const s = await launch({ width: 844, height: 390, dsf: 2 });
 console.log('浏览器:', s.browser);
 
 async function waitImages() {

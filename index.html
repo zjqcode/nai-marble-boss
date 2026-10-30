@@ -435,10 +435,6 @@ body.playing #dock{opacity:1;pointer-events:auto}
   position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   padding:24px;text-align:center;background:rgba(3,7,13,.93);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
 }
-@media (orientation:landscape) and (max-height:560px){
-  #rotate{display:flex}
-  body.landscape-ok #rotate{display:none}
-}
 .rot-phone{
   width:44px;height:74px;border:2px solid rgba(255,220,160,.55);border-radius:10px;margin-bottom:18px;position:relative;
   animation:rotHint 2.6s ease-in-out infinite;box-shadow:0 0 30px rgba(247,190,90,.18);
@@ -470,27 +466,48 @@ body.playing #dock{opacity:1;pointer-events:auto}
 }
 .title::after{display:none !important}
 
-/* ---------- 炮台移动按钮 ---------- */
-#movePad{
-  position:fixed;left:10px;right:10px;bottom:calc(var(--sab) + 92px);z-index:12;
-  display:flex;justify-content:space-between;pointer-events:none;opacity:0;transition:opacity .3s;
+/* ---------- 双摇杆 ----------
+   左：炮台左右移动（只认横向）
+   右：方向 + 蓄力 + 发射
+   放在 dock 上方、屏幕两侧；道具栏与反弹板按钮已上移到 sab+200，不会压住。 */
+.stick{
+  position:fixed;z-index:14;width:112px;height:112px;border-radius:50%;
+  bottom:calc(var(--sab) + 78px);
+  border:1.5px solid rgba(255,220,160,.24);
+  background:radial-gradient(circle at 50% 46%,rgba(18,28,42,.52),rgba(5,9,16,.40));
+  box-shadow:inset 0 0 26px rgba(0,0,0,.42),0 8px 20px rgba(0,0,0,.32);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;touch-action:none;
+  user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  transition:opacity .25s,border-color .15s,box-shadow .15s;
 }
-body.playing #movePad{opacity:1}
-.move-btn{
-  pointer-events:auto;width:58px;height:58px;border-radius:50%;
-  border:1px solid rgba(255,220,160,.32);
-  background:radial-gradient(circle at 35% 30%,rgba(60,46,26,.9),rgba(12,18,28,.85));
-  color:rgba(255,236,200,.92);font-size:21px;display:grid;place-items:center;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);
-  touch-action:none;user-select:none;font-family:inherit;
-  transition:transform .12s,background .15s;
+body.playing .stick{opacity:1;pointer-events:auto}
+#stickL{left:18px}
+#stickR{right:18px}
+/* 内圈参考线：给摇杆一个"可推范围"的视觉锚点 */
+.stick-ring{
+  position:absolute;left:50%;top:50%;width:66%;height:66%;margin:-33% 0 0 -33%;
+  border-radius:50%;border:1px dashed rgba(255,225,170,.14);
 }
-.move-btn:active,.move-btn.held{
-  background:radial-gradient(circle at 35% 30%,rgba(255,214,140,.95),rgba(226,162,61,.92));
-  color:#2a1a08;border-color:rgba(255,240,200,.85);transform:scale(.94);
+.stick .knob{
+  position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,rgba(255,240,206,.96),rgba(226,162,61,.88));
+  border:1px solid rgba(255,246,220,.8);
+  box-shadow:0 4px 14px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.55);
+  will-change:transform;
 }
-.move-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.stick-tx{
+  position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);
+  font-size:9px;letter-spacing:.18em;color:rgba(255,232,186,.42);white-space:nowrap;
+}
+.stick.active{border-color:rgba(255,226,163,.62);box-shadow:inset 0 0 26px rgba(0,0,0,.35),0 0 22px rgba(247,190,90,.22)}
+.stick.hot{border-color:rgba(255,170,120,.85);box-shadow:inset 0 0 26px rgba(0,0,0,.3),0 0 26px rgba(255,140,80,.4)}
+/* 左摇杆只允许横向：给一根横向轨道提示，暗示上下无效 */
+#stickL .stick-ring{
+  width:82%;height:2px;margin:-1px 0 0 -41%;
+  border:none;border-radius:2px;background:linear-gradient(90deg,rgba(255,225,170,0),rgba(255,225,170,.22),rgba(255,225,170,0));
+}
+.stick:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 /* ---------- 破防条 ---------- */
 .brk-row{display:flex;align-items:center;gap:6px;margin-top:5px}
@@ -523,7 +540,7 @@ body.playing #movePad{opacity:1}
 .shop-max{flex:0 0 auto;font-size:10px;color:var(--dim);border:1px solid rgba(255,255,255,.1);padding:6px 8px;border-radius:8px}
 /* 左侧竖排，位于左移按钮上方，不遮挡中间的弹弓 */
 #itemBar{
-  position:fixed;left:16px;bottom:calc(var(--sab) + 160px);z-index:14;
+  position:fixed;left:16px;bottom:calc(var(--sab) + 204px);z-index:14;
   display:flex;flex-direction:column-reverse;gap:7px;
   opacity:0;pointer-events:none;transition:opacity .25s;
 }
@@ -541,8 +558,8 @@ body.playing #itemBar{opacity:1;pointer-events:auto}
 .item-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .item-btn b{position:absolute;right:-4px;top:-4px;min-width:16px;height:16px;border-radius:8px;background:#ffcf6a;color:#2a1a08;font-size:9px;display:grid;place-items:center;padding:0 3px}
 @media (max-height:700px){
-  #itemBar{bottom:calc(var(--sab) + 150px);gap:5px}
-  #bPlate{bottom:calc(var(--sab) + 150px)}
+  #itemBar{bottom:calc(var(--sab) + 196px);gap:5px}
+  #bPlate{bottom:calc(var(--sab) + 196px)}
   .item-btn{width:38px;height:38px;font-size:16px}
   .move-btn{width:52px;height:52px;font-size:19px}
 }
@@ -551,7 +568,7 @@ body.playing #itemBar{opacity:1;pointer-events:auto}
 
 /* ---------- 反弹板专用按钮（右侧，与左侧道具栏对称，避开中间弹弓） ---------- */
 #bPlate{
-  position:fixed;right:16px;bottom:calc(var(--sab) + 160px);z-index:14;
+  position:fixed;right:16px;bottom:calc(var(--sab) + 204px);z-index:14;
   width:56px;height:56px;border-radius:18px;padding:5px 0 4px;
   border:1px solid rgba(140,255,215,.40);
   background:radial-gradient(circle at 35% 28%,rgba(30,84,68,.92),rgba(10,18,28,.84));
@@ -594,6 +611,65 @@ body.playing #bPlate.arm{
    #nl-badge-frame 不是我们 HTML 里的元素，是 Netlify 在页面里插入的 iframe。
    用 !important 是因为它自带的样式优先级不确定。 */
 #nl-badge-frame{display:none !important}
+
+/* =========================================================
+   横屏布局（手机主用形态）
+   =========================================================
+   竖屏的 HUD 是上下堆叠：卡片行 + Boss 血条 + buff 行，实测吃掉 137px；
+   横屏只有 390 高，场地会只剩 143px，根本没法玩。
+   所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
+   ========================================================= */
+@media (orientation:landscape){
+  #hud{
+    left:0;right:0;transform:none;width:auto;
+    top:calc(var(--sat) + 4px);padding:0 10px;
+    flex-direction:row;align-items:flex-start;gap:8px;
+  }
+  .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
+  .hud-card{padding:3px 9px 4px;border-radius:11px}
+  .score-card{min-width:84px}
+  .score-card strong{font-size:19px;line-height:1.02}
+  .lbl,.best{font-size:8px}
+  /* 中间：Boss 血条撑满剩余宽度 */
+  .boss-bar{
+    flex:1 1 auto;min-width:0;
+    background:linear-gradient(180deg,rgba(13,22,36,.80),rgba(8,14,24,.62));
+    border:1px solid var(--line);border-radius:11px;padding:3px 9px 4px;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  }
+  .bb-top{font-size:9px}
+  .brk-row{margin-top:2px;gap:5px}
+  .brk-lbl,.brk-pct{font-size:8px}
+  /* 这行提示横屏太占高度，而且属于上手一次就够的信息 */
+  .bb-foot{display:none}
+  #buffs{flex:0 0 auto;max-width:22vw;flex-wrap:wrap;justify-content:flex-end}
+  .buff-chip{font-size:8px;padding:1px 5px}
+
+  /* dock 压矮，把高度让给场地 */
+  #dock{
+    width:auto;left:50%;right:auto;
+    padding:4px;gap:3px;border-radius:16px;
+    bottom:calc(var(--sab) + 5px);
+  }
+  .dock-btn{padding:4px 9px 3px;border-radius:11px;gap:1px}
+  .dock-btn svg{width:17px;height:17px}
+  .dock-btn .tx{font-size:8px}
+
+  /* 摇杆：横屏两侧空间充裕，放在 dock 上方 */
+  .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}
+  .stick .knob{width:42px;height:42px;margin:-21px 0 0 -21px}
+  #stickL{left:14px}
+  #stickR{right:14px}
+
+  #itemBar{bottom:calc(var(--sab) + 180px);left:14px;gap:5px}
+  #bPlate{bottom:calc(var(--sab) + 180px);right:14px;width:50px;height:50px}
+}
+
+/* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */
+@media (orientation:portrait) and (max-width:600px){
+  #rotate{display:flex}
+  body.portrait-ok #rotate{display:none}
+}
 </style>
 </head>
 <body>
@@ -637,9 +713,16 @@ body.playing #bPlate.arm{
   <span class="tx">反弹板</span>
   <b id="plateCount">0</b>
 </button>
-<div id="movePad" aria-label="炮台移动">
-  <button class="move-btn" id="bMoveL" aria-label="炮台左移">◄</button>
-  <button class="move-btn" id="bMoveR" aria-label="炮台右移">►</button>
+<!-- 双摇杆：左=炮台左右移动（只认横向），右=方向 + 蓄力 + 发射 -->
+<div id="stickL" class="stick" aria-label="左摇杆：炮台左右移动">
+  <div class="stick-ring"></div>
+  <div class="knob"></div>
+  <span class="stick-tx">移动</span>
+</div>
+<div id="stickR" class="stick" aria-label="右摇杆：瞄准与发射">
+  <div class="stick-ring"></div>
+  <div class="knob"></div>
+  <span class="stick-tx">瞄准</span>
 </div>
 <nav id="dock" aria-label="游戏控制">
   <button class="dock-btn" id="bRestart" aria-label="重开">
@@ -786,9 +869,9 @@ body.playing #bPlate.arm{
 
 <div id="rotate">
   <div class="rot-phone"></div>
-  <h2>转成竖屏更好玩</h2>
-  <p>弹弓需要更高的空间<br>竖屏才能拉满蓄力</p>
-  <button class="ghost-btn" id="bRotateOk">仍要横屏游玩</button>
+  <h2>请横屏游玩</h2>
+  <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手控方向与蓄力</p>
+  <button class="ghost-btn" id="bRotateOk">仍要竖屏游玩</button>
 </div>
 
 <script>
@@ -1505,8 +1588,15 @@ function layout(){
   view.top = 4;
   view.bottom = Math.round(dockTop - 2);
   view.h = view.bottom - view.top;
-  /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽 */
-  var maxW = Math.min(W, clamp(view.h * 1.15, 520, 860));
+  /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽。
+     横屏时两侧要留给摇杆（各约 120~140px），中间尽量放宽——场地越宽，左右闪避越有意义。 */
+  var maxW;
+  if(W > H){
+    var sideRoom = Math.max(96, Math.min(140, W * 0.16));
+    maxW = Math.max(320, Math.min(W - sideRoom * 2, Math.max(520, view.h * 1.9)));
+  } else {
+    maxW = Math.min(W, clamp(view.h * 1.15, 520, 860));
+  }
   view.w = Math.round(maxW);
   view.left = Math.round((W - view.w)/2);
   view.right = view.left + view.w;
@@ -1887,7 +1977,7 @@ var state = {
   plates: [],
   placingPlate: null,   /* 反弹板拖拽放置中的预览 {x,y,ang,dragging} */
   ceilFx: [],
-  cannonX: 0, moveDir: 0, atkDmg: 1, dodgeStreak: 0,
+  cannonX: 0, moveDir: 0, stickX: 0, atkDmg: 1, dodgeStreak: 0,
   slowmo: 0,
   flashHue: 'blue',
   comboQ: 0, comboT2: 0,
@@ -2157,6 +2247,121 @@ function fireBall(){
   }
 }
 
+/* =========================================================
+   7b. 双摇杆
+   =========================================================
+   左：只认横向位移，控制炮台左右移动；上下拖动完全忽略（不是"移动变慢"，是无效）。
+   右：推杆方向 = 发射方向，推杆距离 = 蓄力，松手发射。
+       和原来的"按住下拉"相反——摇杆的直觉是往哪推就往哪打。
+   两个摇杆互不干扰：各自 setPointerCapture，可以同时操作（边移动边瞄准）。
+   ========================================================= */
+var STICK_DEAD = 0.14;   /* 死区：手指微抖不算输入 */
+
+function bindStick(el, opts){
+  if(!el) return;
+  var pid = null, cx = 0, cy = 0, maxR = 1;
+  var knob = el.querySelector('.knob');
+
+  function paint(nx, ny, mag){
+    if(knob){
+      /* 左摇杆的纵向位移被钉死，视觉上也只走横向，避免误导 */
+      var ky = opts.horizontal ? 0 : ny;
+      knob.style.transform = 'translate(' + (nx*maxR).toFixed(1) + 'px,' + (ky*maxR).toFixed(1) + 'px)';
+    }
+    el.classList.toggle('hot', mag >= 0.92);
+  }
+
+  function handle(e){
+    var dx = e.clientX - cx;
+    var dy = opts.horizontal ? 0 : e.clientY - cy;
+    var len = Math.hypot(dx, dy);
+    if(len > maxR){
+      dx = dx / len * maxR;
+      dy = dy / len * maxR;
+      len = maxR;
+    }
+    var mag = maxR > 0 ? len / maxR : 0;
+    paint(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
+    opts.onMove(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
+  }
+
+  function begin(e){
+    Sound.init(); Sound.resume();
+    if(state.mode !== 'play' || state.paused) return;
+    var r = el.getBoundingClientRect();
+    if(!r.width) return;
+    cx = r.left + r.width / 2;
+    cy = r.top + r.height / 2;
+    maxR = r.width * 0.30;          /* 推到底时摇杆头刚好贴住外圈内沿 */
+    pid = e.pointerId;
+    el.classList.add('active');
+    try{ el.setPointerCapture(pid); }catch(err){}
+    handle(e);
+    e.preventDefault();
+  }
+
+  function move(e){
+    if(pid === null || e.pointerId !== pid) return;
+    handle(e);
+    e.preventDefault();
+  }
+
+  function end(e){
+    if(pid === null) return;
+    if(e && e.pointerId !== undefined && e.pointerId !== pid) return;
+    pid = null;
+    el.classList.remove('active');
+    el.classList.remove('hot');
+    if(knob) knob.style.transform = '';
+    if(opts.onEnd) opts.onEnd();
+    if(e) e.preventDefault();
+  }
+
+  el.addEventListener('pointerdown', begin);
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+}
+
+function bindSticks(){
+  /* ---- 左摇杆：只取横向 ---- */
+  bindStick($id('stickL'), {
+    horizontal: true,
+    onMove: function(nx){
+      state.stickX = Math.abs(nx) < STICK_DEAD ? 0 : clamp(nx, -1, 1);
+    },
+    onEnd: function(){ state.stickX = 0; }
+  });
+
+  /* ---- 右摇杆：方向 + 蓄力 + 松手发射 ---- */
+  bindStick($id('stickR'), {
+    horizontal: false,
+    onMove: function(nx, ny, mag){
+      if(state.mode !== 'play' || state.paused) return;
+      var a = state.aim;
+      var maxPull = Math.min(168, view.w*0.44);
+      a.active = mag > STICK_DEAD;
+      a.power = mag <= STICK_DEAD ? 0 : clamp(mag, 0, 1);
+      a.pull = mag * maxPull;
+      if(mag > STICK_DEAD){
+        var l = Math.hypot(nx, ny);
+        if(l > 0.001){ a.dx = nx/l; a.dy = ny/l; }
+        a.moved = true;
+      }
+    },
+    onEnd: function(){
+      var a = state.aim;
+      if(!a.active) return;
+      /* 装填中松手不算发射，但要清掉瞄准态，否则预测线会一直挂着 */
+      if(a.power >= 0.12 && state.reloadT <= 0.02){
+        fireBall();
+      } else {
+        a.active = false;
+        a.power = 0;
+      }
+    }
+  });
+}
 /* =========================================================
    8. 物理
    ========================================================= */
@@ -3870,19 +4075,21 @@ function update(dt){
       return;
     }
     updateLevelHUD();
-    /* 炮台左右移动：这是闪避能成立的前提 */
-    if(state.moveDir){
+    /* 炮台左右移动：这是闪避能成立的前提。
+       左摇杆给出 -1~1 的连续值（推多远走多快），键盘给 ±1；摇杆优先。 */
+    var mv = state.stickX !== 0 ? state.stickX : state.moveDir;
+    if(mv){
       var before = state.cannonX;
       state.cannonX = clamp(
         /* 按场宽算速度：危险区是场宽的比例，移动也得跟着场宽走，否则宽屏躲不开 */
-        state.cannonX + state.moveDir * view.w * 0.85 * dt,
+        state.cannonX + mv * view.w * 0.85 * dt,
         view.left + 34*view.s, view.right - 34*view.s);
       if(state.cannonX !== before){
         Sound.move();
         if(state.parts.length < 360 && Math.random() < 0.5){
           state.parts.push({
-            x:state.cannonX - state.moveDir*22*view.s, y:view.pouchY + rand(12,30)*view.s,
-            vx:-state.moveDir*rand(40,120), vy:rand(-20,30), r:rand(.8,2),
+            x:state.cannonX - mv*22*view.s, y:view.pouchY + rand(12,30)*view.s,
+            vx:-mv*rand(40,120), vy:rand(-20,30), r:rand(.8,2),
             life:rand(.2,.42), color:'#ffd98f', grav:40
           });
         }
@@ -4887,7 +5094,7 @@ function drawLauncher(){
     ctx.fillStyle = 'rgba(255,238,205,.9)';
     ctx.font = '600 ' + (10.5*view.s) + 'px ' + FONT;
     ctx.textAlign = 'center';
-    ctx.fillText('按住下拉 · 松手发射', view.cx, home.y - 92*view.s);
+    ctx.fillText('右摇杆瞄准 · 松手发射', view.cx, home.y - 92*view.s);
     ctx.restore();
   }
   ctx.restore();
@@ -5559,29 +5766,8 @@ function bindEvents(){
     useItem(btn.getAttribute('data-item'));
   });
 
-  /* 炮台移动按钮：按住持续移动。按钮在 canvas 之上，不会触发瞄准 */
-  function bindMove(id, dir){
-    var btn = $id(id);
-    if(!btn) return;
-    var hold = function(e){
-      Sound.init(); Sound.resume();
-      state.moveDir = dir;
-      btn.classList.add('held');
-      e.preventDefault();
-    };
-    var rel = function(e){
-      if(state.moveDir === dir) state.moveDir = 0;
-      btn.classList.remove('held');
-      if(e) e.preventDefault();
-    };
-    btn.addEventListener('pointerdown', hold);
-    btn.addEventListener('pointerup', rel);
-    btn.addEventListener('pointercancel', rel);
-    btn.addEventListener('pointerleave', rel);
-    btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-  }
-  bindMove('bMoveL', -1);
-  bindMove('bMoveR', 1);
+  /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
+  bindSticks();
 
   $id('bFull').addEventListener('click', function(){
     Sound.ui();
@@ -5676,7 +5862,7 @@ function bindEvents(){
   }
 
   $id('bRotateOk').addEventListener('click', function(){
-    document.body.classList.add('landscape-ok');
+    document.body.classList.add('portrait-ok');
     Sound.ui();
     setTimeout(layout, 60);
   });

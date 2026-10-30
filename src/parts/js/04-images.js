@@ -71,8 +71,15 @@ function layout(){
   view.top = 4;
   view.bottom = Math.round(dockTop - 2);
   view.h = view.bottom - view.top;
-  /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽 */
-  var maxW = Math.min(W, clamp(view.h * 1.15, 520, 860));
+  /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽。
+     横屏时两侧要留给摇杆（各约 120~140px），中间尽量放宽——场地越宽，左右闪避越有意义。 */
+  var maxW;
+  if(W > H){
+    var sideRoom = Math.max(96, Math.min(140, W * 0.16));
+    maxW = Math.max(320, Math.min(W - sideRoom * 2, Math.max(520, view.h * 1.9)));
+  } else {
+    maxW = Math.min(W, clamp(view.h * 1.15, 520, 860));
+  }
   view.w = Math.round(maxW);
   view.left = Math.round((W - view.w)/2);
   view.right = view.left + view.w;

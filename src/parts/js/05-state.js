@@ -70,7 +70,7 @@ var state = {
   plates: [],
   placingPlate: null,   /* 反弹板拖拽放置中的预览 {x,y,ang,dragging} */
   ceilFx: [],
-  cannonX: 0, moveDir: 0, atkDmg: 1, dodgeStreak: 0,
+  cannonX: 0, moveDir: 0, stickX: 0, atkDmg: 1, dodgeStreak: 0,
   slowmo: 0,
   flashHue: 'blue',
   comboQ: 0, comboT2: 0,

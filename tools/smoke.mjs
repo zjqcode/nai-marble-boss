@@ -447,6 +447,132 @@ await check('反弹板：按钮拖拽放置、长度受控、8 秒后消失', as
   return `拖到 (${r.afterPlace.x},${r.afterPlace.y})，长 ${r.afterPlace.len}px（场宽 ${r.afterPlace.fieldW}），寿命 ${r.afterPlace.life}s`;
 });
 
+// ---------- 8b. 双摇杆：左只横移、右方向+蓄力+发射 ----------
+await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方向与蓄力并发射', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state;
+      N.tick(170);
+      const out = {};
+      const center = (id) => {
+        const b = document.getElementById(id).getBoundingClientRect();
+        return { x: b.left + b.width/2, y: b.top + b.height/2 };
+      };
+      const down = (id, dx, dy) => {
+        const c = center(id);
+        document.getElementById(id).dispatchEvent(new PointerEvent('pointerdown', {
+          clientX: c.x + dx, clientY: c.y + dy, pointerId: 11, bubbles: true, cancelable: true }));
+      };
+      const up = (id) => document.getElementById(id).dispatchEvent(new PointerEvent('pointerup', {
+        pointerId: 11, bubbles: true, cancelable: true }));
+
+      out.oldButtonsGone = !document.getElementById('bMoveL') && !document.getElementById('bMoveR');
+
+      /* 左摇杆：横推 -> 移动；纵推 -> 完全不动 */
+      const x0 = st.cannonX;
+      down('stickL', 40, 0);
+      out.stickXRight = +st.stickX.toFixed(2);
+      N.step(20);
+      out.movedRight = Math.round(st.cannonX - x0);
+      up('stickL');
+      out.stickXReleased = st.stickX;
+
+      const x1 = st.cannonX;
+      down('stickL', 0, -45);
+      out.stickXVertical = +st.stickX.toFixed(2);
+      N.step(20);
+      out.movedWhenVertical = Math.round(st.cannonX - x1);
+      up('stickL');
+
+      /* 右摇杆：左上推 -> 朝左上发射；正上推 -> 朝正上发射 */
+      st.balls.length = 0; st.reloadT = 0;
+      down('stickR', -35, -35);
+      out.aim = { dx: +st.aim.dx.toFixed(2), dy: +st.aim.dy.toFixed(2),
+                  power: +st.aim.power.toFixed(2), active: st.aim.active };
+      up('stickR');
+      N.step(2);
+      const b1 = st.balls[st.balls.length - 1];
+      out.upLeft = b1 ? { vx: Math.round(b1.vx), vy: Math.round(b1.vy) } : null;
+
+      st.balls.length = 0; st.reloadT = 0;
+      down('stickR', 0, -45);
+      up('stickR');
+      N.step(2);
+      const b2 = st.balls[st.balls.length - 1];
+      out.straightUp = b2 ? { vx: Math.round(b2.vx), vy: Math.round(b2.vy) } : null;
+
+      /* 死区内的小推不应发射 */
+      st.balls.length = 0; st.reloadT = 0;
+      down('stickR', 2, -2);
+      out.deadzonePower = +st.aim.power.toFixed(2);
+      out.deadzoneActive = st.aim.active;
+      up('stickR');
+      N.step(2);
+      out.deadzoneBalls = st.balls.length;
+      return out;
+    })()`);
+
+  assert(r.oldButtonsGone, '原来的左右移动按钮应已移除');
+  assert(r.stickXRight > 0.9, `右推时 stickX 应接近 1，实际 ${r.stickXRight}`);
+  assert(r.movedRight > 40, `右推后炮台应右移，实际位移 ${r.movedRight}px`);
+  assert(r.stickXReleased === 0, '松手后 stickX 应归零');
+  assert(r.stickXVertical === 0, `只上下推时不应产生横向输入，实际 stickX=${r.stickXVertical}`);
+  assert(r.movedWhenVertical === 0, `只上下推时炮台不应移动，实际位移 ${r.movedWhenVertical}px`);
+  assert(r.aim.active && r.aim.dy < -0.5 && r.aim.dx < -0.5, '左上推的瞄准方向不对: ' + JSON.stringify(r.aim));
+  assert(r.aim.power > 0.9, `推到底蓄力应接近 1，实际 ${r.aim.power}`);
+  assert(r.upLeft && r.upLeft.vx < 0 && r.upLeft.vy < 0, '左上推应朝左上发射: ' + JSON.stringify(r.upLeft));
+  assert(r.straightUp && Math.abs(r.straightUp.vx) < 40 && r.straightUp.vy < 0,
+    '正上推应近似垂直向上发射: ' + JSON.stringify(r.straightUp));
+  assert(!r.deadzoneActive && r.deadzonePower === 0, '死区内不应进入瞄准态');
+  assert(r.deadzoneBalls === 0, '死区内松手不应发射');
+
+  return `左推位移 ${r.movedRight}px / 纵推 ${r.movedWhenVertical}px / ` +
+    `左上发射 v(${r.upLeft.vx},${r.upLeft.vy}) / 正上 v(${r.straightUp.vx},${r.straightUp.vy})`;
+});
+
+// ---------- 8c. 横屏布局 ----------
+await check('横屏布局：HUD 压扁、场地变高、竖屏才提示转横屏', async () => {
+  const orig = { width: 390, height: 844, deviceScaleFactor: 2, mobile: true };
+  await session.send('Emulation.setDeviceMetricsOverride', {
+    width: 844, height: 390, deviceScaleFactor: 2, mobile: true,
+  });
+  await sleep(400);
+  try {
+    await session.goto(`${fileUrl}?debug&level=1`);
+    await waitImages();
+    const r = await session.evaluate(`
+      (() => {
+        const N = window.__NAI__, v = N.view;
+        N.tick(60);
+        const box = (id) => { const e = document.getElementById(id); const b = e.getBoundingClientRect();
+                              return { y: Math.round(b.y), h: Math.round(b.height), w: Math.round(b.width) }; };
+        const st = (id) => getComputedStyle(document.getElementById(id));
+        return {
+          viewport: [innerWidth, innerHeight],
+          hudH: box('hud').h,
+          arenaH: Math.round(v.arenaH),
+          viewW: Math.round(v.w),
+          rotate: st('rotate').display,
+          stickVisible: st('stickL').opacity,
+          stickLx: box('stickL').w,
+          fieldLeft: Math.round(v.left), fieldRight: Math.round(v.right),
+          stickRightEdge: Math.round(box('stickL').w + 14),
+        };
+      })()`);
+    assert(r.viewport[0] > r.viewport[1], '应处于横屏视口');
+    assert(r.hudH <= 64, `横屏 HUD 应压到 64px 以内，实际 ${r.hudH}px`);
+    assert(r.arenaH >= 200, `横屏可玩带应 ≥200px，实际 ${r.arenaH}px`);
+    assert(r.rotate === 'none', '横屏不应再弹"转竖屏"提示');
+    assert(r.stickRightEdge <= r.fieldLeft, `左摇杆(${r.stickRightEdge}px)不应压住场地(${r.fieldLeft}px 起)`);
+    return `HUD ${r.hudH}px / 场地 ${r.viewW}×${r.arenaH} / 摇杆在场地外`;
+  } finally {
+    await session.send('Emulation.setDeviceMetricsOverride', orig);
+    await sleep(300);
+  }
+});
+
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------
 await check('动态背景：画面随时间变化（不再是一张静态图）', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);

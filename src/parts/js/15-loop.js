@@ -75,19 +75,21 @@ function update(dt){
       return;
     }
     updateLevelHUD();
-    /* 炮台左右移动：这是闪避能成立的前提 */
-    if(state.moveDir){
+    /* 炮台左右移动：这是闪避能成立的前提。
+       左摇杆给出 -1~1 的连续值（推多远走多快），键盘给 ±1；摇杆优先。 */
+    var mv = state.stickX !== 0 ? state.stickX : state.moveDir;
+    if(mv){
       var before = state.cannonX;
       state.cannonX = clamp(
         /* 按场宽算速度：危险区是场宽的比例，移动也得跟着场宽走，否则宽屏躲不开 */
-        state.cannonX + state.moveDir * view.w * 0.85 * dt,
+        state.cannonX + mv * view.w * 0.85 * dt,
         view.left + 34*view.s, view.right - 34*view.s);
       if(state.cannonX !== before){
         Sound.move();
         if(state.parts.length < 360 && Math.random() < 0.5){
           state.parts.push({
-            x:state.cannonX - state.moveDir*22*view.s, y:view.pouchY + rand(12,30)*view.s,
-            vx:-state.moveDir*rand(40,120), vy:rand(-20,30), r:rand(.8,2),
+            x:state.cannonX - mv*22*view.s, y:view.pouchY + rand(12,30)*view.s,
+            vx:-mv*rand(40,120), vy:rand(-20,30), r:rand(.8,2),
             life:rand(.2,.42), color:'#ffd98f', grav:40
           });
         }
