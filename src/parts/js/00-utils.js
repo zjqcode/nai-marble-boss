@@ -24,6 +24,10 @@ function store(k,v){
    ASSET_BASE 是素材目录前缀，构建时可用 --asset-base 改写成国内仓库/CDN 的绝对地址。 */
 var SPRITE_EXT = 'webp';
 var ASSET_BASE = 'assets/';
+/* 音频基址单独可配：Gitee raw 的响应缺少 Content-Length / Accept-Ranges
+   （它 302 到带签名的临时地址），浏览器 <audio> 无法流式解码，
+   所以音频通常仍与 HTML 同源，图片则可以放心外置到仓库/CDN。 */
+var AUDIO_BASE = 'assets/';
 function assetURL(name){
   var slug = charImg(name);          /* 中文角色名 -> ASCII 文件名 */
   if(ASSET_DATA) return ASSET_DATA.sprites[slug] || '';

@@ -10,6 +10,7 @@
  *   node build.js --emit-source                把组装好的源码写到 dist/source.html（便于单文件调试）
  *   node build.js --web [目录]                 生成「外置资源」的网页部署版（默认 dist/web）
  *   node build.js --web --asset-base <url>     把素材前缀改写成绝对地址（素材放国内仓库/CDN，HTML 放任何地方）
+ *   node build.js --web --audio-base <url>     音频前缀单独指定（Gitee raw 无法给 <audio> 提供流式响应）
  *   node build.js --png                        优先使用 png/jpg 素材（默认优先 webp）
  *   node build.js --no-alias                   不额外生成 index.html
  */
@@ -34,19 +35,22 @@ const webDirArg = (() => {
   const next = argv[i + 1];
   return next && !next.startsWith('--') ? next : null;
 })();
-/* positional：排除 --flag，以及 --web / --asset-base 后面那个「取值」 */
+/* positional：排除 --flag，以及这几个 flag 后面那个「取值」 */
+const VALUED_FLAGS = new Set(['--web', '--asset-base', '--audio-base']);
 const positional = argv.filter((a, i) => {
   if (a.startsWith('--')) return false;
-  if (i > 0 && (argv[i - 1] === '--web' || argv[i - 1] === '--asset-base')) return false;
+  if (i > 0 && VALUED_FLAGS.has(argv[i - 1])) return false;
   return true;
 });
-/* --asset-base：素材前缀改写目标，例如 https://gitee.com/<user>/<repo>/raw/master/assets/ */
-const assetBaseArg = (() => {
-  const i = argv.indexOf('--asset-base');
+const flagValue = (name) => {
+  const i = argv.indexOf(name);
   if (i < 0) return null;
   const next = argv[i + 1];
   return next && !next.startsWith('--') ? next : null;
-})();
+};
+/* --asset-base：图片（立绘/图鉴）前缀；--audio-base：音频前缀 */
+const assetBaseArg = flagValue('--asset-base');
+const audioBaseArg = flagValue('--audio-base');
 
 const srcArg = positional[0] || null;
 const outArg = positional[1] || '奶系弹珠_弹射讨伐.html';
@@ -138,35 +142,51 @@ if (webMode) {
   fs.rmSync(webDir, { recursive: true, force: true });
   fs.mkdirSync(webDir, { recursive: true });
 
-  /* 可选：把素材前缀改成绝对地址（素材放国内仓库，HTML 放任意托管商）。
-     只改这一行常量，立绘/图鉴/音效全部走同一个前缀。 */
+  /* 可选：把图片/音频前缀改成绝对地址。
+     图片与音频分开可配——Gitee raw 给 <audio> 的响应没有 Content-Length / Accept-Ranges，
+     浏览器无法流式解码，所以常见组合是「图片走仓库、音频留在同源」。 */
   let webHtml = html;
-  if (assetBaseArg) {
-    const base = assetBaseArg.endsWith('/') ? assetBaseArg : assetBaseArg + '/';
-    const def = "var ASSET_BASE = 'assets/';";
-    if (!webHtml.includes(def)) throw new Error('源码里找不到 ASSET_BASE 定义，无法改写素材前缀');
-    webHtml = webHtml.replace(def, () => `var ASSET_BASE = ${JSON.stringify(base)};`);
-    console.log(`asset-base: ${base}`);
-  }
+  const rewrite = (constant, value) => {
+    const def = `var ${constant} = 'assets/';`;
+    if (!webHtml.includes(def)) throw new Error(`源码里找不到 ${constant} 定义，无法改写`);
+    const base = value.endsWith('/') ? value : value + '/';
+    webHtml = webHtml.replace(def, () => `var ${constant} = ${JSON.stringify(base)};`);
+    console.log(`${constant} = ${base}`);
+  };
+  if (assetBaseArg) rewrite('ASSET_BASE', assetBaseArg);
+  if (audioBaseArg) rewrite('AUDIO_BASE', audioBaseArg);
 
   fs.writeFileSync(path.join(webDir, 'index.html'), webHtml, 'utf8');
-  /* 绝对地址模式下素材不随包发布 */
-  if (!assetBaseArg) fs.cpSync(assetsDir, path.join(webDir, 'assets'), { recursive: true });
 
-  const listDir = (d) => fs.readdirSync(d).map((f) => ({ f, size: fs.statSync(path.join(d, f)).size }));
+  /* 外置的素材就不随包发布了，只拷贝真正需要同源提供的文件 */
+  const needLocalImages = !assetBaseArg;
+  const needLocalAudio = !audioBaseArg;
+  const assetsOut = path.join(webDir, 'assets');
+  const copied = [];
+  if (needLocalImages || needLocalAudio) {
+    fs.mkdirSync(assetsOut, { recursive: true });
+    for (const f of fs.readdirSync(assetsDir)) {
+      const isAudio = /\.(mp3|m4a|mp4)$/i.test(f);
+      if (isAudio ? !needLocalAudio : !needLocalImages) continue;
+      fs.copyFileSync(path.join(assetsDir, f), path.join(assetsOut, f));
+      copied.push({ f, size: fs.statSync(path.join(assetsDir, f)).size });
+    }
+  }
+
   const htmlBytes = Buffer.byteLength(webHtml, 'utf8');
-  const assets = assetBaseArg ? [] : listDir(path.join(webDir, 'assets'));
-  const assetBytes = assets.reduce((s, a) => s + a.size, 0);
+  const assetBytes = copied.reduce((s, a) => s + a.size, 0);
 
   console.log(`web: ${path.join(webDir, 'index.html')}`);
   console.log(`  index.html : ${(htmlBytes / 1024).toFixed(0)} KB（未内联素材，gzip 后通常 < 60 KB）`);
-  if (assetBaseArg) {
-    console.log('  assets/    : 不随包输出（已指向 ' + assetBaseArg + '）');
+  if (copied.length) {
+    console.log(`  assets/    : 同源提供 ${copied.length} 个文件，${(assetBytes / 1024).toFixed(0)} KB`);
+    for (const a of copied) console.log(`     ${a.f.padEnd(20)} ${(a.size / 1024).toFixed(0)} KB`);
   } else {
-    console.log(`  assets/    : ${assets.length} 个文件，${(assetBytes / 1024).toFixed(0)} KB`);
-    for (const a of assets) console.log(`     ${a.f.padEnd(20)} ${(a.size / 1024).toFixed(0)} KB`);
-    console.log(`  合计       : ${((htmlBytes + assetBytes) / 1024 / 1024).toFixed(2)} MB（首次访问；之后素材走缓存）`);
+    console.log('  assets/    : 全部外置，不随包输出');
   }
+  console.log(`  需你托管   : ${((htmlBytes + assetBytes) / 1024).toFixed(0)} KB` +
+    (assetBaseArg ? `；图片走 ${assetBaseArg}` : '') +
+    (audioBaseArg ? `；音频走 ${audioBaseArg}` : ''));
   process.exit(0);
 }
 

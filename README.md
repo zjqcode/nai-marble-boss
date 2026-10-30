@@ -201,39 +201,71 @@ node tools/shots.mjs     # 重新生成 preview/ 截图
 
 ## 部署到网站
 
-单文件版适合「发给别人双击玩」，网站部署则应该用**外置资源版**——HTML 只有 219 KB，
-素材单独成文件，能被浏览器缓存和 CDN 分发：
+单文件版适合「发给别人双击玩」；网站部署用**外置资源版**——HTML 只有 220 KB，
+素材单独成文件，能被浏览器缓存、也能换成任何源。
 
-```bash
-node build.js --web            # -> dist/web/  (index.html + assets/)
-node build.js --web docs       # -> docs/      （提交进仓库，给 Gitee Pages 用）
+本项目的分工：**Gitee 只当素材仓库**（webp / mp3），HTML 自己托管（不放在 Gitee）。
+
+### 素材基址（Gitee 只当素材仓库）
+
+```
+https://gitee.com/zjqcodex/nai-marble-boss/raw/main/assets/
 ```
 
-### 方式一 · 整站托管（推荐）
+13 张立绘 + 图鉴，全部 ASCII 短名，实测 16/16 返回 200：
 
-仓库里已有 `docs/`，直接开 Pages 即可：
+```
+egg  bean  frog-s  mouse  hen  cat  fish  powder  dog  rabbit  soymilk  poop  frog  chart
+```
 
-- **Gitee Pages**：仓库 → 服务 → Gitee Pages → 分支 `main`、部署目录 `docs` → 启动
-  → 地址形如 `https://zjqcodex.gitee.io/nai-marble-boss/`
-- 换成 GitHub Pages / Vercel / Netlify 同理（部署目录同样选 `docs`）
+角色名 → 文件名 的映射在 `src/parts/js/01-data.js` 的 `CHARS[].img` 里
+（例如 `奶狗 → dog`）。**刻意不用中文文件名**：中文会变成 `%E5%A5%B6%E7%8B%97.webp`
+这类编码，难读，也容易被 CDN / 反向代理处理错。
 
-`docs/assets/` 与根目录 `assets/` 内容完全相同，git 会按内容去重，不会让仓库翻倍。
+### ⚠️ 音频不能放在 Gitee raw
 
-### 方式二 · HTML 与素材分开（素材放国内仓库）
+Gitee 的 `raw` 会 302 跳到 `raw.giteeusercontent.com/...?signature=...`，而那个最终响应：
+
+```
+Content-Type: audio/mpeg     ✓
+Content-Disposition: inline  ✓
+Content-Length:  (缺失)       ✗
+Accept-Ranges:   (缺失)       ✗
+```
+
+**没有 `Content-Length` 和 `Accept-Ranges`，浏览器的 `<audio>` 就无法流式解码**，
+实测直接报 `MEDIA_ELEMENT_ERROR: Format error` / `NotSupportedError`。
+图片是整取所以不受影响——这就是「图片放 Gitee、音频留在同源」的原因。
+
+（另外 Gitee raw 还拒绝返回 HTML，`451 Unavailable For Legal Reasons`。）
+
+### 构建网页版
 
 ```bash
-node build.js --web dist/web-cdn \
+# A. 全部同源（素材跟 HTML 一起部署，最稳）
+node build.js --web                    # -> dist/web/
+
+# B. 图片走 Gitee，音频跟 HTML 同源（推荐）
+node build.js --web dist/web-gitee \
   --asset-base "https://gitee.com/zjqcodex/nai-marble-boss/raw/main/assets"
+# -> dist/web-gitee/index.html (220 KB) + assets/{laugh,lose}.mp3 (406 KB)
+#    需你托管 626 KB，14 张图片由 Gitee 提供
+
+# C. 素材全外置（要求素材源支持 Range，例如 jsDelivr）
+node build.js --web dist/web-cdn \
+  --asset-base "..." --audio-base "..."
 ```
 
-产出的 `dist/web-cdn/` 只有一个 `index.html`，素材全部指向给定前缀，HTML 可以放任意托管商。
-实测跨域可用（14/14 图片 + 2 条音效正常加载）。
+`ASSET_BASE`（图片）与 `AUDIO_BASE`（音频）可以分别指定，换源不用改代码。
 
-> ⚠️ 这套方案能用，但有两个实测限制：
-> 1. **Gitee 的 `raw` 会拒绝返回 HTML**（`451 Unavailable For Legal Reasons`，防止被当免费网页托管）。
->    所以只有**素材**能放 raw，HTML 必须自己找地方托管——这也正是本方案的分工。
-> 2. raw 是文件网关而不是 CDN：16 个素材串行下载约 16 秒（走代理环境），
->    `Cache-Control` 只有 `max-age=60`。素材量不大时无所谓，追求首屏速度请用 Pages。
+> 如果想让**音频也走 CDN**：`jsDelivr` 实测合格（`206 Partial Content`、`Content-Length`、
+> `Cache-Control: max-age=604800`、`access-control-allow-origin: *`），
+> 但它只代理 GitHub 仓库，需要先把仓库同步到 GitHub：
+> ```bash
+> node build.js --web dist/cdn \
+>   --asset-base "https://cdn.jsdelivr.net/gh/zjqcode/nai-marble-boss@main/assets" \
+>   --audio-base "https://cdn.jsdelivr.net/gh/zjqcode/nai-marble-boss@main/assets"
+> ```
 
 ## 调试参数
 

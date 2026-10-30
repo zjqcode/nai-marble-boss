@@ -314,14 +314,14 @@ function boot(){
   /* 音效：单文件版走内联 data URI；外置资源版（部署网站用）回退到 assets/ 相对路径 */
   bgmEl = $id('bgm');
   if(bgmEl){
-    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : ASSET_BASE + 'laugh.mp3';
+    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : AUDIO_BASE + 'laugh.mp3';
     bgmEl.volume = 0.72;
     bgmEl.loop = true;
     bgmEl.pause();
   }
   loseEl = $id('loseSnd');
   if(loseEl){
-    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : ASSET_BASE + 'lose.mp3';
+    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : AUDIO_BASE + 'lose.mp3';
     loseEl.volume = 0.62;
     loseEl.loop = true;
     loseEl.pause();
