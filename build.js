@@ -39,6 +39,9 @@ const MIME = {
   '.webp': 'image/webp',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.mp4': 'audio/mp4',
 };
 const SPRITE_EXTS = preferPng ? ['.png', '.webp'] : ['.webp', '.png'];
 const PHOTO_EXTS = preferPng ? ['.jpg', '.jpeg', '.webp'] : ['.webp', '.jpg', '.jpeg'];
@@ -112,8 +115,16 @@ if (!bg) throw new Error('缺少背景素材 assets/bg-thunder.(webp|jpg)');
 if (!chart) throw new Error('缺少图鉴素材 assets/chart.(webp|jpg)');
 
 const data = { bg: b64(bg), chart: b64(chart), sprites };
-const bgm = pick('bgm', ['.mp4']);
-if (bgm) data.audio = b64(bgm);
+
+/* 胜利音效：优先纯音频 mp3（浏览器兼容性最好），退回到旧版 mp4 容器 */
+const AUDIO_STEMS = ['laugh', 'bgm'];
+const AUDIO_EXTS = ['.mp3', '.m4a', '.mp4'];
+let audio = null;
+for (const stem of AUDIO_STEMS) {
+  audio = pick(stem, AUDIO_EXTS);
+  if (audio) break;
+}
+if (audio) data.audio = b64(audio);
 
 if (!html.includes(TOKEN)) throw new Error('源码里找不到素材占位符 ' + TOKEN);
 /* 用函数式替换：避免素材数据中出现 $& / $' 时被当成替换模式 */
@@ -165,7 +176,7 @@ function report(label) {
   console.log(`${label}: ${outFile}`);
   console.log(`size  : ${(bytes.length / 1024 / 1024).toFixed(2)} MB`);
   console.log(`sprites: ${Object.keys(sprites).length}  bg: ${path.basename(bg.file)}  chart: ${path.basename(chart.file)}` +
-    (bgm ? `  audio: ${path.basename(bgm.file)}` : '  audio: (无)'));
+    (audio ? `  audio: ${path.basename(audio.file)} (${audio.mime})` : '  audio: (无)'));
 }
 
 if (checkOnly) {

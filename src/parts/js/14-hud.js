@@ -77,17 +77,41 @@ function showVS(ch){
   vsTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);
 }
 
-var bgmEl = null;
+/* 胜利音效（笑声）。素材是纯音频 mp3，内联为 data URI。
+   bgmEl 这个变量名沿用旧称，实际只用于胜利音效，和程序化 BGM 无关。 */
+var bgmEl = null, victoryRetryBound = false;
+
 function playVictoryAudio(){
   if(!bgmEl) bgmEl = $id('bgm');
   if(!bgmEl || !state.soundOn) return;
   bgmEl.pause();
   try{ bgmEl.currentTime = 0; }catch(e){}
   bgmEl.loop = false;
+  bgmEl.muted = false;
   bgmEl.volume = 0.72;
-  var p = bgmEl.play();
-  if(p && p.catch) p.catch(function(){});
+  playVictoryAudioNow();
 }
+
+function playVictoryAudioNow(){
+  if(!bgmEl || !state.soundOn) return;
+  var p = bgmEl.play();
+  if(p && p.catch){
+    p.catch(function(){
+      /* 被浏览器自动播放策略拦下时，等玩家下一次操作再补播，别让胜利静音 */
+      if(victoryRetryBound) return;
+      victoryRetryBound = true;
+      var retry = function(){
+        victoryRetryBound = false;
+        window.removeEventListener('pointerdown', retry, true);
+        window.removeEventListener('keydown', retry, true);
+        if(state.mode === 'victory') playVictoryAudioNow();
+      };
+      window.addEventListener('pointerdown', retry, true);
+      window.addEventListener('keydown', retry, true);
+    });
+  }
+}
+
 function stopBgm(){
   if(!bgmEl) bgmEl = $id('bgm');
   if(!bgmEl) return;

@@ -192,7 +192,47 @@ await check('击败 Boss 后章节进度前进并写入存档', async () => {
   return `progress ${before} -> ${after}, 存档 progress=${saved}`;
 });
 
-// ---------- 5. 损坏存档不能把人卡死 ----------
+// ---------- 5. 胜利音效：笑声 mp3 必须真的能解码并播放 ----------
+await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关会停）', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  await session.waitFor(
+    `(() => { const a = document.getElementById('bgm'); return !!a && a.readyState >= 1; })()`,
+    15000, '音频元数据加载'
+  );
+  const meta = await session.evaluate(`
+    (() => { const a = document.getElementById('bgm');
+             return { src: (a.src || '').slice(0, 26), duration: a.duration, readyState: a.readyState,
+                      preload: a.getAttribute('preload') }; })()`);
+  assert(meta.src.startsWith('data:audio/mpeg'), '音频不是 mp3 data URI: ' + meta.src);
+  assert(meta.duration > 8.5 && meta.duration < 10, `音频时长异常: ${meta.duration}`);
+  assert(meta.preload === 'auto', '音频未预加载: ' + meta.preload);
+
+  await session.evaluate(`window.__NAI__.step(170)`);
+  await session.evaluate(`
+    (() => { const N = window.__NAI__; N.setBossHp(1); N.damage(999999); N.step(40); })()`);
+  assert(await session.evaluate(`window.__NAI__.state.mode`) === 'victory', '没进入胜利态');
+
+  await session.waitFor(
+    `(() => { const a = document.getElementById('bgm'); return !a.paused && a.currentTime > 0.05; })()`,
+    10000, '胜利音效开始播放'
+  );
+  const st = await session.evaluate(`
+    (() => { const a = document.getElementById('bgm');
+             return { paused: a.paused, t: +a.currentTime.toFixed(2), dur: +a.duration.toFixed(2),
+                      err: a.error ? a.error.code : null, vol: a.volume, muted: a.muted }; })()`);
+  assert(st.err === null, '音频解码/播放错误码 ' + st.err);
+  assert(st.muted === false, '音频处于静音状态');
+
+  /* 进下一关时必须停掉，否则笑声会盖在新关卡上 */
+  await session.evaluate(`window.__NAI__.startLevel(0)`);
+  const after = await session.evaluate(`document.getElementById('bgm').paused`);
+  assert(after === true, '换关后笑声没有停止');
+
+  return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol}，换关即停`;
+});
+
+// ---------- 6. 损坏存档不能把人卡死 ----------
 await check('存档被写坏时仍能正常加载并回落到默认值', async () => {
   await session.goto(fileUrl);
   await waitImages();
