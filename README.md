@@ -229,9 +229,11 @@ node build.js --web dist/web-cdn \
 产出的 `dist/web-cdn/` 只有一个 `index.html`，素材全部指向给定前缀，HTML 可以放任意托管商。
 实测跨域可用（14/14 图片 + 2 条音效正常加载）。
 
-> ⚠️ 这套方案能用，但**不如方式一快**：Gitee 的 `raw` 是文件网关而不是 CDN，
-> 实测 16 个素材串行下载约 16 秒（走代理环境），且 `Cache-Control` 只有 `max-age=60`。
-> 素材量不大时无所谓，追求首屏速度请用 Pages。
+> ⚠️ 这套方案能用，但有两个实测限制：
+> 1. **Gitee 的 `raw` 会拒绝返回 HTML**（`451 Unavailable For Legal Reasons`，防止被当免费网页托管）。
+>    所以只有**素材**能放 raw，HTML 必须自己找地方托管——这也正是本方案的分工。
+> 2. raw 是文件网关而不是 CDN：16 个素材串行下载约 16 秒（走代理环境），
+>    `Cache-Control` 只有 `max-age=60`。素材量不大时无所谓，追求首屏速度请用 Pages。
 
 ## 调试参数
 
