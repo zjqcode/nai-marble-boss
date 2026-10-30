@@ -198,13 +198,15 @@ const problems = [];
 
 if (html.includes(TOKEN)) problems.push('产物里仍残留素材占位符');
 
-/* CHARS 表里每个角色都必须有对应立绘，否则会静默回退到 assets/ 外部路径，单文件就废了 */
+/* CHARS 表里每个角色都必须有对应立绘，否则会静默回退到 assets/ 外部路径，单文件就废了。
+   立绘文件名用 CHARS 里的 ASCII 短名（img 字段），不是中文角色名。 */
 const charsBlock = /var CHARS\s*=\s*\[[\s\S]*?\n\];/.exec(html);
 if (charsBlock) {
-  const names = [...charsBlock[0].matchAll(/\bn\s*:\s*'([^']+)'/g)].map((m) => m[1]);
-  const missing = names.filter((n) => !sprites[n]);
+  const imgs = [...charsBlock[0].matchAll(/\bimg\s*:\s*'([^']+)'/g)].map((m) => m[1]);
+  if (!imgs.length) problems.push('CHARS 里没有 img 字段，无法校验立绘');
+  const missing = imgs.filter((n) => !sprites[n]);
   if (missing.length) problems.push('这些角色没有立绘: ' + missing.join(', '));
-  const unused = Object.keys(sprites).filter((n) => !names.includes(n));
+  const unused = Object.keys(sprites).filter((n) => !imgs.includes(n));
   if (unused.length) console.warn('[warn] 有素材未被 CHARS 使用: ' + unused.join(', '));
 } else {
   problems.push('产物里找不到 CHARS 数据表，无法校验立绘完整性');

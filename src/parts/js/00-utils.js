@@ -17,16 +17,16 @@ function store(k,v){
     localStorage.setItem(k,v);
   }catch(e){ return null; }
 }
-/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回相对路径。
-   扩展名必须统一在这里决定——之前调用方各自传 'png'，而素材是 .webp，
-   单文件版看不出问题（data URI 不看扩展名），外置资源版就整片 404。
+/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回相对/绝对 URL。
+   文件名一律用 CHARS 里的 ASCII 短名（img 字段），不用中文名——
+   中文名会变成 %E5%A5%B6%E7%8B%97.webp 这类编码，难读且易被 CDN/网关处理错。
 
-   ASSET_BASE 是素材目录前缀，构建时可用 --asset-base 改写成 CDN / 仓库的绝对地址，
-   这样 HTML 可以放在任意托管商，素材继续从国内仓库加载。 */
+   ASSET_BASE 是素材目录前缀，构建时可用 --asset-base 改写成国内仓库/CDN 的绝对地址。 */
 var SPRITE_EXT = 'webp';
 var ASSET_BASE = 'assets/';
 function assetURL(name){
-  if(ASSET_DATA) return ASSET_DATA.sprites[name] || '';
-  return ASSET_BASE + name + '.' + SPRITE_EXT;
+  var slug = charImg(name);          /* 中文角色名 -> ASCII 文件名 */
+  if(ASSET_DATA) return ASSET_DATA.sprites[slug] || '';
+  return ASSET_BASE + slug + '.' + SPRITE_EXT;
 }
 
