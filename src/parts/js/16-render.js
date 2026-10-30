@@ -16,23 +16,28 @@ function roundRect(x,y,w,h,r){
 }
 
 function drawBackground(){
-  var img = IMG.bg;
-  var iw = img && img.naturalWidth ? img.naturalWidth : 1220;
-  var ih = img && img.naturalHeight ? img.naturalHeight : 2287;
   var bootEase = state.bootT < 1.8 ? (1 - easeOutCubic(clamp(state.bootT/1.8,0,1))) : 0;
-  var z = 1.09 + Math.sin(T*0.045)*0.012 + bootEase*0.18;
-  var sc = Math.max(W/iw, H/ih) * z;
-  var dw = iw*sc, dh = ih*sc;
-  var ox = (W-dw)/2;
-  var oy = (H-dh)*0.34 + Math.sin(T*0.07)*6;
-  ctx.fillStyle = '#050a12';
+
+  /* 1. 底色 */
+  ctx.fillStyle = G.bgDeep || G.fallback;
   ctx.fillRect(-90,-90,W+180,H+180);
-  if(img && img.complete && img.naturalWidth){
-    ctx.drawImage(img, ox, oy, dw, dh);
-  } else {
-    ctx.fillStyle = G.fallback;
-    ctx.fillRect(0,0,W,H);
+
+  /* 2. 动态层：两层柔光云相对漂移 + 上浮奶滴 */
+  ctx.save();
+  if(bootEase > 0.001){
+    var z = 1 + bootEase*0.16;
+    ctx.translate(W/2, H*0.45);
+    ctx.scale(z, z);
+    ctx.translate(-W/2, -H*0.45);
   }
+  ctx.globalCompositeOperation = 'lighter';
+  drawNebulaLayer(bgTexA,  0.055, 0.037, 1.00, 0.62);
+  drawNebulaLayer(bgTexB, -0.085, 0.061, 1.16, 0.46);
+  drawBgDots();
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+
+  /* 3. 压暗与边角渐隐，保证 HUD 与场地的可读性 */
   ctx.fillStyle = G.bgTint;
   ctx.fillRect(0,0,W,H);
   ctx.fillStyle = G.bgRad;
@@ -672,6 +677,48 @@ function drawPlates(){
   }
 }
 
+/* 放置预览：跟随手指的半透明反弹板 + 虚线框 */
+function drawPlateGhost(){
+  var g = state.placingPlate;
+  if(!g) return;
+  var len = plateLen(), th = 5.5*view.s, half = len/2;
+  var pulse = 0.5 + 0.22*Math.sin(T*6.5);
+  ctx.save();
+  ctx.translate(g.x, g.y);
+  ctx.rotate(g.ang);
+  ctx.globalAlpha = pulse;
+  var bg = ctx.createLinearGradient(0,-th,0,th);
+  bg.addColorStop(0,'rgba(190,255,230,.95)');
+  bg.addColorStop(.5,'rgba(80,205,165,.9)');
+  bg.addColorStop(1,'rgba(18,70,58,.92)');
+  roundRect(-half, -th, len, th*2, th);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.setLineDash([6,5]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(220,255,245,.95)';
+  ctx.stroke();
+  ctx.setLineDash([]);
+  /* 四角定位点 */
+  ctx.fillStyle = 'rgba(235,255,248,.9)';
+  ctx.beginPath(); ctx.arc(-half-7, 0, 2.6, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(half+7, 0, 2.6, 0, TAU); ctx.fill();
+  ctx.restore();
+
+  /* 落位辅助线：从板心到地面，帮玩家判断位置 */
+  ctx.save();
+  ctx.globalAlpha = 0.16 + 0.06*Math.sin(T*5);
+  ctx.strokeStyle = 'rgba(160,255,215,1)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,7]);
+  ctx.beginPath();
+  ctx.moveTo(g.x, g.y + th + 6);
+  ctx.lineTo(g.x, view.pouchY + 10*view.s);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
 function drawItems(){
   for(var i=0;i<state.items.length;i++){
     var it = state.items[i];
@@ -1134,6 +1181,7 @@ function draw(){
   drawGimmicks();
   drawBumpers();
   drawPlates();
+  drawPlateGhost();
   drawBoss();
   if(state.fireT > 0 && state.boss){
     var fb = state.boss;

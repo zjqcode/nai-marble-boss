@@ -106,6 +106,7 @@ function update(dt){
     if(state.frenzyT > 0) state.frenzyT = Math.max(0, state.frenzyT - dt);
     if(state.gasT > 0) state.gasT = Math.max(0, state.gasT - dt);
     if(state.fireT > 0) state.fireT = Math.max(0, state.fireT - dt);
+    if(state.potionCd > 0) state.potionCd = Math.max(0, state.potionCd - dt);
     if(state.atkAnim){
       state.atkAnim.t -= dt;
       if(state.atkAnim.t <= 0) state.atkAnim = null;
@@ -124,6 +125,9 @@ function update(dt){
     state.uiT = 0.12;
     updateBuffs();
     updateBreakHUD();
+    /* 血瓶可用状态 / 反弹板数量与放置高亮，跟着 0.12 秒的节流刷新 */
+    refreshItemBtnStates();
+    refreshPlateBtn();
     if(state.chapter && state.mode === 'play' && !state.telegraph && state.cineT <= 0){
       var el = $id('bossAtk');
       if(state.stun > 0){

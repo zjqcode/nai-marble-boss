@@ -6,8 +6,10 @@
   "scripts": {
     "build": "node build.js",
     "check": "node build.js --check",
+    "lint": "node tools/lint.mjs",
     "smoke": "node tools/smoke.mjs",
-    "verify": "node build.js --check && node tools/smoke.mjs",
+    "verify": "node tools/lint.mjs && node build.js --check && node tools/smoke.mjs",
+    "shots": "node tools/shots.mjs",
     "visual": "node tools/visual-diff.mjs"
   },
   "engines": {

@@ -92,7 +92,11 @@ function updateBuffs(){
   if(state.frenzyT > 0) html += '<span class="buff-chip frenzy">狂暴 ' + Math.ceil(state.frenzyT) + 's</span>';
   if(state.shield > 0) html += '<span class="buff-chip shield">奶瓶护盾 ×' + state.shield + '</span>';
   if(state.fireT > 0) html += '<span class="buff-chip fire">火焰 ' + Math.ceil(state.fireT) + 's</span>';
-  if(state.plates.length) html += '<span class="buff-chip plate">反弹板 ' + Math.ceil(state.plates[0].life) + 's</span>';
+  if(state.plates.length){
+    var pleft = 0;
+    for(var qi=0;qi<state.plates.length;qi++) pleft = Math.max(pleft, state.plates[qi].life);
+    html += '<span class="buff-chip plate">反弹板 ' + Math.ceil(pleft) + 's</span>';
+  }
   if(state.boss && state.boss.brkT > 0) html += '<span class="buff-chip brk">破防 ' + state.boss.brkT.toFixed(1) + 's</span>';
   if(state.dodgeStreak > 0) html += '<span class="buff-chip dodge">闪避 ×' + state.dodgeStreak + '</span>';
   if(el.innerHTML !== html) el.innerHTML = html;
@@ -128,6 +132,8 @@ function updateItemBar(){
   var html = '';
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
+    /* 反弹板有自己右侧的专用按钮，不再进通知道具栏，避免两个入口 */
+    if(it.key === 'plate') continue;
     var n = itemCount(it.key);
     if(n > 0){
       html += '<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
@@ -135,6 +141,41 @@ function updateItemBar(){
     }
   }
   if(bar.innerHTML !== html) bar.innerHTML = html;
+  refreshItemBtnStates();
+  refreshPlateBtn();
+}
+
+/* 血瓶在「满血 / 冷却中 / 非战斗中」显示为不可用，避免玩家白点 */
+function potionUsable(){
+  return state.mode === 'play' && !state.paused && state.cineT <= 0 &&
+         state.heroHP < state.maxHP && state.potionCd <= 0;
+}
+function refreshItemBtnStates(){
+  var bar = $id('itemBar');
+  if(!bar) return;
+  var pb = bar.querySelector('[data-item="potion"]');
+  if(!pb) return;
+  var off = !potionUsable();
+  if(pb._off !== off){
+    pb._off = off;
+    pb.classList.toggle('off', off);
+    pb.setAttribute('aria-disabled', off ? 'true' : 'false');
+  }
+}
+
+/* 反弹板专用按钮：数量 / 可用状态 / 放置中高亮 */
+function refreshPlateBtn(){
+  /* 离开战斗（胜利/失败/暂停）时把没放下的预览丢掉，避免状态残留 */
+  if(state.placingPlate && (state.mode !== 'play' || state.paused)) cancelPlatePlacement(true);
+  var btn = $id('bPlate');
+  if(!btn) return;
+  var n = itemCount('plate');
+  var cnt = $id('plateCount');
+  if(cnt) cnt.textContent = n;
+  var placing = !!state.placingPlate;
+  var off = !placing && (n <= 0 || state.mode !== 'play' || state.paused || state.cineT > 0);
+  if(btn._off !== off){ btn._off = off; btn.classList.toggle('off', off); }
+  if(btn._arm !== placing){ btn._arm = placing; btn.classList.toggle('arm', placing); }
 }
 
 /* 道具通用演出：全屏环 + 名字 + 闪光，解决「买了没特效」 */
@@ -172,19 +213,9 @@ function useItem(key){
     itemFanfare('多球发射！', '#ffe6a8', '255,220,150');
 
   } else if(key === 'plate'){
-    /* 场地中段生成两块对称斜板，18 秒 */
-    state.plates = [];
-    var len = Math.min(view.w*0.26, view.arenaH*0.42);
-    state.plates.push({x:view.left + view.w*0.20, y:arenaY(0.58), ang:-0.42, len:len, thick:5.5*view.s, life:18, hit:0});
-    state.plates.push({x:view.right - view.w*0.20, y:arenaY(0.70), ang:0.42, len:len, thick:5.5*view.s, life:18, hit:0});
-    for(var pi=0;pi<state.plates.length;pi++){
-      var pl = state.plates[pi];
-      ring(pl.x, pl.y, 8, len, '160,255,215', .55, 4);
-      burst(pl.x, pl.y, 16, 14, 5, '#aef3d4');
-    }
-    Sound.plate(1);
-    state.flashHue = 'cyan';
-    itemFanfare('反弹板展开！', '#b4f5da', '160,255,215');
+    /* 反弹板改成手动拖拽放置：这里只进入放置模式，真正放下时才扣道具 */
+    startPlatePlacement();
+    return;
 
   } else if(key === 'portal'){
     /* 临时传送阵：带 life，用新 pair 编号避免和关卡自带的串门 */
@@ -249,10 +280,94 @@ function useItem(key){
     state.flashHue = 'gold';
     state.flash = Math.max(state.flash, .7);
     itemFanfare('变身超级奶娃！', '#fff2b0', '255,220,120');
+
+  } else if(key === 'potion'){
+    /* 血瓶：只在受伤时可用，一次回 1 心，0.5 秒冷却防连点。
+       满血 / 冷却中直接 return，不扣道具。暂停与阵亡由 useItem 开头统一拦住。 */
+    if(state.potionCd > 0) return;
+    if(state.heroHP >= state.maxHP) return;
+    state.heroHP = Math.min(state.maxHP, state.heroHP + 1);
+    state.potionCd = 0.5;
+    updateHearts();
+    popText(state.cannonX, view.pouchY - 92*view.s, '+1 心', 20, '#ffb3bb');
+    ring(state.cannonX, view.pouchY - 34*view.s, 12, view.w*0.55, '255,150,160', .6, 4);
+    burst(state.cannonX, view.pouchY - 34*view.s, 24, 20, 6, '#ffc4c9');
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .22);
+    Sound.shield();
   }
 
   META.items[key] = n - 1;
   saveMeta();
+  updateItemBar();
+  updateBuffs();
+}
+
+/* =========================================================
+   反弹板：手动拖拽放置
+   ========================================================= */
+/* 轻微倾斜 + 短一些：横长板会直接把上行的球弹回去，反而挡住进攻 */
+var PLATE_TILT = -0.30;
+function plateLen(){ return Math.min(view.w*0.13, view.arenaH*0.18); }
+
+function clampPlatePos(x, y){
+  var half = plateLen()/2;
+  var minX = view.left + half + 8;
+  var maxX = view.right - half - 8;
+  var minY = view.ceil + 30*view.s;
+  var maxY = Math.max(minY + 20, view.pouchY - 96*view.s);
+  return { x: clamp(x, Math.min(minX, maxX), Math.max(minX, maxX)),
+           y: clamp(y, minY, maxY) };
+}
+
+function startPlatePlacement(){
+  if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
+  if(state.placingPlate) return;
+  if(itemCount('plate') <= 0){
+    toast('没有反弹板，先去商店买一个（50 奶瓶）');
+    return;
+  }
+  /* 放置优先于瞄准：取消正在拉的弹弓 */
+  state.aim.active = false;
+  state.aim.power = 0;
+  var p = clampPlatePos(view.cx, arenaY(0.66));
+  state.placingPlate = { x:p.x, y:p.y, ang:PLATE_TILT, dragging:false };
+  document.body.classList.add('placing');
+  refreshPlateBtn();
+  toast('拖动到场地空处，松手放下（可存在 8 秒）');
+  Sound.ui();
+  try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){}
+}
+
+function movePlateTo(clientX, clientY){
+  var pl = state.placingPlate;
+  if(!pl) return;
+  var p = clampPlatePos(clientX, clientY);
+  pl.x = p.x;
+  pl.y = p.y;
+}
+
+function cancelPlatePlacement(silent){
+  if(!state.placingPlate) return;
+  state.placingPlate = null;
+  document.body.classList.remove('placing');
+  refreshPlateBtn();
+  if(!silent) Sound.ui();
+}
+
+function confirmPlatePlacement(){
+  var pl = state.placingPlate;
+  if(!pl) return;
+  var n = itemCount('plate');
+  if(n <= 0){ cancelPlatePlacement(true); return; }
+  state.plates.push({ x:pl.x, y:pl.y, ang:pl.ang, len:plateLen(), thick:5.5*view.s, life:8, hit:0 });
+  META.items['plate'] = n - 1;
+  saveMeta();
+  ring(pl.x, pl.y, 6, plateLen()*1.3, '160,255,215', .55, 4);
+  burst(pl.x, pl.y, 16, 14, 5, '#aef3d4');
+  Sound.plate(1);
+  popText(pl.x, pl.y - 24*view.s, '反弹板 · 8 秒', 15, '#b4f5da');
+  cancelPlatePlacement(true);
   updateItemBar();
   updateBuffs();
 }

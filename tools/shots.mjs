@@ -16,6 +16,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const target = process.argv[2] || path.join(root, '奶系弹珠_弹射讨伐.html');
 const outDir = path.join(root, 'dist', 'shots');
+/* 每次清空重来：否则调试时留下的临时截图会被 mkpreview.py 一起转进 preview/ */
+fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
 const fileUrl = pathToFileURL(target).href;
@@ -101,15 +103,42 @@ await sleep(1900);
 const playInfo = await s.evaluate(`
   (() => {
     const N = window.__NAI__, s = N.state, b = s.boss;
-    window.__tick(170);                  // 跳过过场
+    /* 塞点道具，让左侧道具栏与右侧反弹板按钮都出现在图里 */
+    N.META.items = { potion: 2, plate: 2, multi: 1 };
+    N.updateItemBar();
+    N.tick(170);                         // 跳过过场
     const y0 = b.y + b.h * 0.5 + 150;
     for (let i = 0; i < 5; i++) N.spawn(i + 3, b.x + (i - 2) * 54, y0, (i - 2) * 26, -(560 + i * 40));
-    window.__tick(26);                   // 让球飞起来、拖尾长出来
+    N.tick(26);                          // 让球飞起来、拖尾长出来
     return { hp: Math.round(b.hp), hits: s.hits, balls: s.balls.length, mode: s.mode };
   })()`);
 console.log('   战斗状态:', JSON.stringify(playInfo));
 await hideOverlays();
 await fullShot('play');
+
+/* ---- 6b. 反弹板拖拽放置 ---- */
+const plateInfo = await s.evaluate(`
+  (() => {
+    const N = window.__NAI__, c = document.getElementById('game');
+    N.META.items.plate = 2;
+    N.updateItemBar(); N.refreshPlateBtn();
+    document.getElementById('bPlate').click();
+    const send = (t, x, y) => c.dispatchEvent(new PointerEvent(t, {
+      clientX: x, clientY: y, pointerId: 1, bubbles: true, cancelable: true }));
+    send('pointerdown', N.view.cx, N.view.h * 0.55);
+    send('pointermove', 120, 560);
+    N.draw();                            // 真的重绘一帧，预览才可见
+    return { ghost: N.state.placingPlate ? { x: Math.round(N.state.placingPlate.x), y: Math.round(N.state.placingPlate.y) } : null };
+  })()`);
+console.log('   反弹板预览:', JSON.stringify(plateInfo));
+await sleep(300);
+await fullShot('plate');
+await s.evaluate(`
+  (() => {
+    const N = window.__NAI__, c = document.getElementById('game');
+    c.dispatchEvent(new PointerEvent('pointerup', { clientX: 120, clientY: 560, pointerId: 1, bubbles: true, cancelable: true }));
+    N.tick(20);
+  })()`);
 
 /* ---- 7. 蓄力/危险区 ---- */
 const dodgeInfo = await s.evaluate(`

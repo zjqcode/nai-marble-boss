@@ -70,6 +70,8 @@ function startLevel(idx){
   state.trails.length = 0;
   state.ceilFx.length = 0;
   state.plates = [];
+  cancelPlatePlacement(true);   /* 换关时不要留着没放下的反弹板预览 */
+  state.potionCd = 0;
   var hb = heroBonus();
   state.maxHP = 5 + hb.hp;
   state.heroDmg = hb.dmg;

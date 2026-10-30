@@ -11,6 +11,14 @@ function bindEvents(){
 
   c.addEventListener('pointerdown', function(e){
     Sound.init(); Sound.resume();
+    /* 反弹板放置优先：此时拖动是在摆放板子，不是拉弹弓 */
+    if(state.placingPlate && state.mode === 'play' && !state.paused){
+      try{ c.setPointerCapture(e.pointerId); }catch(err){}
+      state.placingPlate.dragging = true;
+      movePlateTo(e.clientX, e.clientY);
+      e.preventDefault();
+      return;
+    }
     if(state.mode !== 'play' || state.paused) return;
     if(state.reloadT > 0.02) return;
     var hudEl = $id('hud');
@@ -31,6 +39,11 @@ function bindEvents(){
   });
 
   c.addEventListener('pointermove', function(e){
+    if(state.placingPlate){
+      if(state.placingPlate.dragging) movePlateTo(e.clientX, e.clientY);
+      e.preventDefault();
+      return;
+    }
     if(!state.aim.active) return;
     state.aim.px = e.clientX;
     state.aim.py = e.clientY;
@@ -40,6 +53,15 @@ function bindEvents(){
   });
 
   function endAim(e){
+    /* 松手放下反弹板 */
+    if(state.placingPlate){
+      if(state.placingPlate.dragging){
+        state.placingPlate.dragging = false;
+        confirmPlatePlacement();
+      }
+      if(e) e.preventDefault();
+      return;
+    }
     var a = state.aim;
     if(!a.active) return;
     updateAimVectors();
@@ -60,6 +82,17 @@ function bindEvents(){
     state.aim.active = false;
     state.aim.power = 0;
   });
+
+  /* 反弹板专用按钮：点一下进入「拖拽放置」模式，再点一下取消 */
+  if($id('bPlate')){
+    $id('bPlate').addEventListener('click', function(){
+      Sound.init(); Sound.resume();
+      if(state.placingPlate){ cancelPlatePlacement(); return; }
+      /* 道具栏里的反弹板入口也走同一套流程 */
+      useItem('plate');
+      refreshPlateBtn();
+    });
+  }
 
   $id('bStart').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
@@ -307,8 +340,20 @@ function boot(){
       eff: buildEff,
       save: saveMeta,
       setBossHp: function(hp){ if(state.boss){ state.boss.hp = hp; updateBossHUD(); } },
+      /* 道具 / 反弹板相关，供冒烟测试调用 */
+      useItem: useItem,
+      itemCount: itemCount,
+      updateItemBar: updateItemBar,
+      updateHearts: updateHearts,
+      refreshPlateBtn: refreshPlateBtn,
+      startPlatePlacement: startPlatePlacement,
+      confirmPlatePlacement: confirmPlatePlacement,
+      cancelPlatePlacement: cancelPlatePlacement,
+      plateLen: plateLen,
       /* 手动推进 n 帧逻辑，供无头测试使用 */
       step: function(n){ for(var i=0;i<(n|0);i++) update(1/60); },
+      /* 逐帧推进并真实渲染（会推进虚拟时钟），用于截图与画面断言 */
+      tick: function(n){ for(var i=0;i<(n|0);i++){ T += 1/60; update(1/60); draw(); } },
       draw: draw
     };
   }

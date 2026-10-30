@@ -53,11 +53,12 @@ session = await launch({ width: 390, height: 844, dsf: 2 });
 console.log(`浏览器: ${session.browser}\n`);
 
 // ---------- 1. 资源解码 ----------
-await check('产物可加载，15 张图片（13 立绘 + 背景 + 图鉴）全部解码', async () => {
+await check('产物可加载，14 张图片（13 立绘 + 图鉴）全部解码', async () => {
   await session.goto(fileUrl);
   const n = await waitImages();
   assertNoErrors('加载阶段');
-  assert(n === 15, `期望 15 张图片，实际 ${n}`);
+  /* 背景已改为程序化生成，不再有背景图 */
+  assert(n === 14, `期望 14 张图片（13 立绘 + 图鉴），实际 ${n}`);
   const decoded = await session.evaluate(`
     window.__imgs.map(i => i.naturalWidth + 'x' + i.naturalHeight).join(',')`);
   return `${n} 张: ${decoded}`;
@@ -232,7 +233,146 @@ await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关
   return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol}，换关即停`;
 });
 
-// ---------- 6. 损坏存档不能把人卡死 ----------
+// ---------- 6. 血瓶：受伤才可用、回 1 心、0.5s 冷却、满血/暂停/阵亡禁用 ----------
+await check('血瓶：受伤可用 +1 心，冷却/满血/暂停/阵亡都不可用', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state;
+      N.tick(170);                              // 跳过过场
+      N.META.items = { potion: 3 };
+      N.updateItemBar();
+      st.heroHP = 2; st.maxHP = 5; st.potionCd = 0;
+      const out = {};
+
+      N.useItem('potion');
+      out.heal = { hp: st.heroHP, cd: +st.potionCd.toFixed(2), left: N.META.items.potion };
+
+      const h1 = st.heroHP, n1 = N.META.items.potion;
+      N.useItem('potion'); N.useItem('potion');   // 冷却中连按
+      out.rapid = { hp: st.heroHP, changed: st.heroHP !== h1, used: n1 - N.META.items.potion };
+
+      st.heroHP = st.maxHP; st.potionCd = 0;
+      const n2 = N.META.items.potion;
+      N.useItem('potion');                        // 满血
+      out.full = { hp: st.heroHP, used: n2 - N.META.items.potion };
+
+      st.heroHP = 2; st.potionCd = 0; st.paused = true;
+      const n3 = N.META.items.potion;
+      N.useItem('potion');                        // 暂停
+      out.pausedUsed = n3 - N.META.items.potion;
+      st.paused = false;
+
+      st.mode = 'lose';
+      const n4 = N.META.items.potion;
+      N.useItem('potion');                        // 阵亡
+      out.deadUsed = n4 - N.META.items.potion;
+      st.mode = 'play';
+      return out;
+    })()`);
+  assert(r.heal.hp === 3, `受伤时用血瓶应回到 3，实际 ${r.heal.hp}`);
+  assert(r.heal.left === 2, `血瓶应被消耗 1 个，剩余 ${r.heal.left}`);
+  assert(r.heal.cd > 0.4, `冷却应设为 0.5s，实际 ${r.heal.cd}`);
+  assert(!r.rapid.changed && r.rapid.used === 0, '冷却期间连按不应生效也不应扣道具');
+  assert(r.full.hp === 5 && r.full.used === 0, '满血时不应生效也不应扣道具');
+  assert(r.pausedUsed === 0, '暂停时不应扣道具');
+  assert(r.deadUsed === 0, '阵亡后不应扣道具');
+  return `+1 心 / 冷却 ${r.heal.cd}s / 连按与满血暂停阵亡均无效`;
+});
+
+// ---------- 7. 反弹板：按钮进入放置模式、可拖拽、8 秒后消失 ----------
+await check('反弹板：按钮拖拽放置、长度受控、8 秒后消失', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state;
+      N.tick(170);
+      N.META.items = { plate: 2 };
+      N.updateItemBar(); N.refreshPlateBtn();
+      const c = document.getElementById('game');
+      const send = (t, x, y) => c.dispatchEvent(new PointerEvent(t, {
+        clientX: x, clientY: y, pointerId: 1, bubbles: true, cancelable: true }));
+
+      const out = {};
+      out.btnVisibleInPlay = getComputedStyle(document.getElementById('bPlate')).opacity !== '0';
+
+      document.getElementById('bPlate').click();
+      out.armed = !!st.placingPlate;
+      out.aimCancelled = !st.aim.active;
+
+      send('pointerdown', 300, 300);
+      send('pointermove', 120, 470);
+      out.dragTo = st.placingPlate ? { x: Math.round(st.placingPlate.x), y: Math.round(st.placingPlate.y) } : null;
+      send('pointerup', 120, 470);
+
+      out.afterPlace = {
+        plates: st.plates.length,
+        life: st.plates[0] ? +st.plates[0].life.toFixed(2) : null,
+        len: st.plates[0] ? Math.round(st.plates[0].len) : null,
+        x: st.plates[0] ? Math.round(st.plates[0].x) : null,
+        y: st.plates[0] ? Math.round(st.plates[0].y) : null,
+        left: N.META.items.plate,
+        placing: !!st.placingPlate,
+        maxLen: Math.round(N.plateLen()),
+        fieldW: Math.round(N.view.w),
+      };
+
+      // 拖到场地外应被夹回场内
+      document.getElementById('bPlate').click();
+      send('pointerdown', -500, -500);
+      send('pointerup', -500, -500);
+      const p2 = st.plates[1];
+      out.clamped = p2 ? { x: Math.round(p2.x), y: Math.round(p2.y),
+                           inside: p2.x > N.view.left && p2.x < N.view.right && p2.y > N.view.top && p2.y < N.view.bottom } : null;
+
+      N.step(60 * 9);   // 推进 9 秒
+      out.after9s = st.plates.length;
+      return out;
+    })()`);
+  assert(r.btnVisibleInPlay, '战斗中反弹板按钮应可见');
+  assert(r.armed, '点按钮后应进入放置模式');
+  assert(r.aimCancelled, '放置时应取消正在蓄力的瞄准');
+  assert(r.dragTo && r.dragTo.x === 120 && r.dragTo.y === 470, '拖拽位置未跟随指针: ' + JSON.stringify(r.dragTo));
+  assert(r.afterPlace.plates === 1, `应放下 1 块板，实际 ${r.afterPlace.plates}`);
+  assert(r.afterPlace.life === 8, `寿命应为 8 秒，实际 ${r.afterPlace.life}`);
+  assert(r.afterPlace.left === 1, `道具应减 1，剩余 ${r.afterPlace.left}`);
+  assert(!r.afterPlace.placing, '放下后应退出放置模式');
+  assert(r.afterPlace.len <= r.afterPlace.fieldW * 0.15,
+    `板子过长（${r.afterPlace.len}px / 场宽 ${r.afterPlace.fieldW}px），会挡住进攻`);
+  assert(r.clamped && r.clamped.inside, '拖到场地外应被夹回场内: ' + JSON.stringify(r.clamped));
+  assert(r.after9s === 0, `8 秒后应全部消失，9 秒后还剩 ${r.after9s}`);
+  return `拖到 (${r.afterPlace.x},${r.afterPlace.y})，长 ${r.afterPlace.len}px（场宽 ${r.afterPlace.fieldW}），寿命 ${r.afterPlace.life}s`;
+});
+
+// ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------
+await check('动态背景：画面随时间变化（不再是一张静态图）', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, c = document.getElementById('game');
+      const g = c.getContext('2d');
+      N.tick(170);
+      const grab = () => new Uint8ClampedArray(g.getImageData(0, 0, c.width, c.height).data);
+      const a = grab();
+      N.tick(45);                       // 0.75 秒后
+      const b = grab();
+      let changed = 0, n = 0;
+      for (let i = 0; i < a.length; i += 4 * 11) {
+        const d = Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2]);
+        if (d > 6) changed++;
+        n++;
+      }
+      return { sampled: n, changed, pct: +(100*changed/n).toFixed(1),
+               hasBgImage: !!document.querySelector('img') };
+    })()`);
+  assert(r.pct > 3, `画面几乎没变化（${r.pct}% 采样点），背景可能没在动`);
+  return `${r.pct}% 采样点随时间变化（0.75 秒）`;
+});
+
+// ---------- 9. 损坏存档不能把人卡死 ----------
 await check('存档被写坏时仍能正常加载并回落到默认值', async () => {
   await session.goto(fileUrl);
   await waitImages();

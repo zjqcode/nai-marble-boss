@@ -11,7 +11,7 @@ var RADII = [];
 var orbTex = [];
 var orbKey = '';
 var bossTex = null, bossTexKey = '';
-var bgSmall = null;
+var bgTexA = null, bgTexB = null, bgDots = [];
 var T = 0;
 var G = {};
 
@@ -28,10 +28,6 @@ function recalcRadii(){
 }
 
 function loadImages(){
-  var bg = new Image();
-  bg.onload = function(){ buildBgSmall(); };
-  bg.src = ASSET_DATA ? ASSET_DATA.bg : 'assets/bg-thunder.webp';
-  IMG.bg = bg;
   var chart = new Image();
   chart.src = ASSET_DATA ? ASSET_DATA.chart : 'assets/chart.webp';
   IMG.chart = chart;
@@ -97,8 +93,8 @@ function layout(){
   recalcRadii();
   buildOrbTextures();
   buildBossTexture();
-  buildBgSmall();
   buildGradients();
+  buildBgTextures();
 
   if(state.boss){
     state.boss.r = Math.round(view.bossH*0.34);
@@ -240,31 +236,123 @@ function buildBossTexture(force){
   bossTexKey = key;
 }
 
-function buildBgSmall(){
+/* =========================================================
+   动态背景：程序化生成，不依赖图片素材
+   三层：柔光云（大团暖金/奶白） + 亮斑层（小颗高光） + 上浮奶滴
+   ========================================================= */
+function seededRand(seed){
+  var s = seed % 2147483647;
+  if(s <= 0) s += 2147483646;
+  return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+/* 预渲染一团柔光云：只在 resize 时算一次，每帧只做一次 drawImage */
+function makeNebulaLayer(w, h, seed, blobs){
+  var c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  var g = c.getContext('2d');
+  var rnd = seededRand(seed);
+  for(var i=0;i<blobs.length;i++){
+    var b = blobs[i];
+    var x = (b.x !== undefined ? b.x : rnd()) * w;
+    var y = (b.y !== undefined ? b.y : rnd()) * h;
+    var r = b.r * Math.max(w, h);
+    var grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, b.c[0]);
+    grd.addColorStop(0.5, b.c[1]);
+    grd.addColorStop(1, b.c[2]);
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI*2);
+    g.fill();
+  }
+  return c;
+}
+
+function buildBgTextures(){
   if(!W || !H) return;
-  var img = IMG.bg;
-  if(!img || !img.complete || !img.naturalWidth) return;
-  var sw = Math.max(32, Math.round(W/9));
-  var sh = Math.max(48, Math.round(H/9));
-  if(!bgSmall) bgSmall = document.createElement('canvas');
-  bgSmall.width = sw;
-  bgSmall.height = sh;
-  var g = bgSmall.getContext('2d');
-  var iw = img.naturalWidth, ih = img.naturalHeight;
-  var sc = Math.max(W/iw, H/ih) * 1.09;
-  var dw = iw*sc, dh = ih*sc;
-  g.setTransform(sw/W,0,0,sh/H,0,0);
-  g.imageSmoothingEnabled = true;
-  g.imageSmoothingQuality = 'high';
-  g.drawImage(img, (W-dw)/2, (H-dh)*0.34, dw, dh);
+  /* 画得比屏幕大 28%，留出漂移余量，避免边缘露底 */
+  var tw = Math.max(64, Math.round(W * 1.28));
+  var th = Math.max(64, Math.round(H * 1.28));
+
+  /* 层 A：低处的大团暖云，慢速漂移，构成整体呼吸感 */
+  bgTexA = makeNebulaLayer(tw, th, 20261030, [
+    {x:.18, y:.24, r:.46, c:['rgba(255,206,140,.46)','rgba(210,140,60,.17)','rgba(120,70,20,0)']},
+    {x:.76, y:.16, r:.40, c:['rgba(255,224,176,.38)','rgba(190,130,60,.14)','rgba(90,50,10,0)']},
+    {x:.52, y:.62, r:.52, c:['rgba(120,190,255,.22)','rgba(60,110,190,.10)','rgba(20,40,90,0)']},
+    {x:.16, y:.84, r:.38, c:['rgba(255,190,130,.30)','rgba(160,90,40,.11)','rgba(80,40,10,0)']},
+    {x:.88, y:.72, r:.34, c:['rgba(180,230,255,.20)','rgba(70,140,190,.09)','rgba(20,50,80,0)']},
+    {x:.42, y:.36, r:.30, c:['rgba(255,236,200,.28)','rgba(200,150,80,.11)','rgba(100,60,10,0)']}
+  ]);
+
+  /* 层 B：更小更亮的高光点，反向漂移，制造前后层次 */
+  bgTexB = makeNebulaLayer(tw, th, 777001, [
+    {x:.30, y:.30, r:.13, c:['rgba(255,244,214,.42)','rgba(255,200,120,.15)','rgba(180,110,30,0)']},
+    {x:.70, y:.46, r:.11, c:['rgba(255,232,180,.34)','rgba(230,160,80,.12)','rgba(150,90,20,0)']},
+    {x:.46, y:.78, r:.10, c:['rgba(220,245,255,.26)','rgba(120,190,235,.09)','rgba(40,90,140,0)']},
+    {x:.12, y:.56, r:.09, c:['rgba(255,238,190,.30)','rgba(200,150,70,.10)','rgba(120,70,20,0)']},
+    {x:.86, y:.24, r:.12, c:['rgba(255,246,224,.28)','rgba(220,170,90,.10)','rgba(140,90,20,0)']}
+  ]);
+
+  /* 上浮奶滴：位置用归一化坐标，画的时候乘屏幕尺寸，横竖屏都合适 */
+  var rnd = seededRand(424242);
+  bgDots = [];
+  for(var i=0;i<42;i++){
+    bgDots.push({
+      x: rnd(),
+      y: rnd(),
+      r: 0.8 + rnd() * 2.6,
+      sp: 0.006 + rnd() * 0.020,      /* 每秒上浮的屏幕高度比例 */
+      ph: rnd() * Math.PI * 2,
+      warm: rnd() < 0.72
+    });
+  }
+}
+
+/* 画一层云：slowX / slowY 是每秒的漂移角速度，scale 控制层间距 */
+function drawNebulaLayer(tex, ax, ay, scale, alpha){
+  if(!tex) return;
+  var ox = Math.sin(T * ax) * W * 0.055 + Math.cos(T * ay) * W * 0.022;
+  var oy = Math.cos(T * ay) * H * 0.040 + Math.sin(T * ax) * H * 0.016;
+  var dw = tex.width * scale;
+  var dh = tex.height * scale;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(tex, (W - dw)/2 + ox, (H - dh)/2 + oy, dw, dh);
+  ctx.globalAlpha = 1;
+}
+
+function drawBgDots(){
+  if(!bgDots.length) return;
+  for(var i=0;i<bgDots.length;i++){
+    var d = bgDots[i];
+    var y = (d.y - T * d.sp) % 1;
+    if(y < 0) y += 1;
+    var x = d.x * W + Math.sin(T * 0.6 + d.ph) * 6;
+    var py = y * H;
+    var tw = 0.35 + 0.65 * Math.abs(Math.sin(T * 1.5 + d.ph));
+    ctx.globalAlpha = 0.45 * tw;
+    ctx.fillStyle = d.warm ? 'rgba(255,232,190,1)' : 'rgba(190,225,255,1)';
+    ctx.beginPath();
+    ctx.arc(x, py, d.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function buildGradients(){
   var x = view.left, y = view.top, w = view.w, h = view.h;  G.bgTint = ctx.createLinearGradient(0,0,0,H);
-  G.bgTint.addColorStop(0,'rgba(4,10,18,.50)');
-  G.bgTint.addColorStop(.30,'rgba(4,10,18,.27)');
-  G.bgTint.addColorStop(.62,'rgba(4,10,18,.38)');
-  G.bgTint.addColorStop(1,'rgba(2,6,12,.88)');
+  G.bgTint.addColorStop(0,'rgba(4,10,18,.42)');
+  G.bgTint.addColorStop(.30,'rgba(4,10,18,.20)');
+  G.bgTint.addColorStop(.62,'rgba(4,10,18,.32)');
+  G.bgTint.addColorStop(1,'rgba(2,6,12,.86)');
+
+  /* 动态背景的底色：顶部偏暖（Boss 在上），底部沉到近黑，给弹弓区留对比 */
+  G.bgDeep = ctx.createLinearGradient(0,0,0,H);
+  G.bgDeep.addColorStop(0,'#0b1422');
+  G.bgDeep.addColorStop(.34,'#08111d');
+  G.bgDeep.addColorStop(.72,'#060c15');
+  G.bgDeep.addColorStop(1,'#03060c');
 
   G.bgRad = ctx.createRadialGradient(W*.5,H*.42,Math.min(W,H)*.16, W*.5,H*.46,Math.max(W,H)*.72);
   G.bgRad.addColorStop(0,'rgba(70,110,160,.10)');
@@ -274,10 +362,11 @@ function buildGradients(){
   G.fallback = ctx.createLinearGradient(0,0,0,H);
   G.fallback.addColorStop(0,'#101a28'); G.fallback.addColorStop(.5,'#1d2a3c'); G.fallback.addColorStop(1,'#050a12');
 
+  /* 场地：略透光，让动态背景能透进来；太透会影响奶球与文字的对比度 */
   G.field = ctx.createLinearGradient(0,y,0,y+h);
-  G.field.addColorStop(0,'rgba(8,13,22,1)');
-  G.field.addColorStop(.5,'rgba(6,10,17,1)');
-  G.field.addColorStop(1,'rgba(3,6,11,1)');
+  G.field.addColorStop(0,'rgba(8,13,22,.80)');
+  G.field.addColorStop(.5,'rgba(6,10,17,.77)');
+  G.field.addColorStop(1,'rgba(3,6,11,.90)');
 
   G.fieldTop = ctx.createLinearGradient(0,y,0,y+h*.35);
   G.fieldTop.addColorStop(0,'rgba(150,195,255,.07)');

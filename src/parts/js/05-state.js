@@ -51,6 +51,7 @@ var state = {
   heroHP: 5,
   maxHP: 5,
   heroDmg: 1,
+  potionCd: 0,        /* 血瓶冷却，防止连点 */
   shield: 0,
   superT: 0,
   frenzyT: 0,
@@ -67,6 +68,7 @@ var state = {
   dust: [],
   trails: [],
   plates: [],
+  placingPlate: null,   /* 反弹板拖拽放置中的预览 {x,y,ang,dragging} */
   ceilFx: [],
   cannonX: 0, moveDir: 0, atkDmg: 1, dodgeStreak: 0,
   slowmo: 0,

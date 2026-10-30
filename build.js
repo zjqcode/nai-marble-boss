@@ -109,12 +109,14 @@ if (srcArg) {
 }
 
 /* ---------- 3. 组装素材表 ---------- */
+/* 背景现在是程序化生成的动态场景（见 04-images.js），不再需要背景图；
+   若 assets/ 里仍放了图，也只是内联进去备用，不会自动启用。 */
 const bg = pick('bg-thunder', PHOTO_EXTS);
 const chart = pick('chart', PHOTO_EXTS);
-if (!bg) throw new Error('缺少背景素材 assets/bg-thunder.(webp|jpg)');
 if (!chart) throw new Error('缺少图鉴素材 assets/chart.(webp|jpg)');
 
-const data = { bg: b64(bg), chart: b64(chart), sprites };
+const data = { chart: b64(chart), sprites };
+if (bg) data.bg = b64(bg);
 
 /* 胜利音效：优先纯音频 mp3（浏览器兼容性最好），退回到旧版 mp4 容器 */
 const AUDIO_STEMS = ['laugh', 'bgm'];
@@ -175,7 +177,7 @@ if (emitSource) {
 function report(label) {
   console.log(`${label}: ${outFile}`);
   console.log(`size  : ${(bytes.length / 1024 / 1024).toFixed(2)} MB`);
-  console.log(`sprites: ${Object.keys(sprites).length}  bg: ${path.basename(bg.file)}  chart: ${path.basename(chart.file)}` +
+  console.log(`sprites: ${Object.keys(sprites).length}  bg: ${bg ? path.basename(bg.file) : '(程序化动态背景)'}  chart: ${path.basename(chart.file)}` +
     (audio ? `  audio: ${path.basename(audio.file)} (${audio.mime})` : '  audio: (无)'));
 }
 
