@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -1384,10 +1384,10 @@ function recalcRadii(){
 function loadImages(){
   var bg = new Image();
   bg.onload = function(){ buildBgSmall(); };
-  bg.src = ASSET_DATA ? ASSET_DATA.bg : 'assets/bg-thunder.jpg';
+  bg.src = ASSET_DATA ? ASSET_DATA.bg : 'assets/bg-thunder.webp';
   IMG.bg = bg;
   var chart = new Image();
-  chart.src = ASSET_DATA ? ASSET_DATA.chart : 'assets/chart.jpg';
+  chart.src = ASSET_DATA ? ASSET_DATA.chart : 'assets/chart.webp';
   IMG.chart = chart;
   var loaded = 0;
   CHARS.forEach(function(c){
@@ -1396,7 +1396,7 @@ function loadImages(){
       loaded++;
       if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
     };
-    im.src = assetURL(c.n, 'png');
+    im.src = assetURL(c.n, 'webp');
     IMG[c.n] = im;
   });
 }

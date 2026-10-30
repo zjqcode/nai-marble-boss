@@ -1,0 +1,16 @@
+{
+  "name": "nai-marble-boss",
+  "version": "1.0.0",
+  "private": true,
+  "description": "奶系弹珠 · 弹射讨伐 —— 弹弓 × 合成 × 打 Boss 的单文件离线网页游戏",
+  "scripts": {
+    "build": "node build.js",
+    "check": "node build.js --check",
+    "smoke": "node tools/smoke.mjs",
+    "verify": "node build.js --check && node tools/smoke.mjs",
+    "visual": "node tools/visual-diff.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
