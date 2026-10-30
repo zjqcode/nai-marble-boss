@@ -1,0 +1,17 @@
+# 构建/验证临时产物
+dist/
+*.tmp
+_*.html
+.tmp/
+
+# 依赖（本项目零依赖，仅防御）
+node_modules/
+
+# 测试产物
+test-output/
+*.log
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
