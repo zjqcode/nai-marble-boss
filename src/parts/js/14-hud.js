@@ -70,8 +70,8 @@ function showVS(ch){
   $id('vsChap').textContent = ch.chap + ' · ' + ch.title;
   $id('vsBossName').textContent = ch.title;
   $id('vsTitle').textContent = ch.atkName;
-  $id('vsBossImg').src = assetURL(ch.char, 'png');
-  $id('vsHeroOrb').innerHTML = '<img src="' + assetURL('奶蛋', 'png') + '" alt="">';
+  $id('vsBossImg').src = assetURL(ch.char);
+  $id('vsHeroOrb').innerHTML = '<img src="' + assetURL('奶蛋') + '" alt="">';
   el.classList.add('show');
   clearTimeout(vsTimer);
   vsTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);

@@ -311,16 +311,17 @@ function boot(){
   updateItemBar();
   buildGallery();
 
+  /* 音效：单文件版走内联 data URI；外置资源版（部署网站用）回退到 assets/ 相对路径 */
   bgmEl = $id('bgm');
-  if(bgmEl && ASSET_DATA && ASSET_DATA.audioWin){
-    bgmEl.src = ASSET_DATA.audioWin;
+  if(bgmEl){
+    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : 'assets/laugh.mp3';
     bgmEl.volume = 0.72;
     bgmEl.loop = true;
     bgmEl.pause();
   }
   loseEl = $id('loseSnd');
-  if(loseEl && ASSET_DATA && ASSET_DATA.audioLose){
-    loseEl.src = ASSET_DATA.audioLose;
+  if(loseEl){
+    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : 'assets/lose.mp3';
     loseEl.volume = 0.62;
     loseEl.loop = true;
     loseEl.pause();

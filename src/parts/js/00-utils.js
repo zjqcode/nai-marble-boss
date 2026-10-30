@@ -17,8 +17,12 @@ function store(k,v){
     localStorage.setItem(k,v);
   }catch(e){ return null; }
 }
-function assetURL(name, ext){
+/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回 assets/ 相对路径。
+   扩展名必须统一在这里决定——之前调用方各自传 'png'，而素材是 .webp，
+   单文件版看不出问题（data URI 不看扩展名），外置资源版就整片 404。 */
+var SPRITE_EXT = 'webp';
+function assetURL(name){
   if(ASSET_DATA) return ASSET_DATA.sprites[name] || '';
-  return 'assets/' + name + '.' + ext;
+  return 'assets/' + name + '.' + SPRITE_EXT;
 }
 

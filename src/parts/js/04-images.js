@@ -38,7 +38,7 @@ function loadImages(){
       loaded++;
       if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
     };
-    im.src = assetURL(c.n, 'webp');
+    im.src = assetURL(c.n);
     IMG[c.n] = im;
   });
 }

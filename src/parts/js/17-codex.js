@@ -42,7 +42,7 @@ function buildLevelList(){
     var avail = ch.id <= META.progress + 1;
     var cls = 'level-item' + (cleared ? ' cleared' : '') + (avail ? '' : ' locked');
     html += '<div class="' + cls + '">';
-    html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char,'png') + '" alt=""></div>';
+    html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char) + '" alt=""></div>';
     html += '<div class="li-body"><div class="li-top"><b>' + ch.chap + ' · ' + ch.title + '</b><span>' + (cleared ? '已通关' : (avail ? '可挑战' : '未解锁')) + '</span></div>';
     html += '<p class="li-desc">' + ch.desc + '</p>';
     html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span></div></div>';
@@ -70,7 +70,7 @@ function buildGallery(){
   var ch = chapterOfChar(c.n);
   var detail = $id('charDetail');
 
-  var dh = '<div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n,'png') + '" alt=""></div>';
+  var dh = '<div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n) + '" alt=""></div>';
   dh += '<div class="cd-body"><div class="cd-name"><b>' + c.n + '</b><span>' + (unlocked ? 'Lv.' + lv : '未解锁') + '</span></div>';
   if(unlocked){
     dh += '<p class="cd-skill">' + c.sname + '：' + skillText(c, lv) + '</p>';
@@ -106,7 +106,7 @@ function buildGallery(){
     var lvl = charLv(cc.n);
     var sel = cc.n === selectedChar ? ' sel' : '';
     grid += '<button class="char-card' + (un ? '' : ' locked') + sel + '" data-char="' + cc.n + '">';
-    grid += '<div class="orb sm' + (un ? '' : ' locked') + '"><img src="' + assetURL(cc.n,'png') + '" alt=""></div>';
+    grid += '<div class="orb sm' + (un ? '' : ' locked') + '"><img src="' + assetURL(cc.n) + '" alt=""></div>';
     grid += '<div class="cc-meta"><b>' + cc.n + '</b>';
     if(un){
       grid += '<p class="cc-skill">' + cc.sname + ' ' + skillText(cc, lvl) + '</p>';

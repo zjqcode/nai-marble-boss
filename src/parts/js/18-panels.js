@@ -14,7 +14,7 @@ function showWin(){
   if(res.unlock){
     var c = charByName(res.unlock);
     box.classList.remove('hide');
-    $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n,'png') + '" alt="">';
+    $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n) + '" alt="">';
     $id('unlockName').textContent = '【' + c.n + '】';
     $id('unlockSkill').textContent = c.sname + ' ' + skillText(c, 1) + ' · 已加入图鉴';
     setTimeout(function(){ Sound.upgrade(); }, 350);

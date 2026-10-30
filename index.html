@@ -809,9 +809,13 @@ function store(k,v){
     localStorage.setItem(k,v);
   }catch(e){ return null; }
 }
-function assetURL(name, ext){
+/* 立绘地址：单文件版返回内联 data URI；外置资源版（部署网站）返回 assets/ 相对路径。
+   扩展名必须统一在这里决定——之前调用方各自传 'png'，而素材是 .webp，
+   单文件版看不出问题（data URI 不看扩展名），外置资源版就整片 404。 */
+var SPRITE_EXT = 'webp';
+function assetURL(name){
   if(ASSET_DATA) return ASSET_DATA.sprites[name] || '';
-  return 'assets/' + name + '.' + ext;
+  return 'assets/' + name + '.' + SPRITE_EXT;
 }
 
 /* =========================================================
@@ -1446,7 +1450,7 @@ function loadImages(){
       loaded++;
       if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
     };
-    im.src = assetURL(c.n, 'webp');
+    im.src = assetURL(c.n);
     IMG[c.n] = im;
   });
 }
@@ -3699,8 +3703,8 @@ function showVS(ch){
   $id('vsChap').textContent = ch.chap + ' · ' + ch.title;
   $id('vsBossName').textContent = ch.title;
   $id('vsTitle').textContent = ch.atkName;
-  $id('vsBossImg').src = assetURL(ch.char, 'png');
-  $id('vsHeroOrb').innerHTML = '<img src="' + assetURL('奶蛋', 'png') + '" alt="">';
+  $id('vsBossImg').src = assetURL(ch.char);
+  $id('vsHeroOrb').innerHTML = '<img src="' + assetURL('奶蛋') + '" alt="">';
   el.classList.add('show');
   clearTimeout(vsTimer);
   vsTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);
@@ -5176,7 +5180,7 @@ function buildLevelList(){
     var avail = ch.id <= META.progress + 1;
     var cls = 'level-item' + (cleared ? ' cleared' : '') + (avail ? '' : ' locked');
     html += '<div class="' + cls + '">';
-    html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char,'png') + '" alt=""></div>';
+    html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char) + '" alt=""></div>';
     html += '<div class="li-body"><div class="li-top"><b>' + ch.chap + ' · ' + ch.title + '</b><span>' + (cleared ? '已通关' : (avail ? '可挑战' : '未解锁')) + '</span></div>';
     html += '<p class="li-desc">' + ch.desc + '</p>';
     html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span></div></div>';
@@ -5204,7 +5208,7 @@ function buildGallery(){
   var ch = chapterOfChar(c.n);
   var detail = $id('charDetail');
 
-  var dh = '<div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n,'png') + '" alt=""></div>';
+  var dh = '<div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n) + '" alt=""></div>';
   dh += '<div class="cd-body"><div class="cd-name"><b>' + c.n + '</b><span>' + (unlocked ? 'Lv.' + lv : '未解锁') + '</span></div>';
   if(unlocked){
     dh += '<p class="cd-skill">' + c.sname + '：' + skillText(c, lv) + '</p>';
@@ -5240,7 +5244,7 @@ function buildGallery(){
     var lvl = charLv(cc.n);
     var sel = cc.n === selectedChar ? ' sel' : '';
     grid += '<button class="char-card' + (un ? '' : ' locked') + sel + '" data-char="' + cc.n + '">';
-    grid += '<div class="orb sm' + (un ? '' : ' locked') + '"><img src="' + assetURL(cc.n,'png') + '" alt=""></div>';
+    grid += '<div class="orb sm' + (un ? '' : ' locked') + '"><img src="' + assetURL(cc.n) + '" alt=""></div>';
     grid += '<div class="cc-meta"><b>' + cc.n + '</b>';
     if(un){
       grid += '<p class="cc-skill">' + cc.sname + ' ' + skillText(cc, lvl) + '</p>';
@@ -5301,7 +5305,7 @@ function showWin(){
   if(res.unlock){
     var c = charByName(res.unlock);
     box.classList.remove('hide');
-    $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n,'png') + '" alt="">';
+    $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n) + '" alt="">';
     $id('unlockName').textContent = '【' + c.n + '】';
     $id('unlockSkill').textContent = c.sname + ' ' + skillText(c, 1) + ' · 已加入图鉴';
     setTimeout(function(){ Sound.upgrade(); }, 350);
@@ -5404,7 +5408,7 @@ function buildIntroOrbs(){
   var names = ['奶蛙','奶蛋','小奶蛙','奶猫','奶狗'];
   var html = '';
   for(var i=0;i<names.length;i++){
-    html += '<div class="orb" style="animation-delay:' + (i*0.22) + 's"><img src="' + assetURL(names[i],'png') + '" alt=""></div>';
+    html += '<div class="orb" style="animation-delay:' + (i*0.22) + 's"><img src="' + assetURL(names[i]) + '" alt=""></div>';
   }
   $id('orbRow').innerHTML = html;
 }
@@ -5722,16 +5726,17 @@ function boot(){
   updateItemBar();
   buildGallery();
 
+  /* 音效：单文件版走内联 data URI；外置资源版（部署网站用）回退到 assets/ 相对路径 */
   bgmEl = $id('bgm');
-  if(bgmEl && ASSET_DATA && ASSET_DATA.audioWin){
-    bgmEl.src = ASSET_DATA.audioWin;
+  if(bgmEl){
+    bgmEl.src = (ASSET_DATA && ASSET_DATA.audioWin) ? ASSET_DATA.audioWin : 'assets/laugh.mp3';
     bgmEl.volume = 0.72;
     bgmEl.loop = true;
     bgmEl.pause();
   }
   loseEl = $id('loseSnd');
-  if(loseEl && ASSET_DATA && ASSET_DATA.audioLose){
-    loseEl.src = ASSET_DATA.audioLose;
+  if(loseEl){
+    loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : 'assets/lose.mp3';
     loseEl.volume = 0.62;
     loseEl.loop = true;
     loseEl.pause();

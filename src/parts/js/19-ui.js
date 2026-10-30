@@ -62,7 +62,7 @@ function buildIntroOrbs(){
   var names = ['奶蛙','奶蛋','小奶蛙','奶猫','奶狗'];
   var html = '';
   for(var i=0;i<names.length;i++){
-    html += '<div class="orb" style="animation-delay:' + (i*0.22) + 's"><img src="' + assetURL(names[i],'png') + '" alt=""></div>';
+    html += '<div class="orb" style="animation-delay:' + (i*0.22) + 's"><img src="' + assetURL(names[i]) + '" alt=""></div>';
   }
   $id('orbRow').innerHTML = html;
 }

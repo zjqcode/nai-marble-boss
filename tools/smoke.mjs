@@ -11,7 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const target = process.argv[2] || path.join(root, '奶系弹珠_弹射讨伐.html');
 
-const fileUrl = pathToFileURL(target).href;
+/* 支持 file:// 路径也支持 http(s) 地址（网页版必须走 HTTP 才不会被 canvas 跨域限制） */
+const fileUrl = /^https?:\/\//.test(target) ? target : pathToFileURL(target).href;
 const results = [];
 let session;
 /* 真实等待（媒体播放要靠真实时间推进，不能只靠 __tick 的虚拟时钟） */
@@ -34,6 +35,9 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
 
+/* 音频源：单文件版是内联 data URI，网页部署版是 assets/*.mp3 相对路径，两种都算合法 */
+const isMp3Src = (s) => s.startsWith('data:audio/mpeg') || /\.mp3(?:$|[?#])/.test(s);
+
 async function waitImages() {
   await session.waitFor(
     `(window.__imgs || []).length > 0 && window.__imgs.every(i => i.complete && i.naturalWidth > 0)`,
@@ -49,7 +53,10 @@ function assertNoErrors(where) {
   assert(all.length === 0, `${where} 出现 ${all.length} 条错误: ${all.slice(0, 3).join(' | ')}`);
 }
 
-console.log(`\n冒烟测试目标: ${path.relative(root, target)}  (${(fs.statSync(target).size / 1024 / 1024).toFixed(2)} MB)\n`);
+const isUrl = /^https?:\/\//.test(target);
+const targetLabel = isUrl ? target : path.relative(root, target);
+const sizeLabel = isUrl ? 'HTTP 部署版' : `${(fs.statSync(target).size / 1024 / 1024).toFixed(2)} MB`;
+console.log(`\n冒烟测试目标: ${targetLabel}  (${sizeLabel})\n`);
 
 session = await launch({ width: 390, height: 844, dsf: 2 });
 console.log(`浏览器: ${session.browser}\n`);
@@ -205,9 +212,9 @@ await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关
   );
   const meta = await session.evaluate(`
     (() => { const a = document.getElementById('bgm');
-             return { src: (a.src || '').slice(0, 26), duration: a.duration, readyState: a.readyState,
-                      preload: a.getAttribute('preload') }; })()`);
-  assert(meta.src.startsWith('data:audio/mpeg'), '音频不是 mp3 data URI: ' + meta.src);
+             return { src: a.src || '', head: (a.src || '').slice(0, 40), duration: a.duration,
+                      readyState: a.readyState, preload: a.getAttribute('preload') }; })()`);
+  assert(isMp3Src(meta.src), '音频不是 mp3（内联 data URI 或 assets/*.mp3）: ' + meta.head);
   assert(meta.duration > 8.5 && meta.duration < 10, `音频时长异常: ${meta.duration}`);
   assert(meta.preload === 'auto', '音频未预加载: ' + meta.preload);
 
@@ -255,9 +262,9 @@ await check('失败时播放失败音效（独立音轨、循环、音量低于�
   );
   const meta = await session.evaluate(`
     (() => { const a = document.getElementById('loseSnd');
-             return { src: (a.src || '').slice(0, 26), dur: +a.duration.toFixed(2),
+             return { src: a.src || '', head: (a.src || '').slice(0, 40), dur: +a.duration.toFixed(2),
                       preload: a.getAttribute('preload') }; })()`);
-  assert(meta.src.startsWith('data:audio/mpeg'), '失败音效不是 mp3: ' + meta.src);
+  assert(isMp3Src(meta.src), '失败音效不是 mp3: ' + meta.head);
   assert(meta.dur > 15 && meta.dur < 18, `失败音效时长异常: ${meta.dur}`);
   assert(meta.preload === 'auto', '失败音效未预加载');
 
@@ -387,7 +394,10 @@ await check('反弹板：按钮拖拽放置、长度受控、8 秒后消失', as
         clientX: x, clientY: y, pointerId: 1, bubbles: true, cancelable: true }));
 
       const out = {};
-      out.btnVisibleInPlay = getComputedStyle(document.getElementById('bPlate')).opacity !== '0';
+      /* 用 pointer-events 判断可交互，而不是 opacity：后者有 0.25s CSS 过渡，
+         读到的可能是过渡初始值，测试会偶发失败。 */
+      out.btnVisibleInPlay = document.body.classList.contains('playing') &&
+        getComputedStyle(document.getElementById('bPlate')).pointerEvents !== 'none';
 
       document.getElementById('bPlate').click();
       out.armed = !!st.placingPlate;
