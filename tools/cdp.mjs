@@ -181,7 +181,7 @@ export class Session {
   }
 }
 
-export async function launch({ width = 390, height = 844, dsf = 2, port, autoplayPolicy = 'no-user-gesture-required' } = {}) {
+export async function launch({ width = 390, height = 844, dsf = 2, port, autoplayPolicy = 'no-user-gesture-required', deterministic = true } = {}) {
   const exe = EDGE_CANDIDATES.find((p) => fs.existsSync(p));
   if (!exe) throw new Error('找不到 Edge/Chrome 可执行文件');
   if (!port) port = 9300 + Math.floor(Math.random() * 500);
@@ -217,6 +217,9 @@ export async function launch({ width = 390, height = 844, dsf = 2, port, autopla
   await s.send('Emulation.setDeviceMetricsOverride', {
     width, height, deviceScaleFactor: dsf, mobile: true,
   });
-  await s.send('Page.addScriptToEvaluateOnNewDocument', { source: INIT_SCRIPT });
+  /* deterministic=false 时不劫持 rAF/时钟，用于量真实帧率与渲染耗时 */
+  if (deterministic) {
+    await s.send('Page.addScriptToEvaluateOnNewDocument', { source: INIT_SCRIPT });
+  }
   return s;
 }
