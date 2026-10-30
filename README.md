@@ -199,6 +199,40 @@ node tools/shots.mjs     # 重新生成 preview/ 截图
 覆盖内容：素材解码、画布渲染、8 个章节各跑 30 秒逻辑（不崩 / 无 NaN / 有真实命中）、
 「命中 Boss 不消耗球」核心机制、胜利后存档推进、损坏存档回落、存档跨刷新保留。
 
+## 部署到网站
+
+单文件版适合「发给别人双击玩」，网站部署则应该用**外置资源版**——HTML 只有 219 KB，
+素材单独成文件，能被浏览器缓存和 CDN 分发：
+
+```bash
+node build.js --web            # -> dist/web/  (index.html + assets/)
+node build.js --web docs       # -> docs/      （提交进仓库，给 Gitee Pages 用）
+```
+
+### 方式一 · 整站托管（推荐）
+
+仓库里已有 `docs/`，直接开 Pages 即可：
+
+- **Gitee Pages**：仓库 → 服务 → Gitee Pages → 分支 `main`、部署目录 `docs` → 启动
+  → 地址形如 `https://zjqcodex.gitee.io/nai-marble-boss/`
+- 换成 GitHub Pages / Vercel / Netlify 同理（部署目录同样选 `docs`）
+
+`docs/assets/` 与根目录 `assets/` 内容完全相同，git 会按内容去重，不会让仓库翻倍。
+
+### 方式二 · HTML 与素材分开（素材放国内仓库）
+
+```bash
+node build.js --web dist/web-cdn \
+  --asset-base "https://gitee.com/zjqcodex/nai-marble-boss/raw/main/assets"
+```
+
+产出的 `dist/web-cdn/` 只有一个 `index.html`，素材全部指向给定前缀，HTML 可以放任意托管商。
+实测跨域可用（14/14 图片 + 2 条音效正常加载）。
+
+> ⚠️ 这套方案能用，但**不如方式一快**：Gitee 的 `raw` 是文件网关而不是 CDN，
+> 实测 16 个素材串行下载约 16 秒（走代理环境），且 `Cache-Control` 只有 `max-age=60`。
+> 素材量不大时无所谓，追求首屏速度请用 Pages。
+
 ## 调试参数
 
 - `?debug` —— 暴露 `window.__NAI__`（`step(n)` / `spawn()` / `setBossHp()` / `damage()` / `win()` / `lose()` 等），冒烟测试就建立在它上面。
