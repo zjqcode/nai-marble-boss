@@ -132,8 +132,8 @@ function updateItemBar(){
   var html = '';
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
-    /* 反弹板有自己右侧的专用按钮，不再进通知道具栏，避免两个入口 */
-    if(it.key === 'plate') continue;
+    /* 有自己专用按钮的道具不进通用道具栏，避免两个入口（由数据标记，不硬编码 key） */
+    if(it.ownButton) continue;
     var n = itemCount(it.key);
     if(n > 0){
       html += '<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
@@ -163,10 +163,10 @@ function refreshItemBtnStates(){
   }
 }
 
-/* 反弹板专用按钮：数量 / 可用状态 / 放置中高亮 */
+/* 反弹板专用按钮：数量 / 可用状态 / 放置中高亮。
+   只负责把状态画到按钮上；「离开战斗时取消放置」是状态机的职责，
+   放在 15-loop.js 的 update 里做——别让一个 refresh 函数偷偷改状态。 */
 function refreshPlateBtn(){
-  /* 离开战斗（胜利/失败/暂停）时把没放下的预览丢掉，避免状态残留 */
-  if(state.placingPlate && (state.mode !== 'play' || state.paused)) cancelPlatePlacement(true);
   var btn = $id('bPlate');
   if(!btn) return;
   var n = itemCount('plate');
@@ -189,15 +189,32 @@ function itemFanfare(name, color, rgb){
   try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
 }
 
-function useItem(key){
-  if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
-  var n = itemCount(key);
-  if(n <= 0) return;
-  var it = shopItem(key);
-  if(!it) return;
-  var boss = state.boss;
+/* =========================================================
+   道具效果注册表
+   =========================================================
+   加新道具只需要两步：
+     1) 在 02-save.js 的 SHOP_ITEMS 里加一条（名称/图标/价格/说明）
+     2) 在下面 ITEM_USE 里注册同名的效果函数
+   handler 返回 false 表示「这次没生效，不该扣道具」（冷却中 / 满血 / 只是进入放置模式）。
+   扣道具、存档、刷新界面统一由 useItem 收尾，不在每个分支里重复写。
+   ========================================================= */
+var ITEM_USE = {
 
-  if(key === 'multi'){
+  /* 血瓶：只在受伤时可用，一次回 1 心，0.5 秒冷却防连点 */
+  potion: function(){
+    if(state.potionCd > 0) return false;
+    if(state.heroHP >= state.maxHP) return false;
+    healHero(1);
+    state.potionCd = 0.5;
+    popText(state.cannonX, view.pouchY - 92*view.s, '+1 心', 20, '#ffb3bb');
+    ring(state.cannonX, view.pouchY - 34*view.s, 12, view.w*0.55, '255,150,160', .6, 4);
+    burst(state.cannonX, view.pouchY - 34*view.s, 24, 20, 6, '#ffc4c9');
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .22);
+    Sound.shield();
+  },
+
+  multi: function(){
     var lv = state.loadLv;
     for(var k=0;k<5;k++){
       var ang = -Math.PI/2 + (k-2)*0.17;
@@ -211,13 +228,15 @@ function useItem(key){
     Sound.launch(1);
     state.flashHue = 'gold';
     itemFanfare('多球发射！', '#ffe6a8', '255,220,150');
+  },
 
-  } else if(key === 'plate'){
-    /* 反弹板改成手动拖拽放置：这里只进入放置模式，真正放下时才扣道具 */
+  /* 反弹板：这里只进入放置模式，真正放下时才扣道具 */
+  plate: function(){
     startPlatePlacement();
-    return;
+    return false;
+  },
 
-  } else if(key === 'portal'){
+  portal: function(){
     /* 临时传送阵：带 life，用新 pair 编号避免和关卡自带的串门 */
     var pair = 1;
     for(var qi=0;qi<state.portals.length;qi++) pair = Math.max(pair, (state.portals[qi].pair|0) + 1);
@@ -232,8 +251,10 @@ function useItem(key){
     burst(b2.x, b2.y, r, 16, 7, '#c9b6ff');
     Sound.portal(false);
     itemFanfare('传送阵开启！', '#d2c2ff', '190,150,255');
+  },
 
-  } else if(key === 'fire'){
+  fire: function(){
+    var boss = state.boss;
     state.fireT = 8;
     if(boss && !boss.dead){
       popText(boss.x, boss.y - boss.h*.5, '火焰灼烧！', 18, '#ffb070');
@@ -243,8 +264,10 @@ function useItem(key){
     Sound.upgrade();
     state.flashHue = 'gold';
     itemFanfare('火焰灼烧 · 伤害 +50%', '#ffc090', '255,150,70');
+  },
 
-  } else if(key === 'thunder'){
+  thunder: function(){
+    var boss = state.boss;
     if(boss && !boss.dead){
       for(var s=-1;s<=1;s++){
         var tx = clamp(boss.x + s*view.w*0.10, view.left+20, view.right-20);
@@ -264,8 +287,9 @@ function useItem(key){
     Sound.thunder(1);
     state.flashHue = 'blue';
     itemFanfare('雷电球！', '#cfe6ff', '170,214,255');
+  },
 
-  } else if(key === 'transform'){
+  transform: function(){
     state.superT = 12;
     refreshLoadLevel();
     for(var ti=0;ti<3;ti++){
@@ -280,24 +304,17 @@ function useItem(key){
     state.flashHue = 'gold';
     state.flash = Math.max(state.flash, .7);
     itemFanfare('变身超级奶娃！', '#fff2b0', '255,220,120');
-
-  } else if(key === 'potion'){
-    /* 血瓶：只在受伤时可用，一次回 1 心，0.5 秒冷却防连点。
-       满血 / 冷却中直接 return，不扣道具。暂停与阵亡由 useItem 开头统一拦住。 */
-    if(state.potionCd > 0) return;
-    if(state.heroHP >= state.maxHP) return;
-    state.heroHP = Math.min(state.maxHP, state.heroHP + 1);
-    state.potionCd = 0.5;
-    updateHearts();
-    popText(state.cannonX, view.pouchY - 92*view.s, '+1 心', 20, '#ffb3bb');
-    ring(state.cannonX, view.pouchY - 34*view.s, 12, view.w*0.55, '255,150,160', .6, 4);
-    burst(state.cannonX, view.pouchY - 34*view.s, 24, 20, 6, '#ffc4c9');
-    state.flashHue = 'gold';
-    state.flash = Math.max(state.flash, .22);
-    Sound.shield();
   }
+};
 
-  META.items[key] = n - 1;
+function useItem(key){
+  /* 暂停 / 阵亡 / 过场中一律不可用 */
+  if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
+  if(itemCount(key) <= 0) return;
+  var handler = ITEM_USE[key];
+  if(!handler) return;
+  if(handler() === false) return;      /* 没生效就不扣道具 */
+  META.items[key] = itemCount(key) - 1;
   saveMeta();
   updateItemBar();
   updateBuffs();

@@ -125,6 +125,8 @@ function update(dt){
     state.uiT = 0.12;
     updateBuffs();
     updateBreakHUD();
+    /* 离开战斗（胜利 / 失败 / 暂停）时把没放下的反弹板预览丢掉，避免状态残留 */
+    if(state.placingPlate && (state.mode !== 'play' || state.paused)) cancelPlatePlacement(true);
     /* 血瓶可用状态 / 反弹板数量与放置高亮，跟着 0.12 秒的节流刷新 */
     refreshItemBtnStates();
     refreshPlateBtn();

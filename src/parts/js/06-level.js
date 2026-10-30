@@ -75,7 +75,7 @@ function startLevel(idx){
   var hb = heroBonus();
   state.maxHP = 5 + hb.hp;
   state.heroDmg = hb.dmg;
-  state.heroHP = state.maxHP;
+  setHeroHP(state.maxHP);
   state.shield = 0;
   state.superT = 0;
   state.frenzyT = 0;

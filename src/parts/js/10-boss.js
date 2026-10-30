@@ -158,8 +158,7 @@ function heroHit(n, reason){
     Sound.shield();
     return;
   }
-  state.heroHP = Math.max(0, state.heroHP - n);
-  updateHearts(true);
+  setHeroHP(state.heroHP - n, true);
   state.flashHue = 'red';
   state.flash = Math.max(state.flash, .5);
   state.shake = Math.max(state.shake, 14);
@@ -199,29 +198,15 @@ function dodgeSuccess(){
   Sound.dodge();
 }
 
-/* 失败路径之一：血量归零（最常见的死法）。
-   注意失败有两条路径——这里和 13-settle.js 的 failLevel（超时），
-   两边都必须播失败音效，改一处别忘了另一处。 */
+/* 失败：血量归零（另一种是 13-settle.js 的 failLevel：超时）。
+   清场与结算音效由 settleLevel 统一负责，这里只管本路径特有的表现。 */
 function heroDown(reason){
-  if(state.mode !== 'play') return;
-  state.mode = 'lose';
+  if(!settleLevel('lose')) return;
   state.deadReason = reason || '反击';
-  state.telegraph = null;
-  state.suck = null;
-  state.beam = null;
-  state.comboQ = 0;
-  setWarn(false);
-  Sound.bgmStop();
-  playLoseAudio();
   Sound.lose();
   state.flash = Math.max(state.flash, .6);
   state.shake = Math.max(state.shake, 18);
-  state.result = {
-    chapter: state.chapter, milk: 0, score: state.score, time: state.timeMax - state.timer,
-    hpLeft: state.boss ? state.boss.hp : 0,
-    hpPct: state.boss ? Math.round(state.boss.hp/state.boss.maxHp*100) : 100,
-    reason: 'hero', attack: reason || 'Boss 反击'
-  };
+  state.result = loseResult({ reason: 'hero', attack: reason || 'Boss 反击' });
   saveMeta();
   setTimeout(function(){ if(state.mode === 'lose') showLose(); }, 700);
 }

@@ -169,11 +169,26 @@ ffmpeg -i <失败音视频>.mp4 -vn -c:a libmp3lame -b:a 128k -ar 44100 -ac 2 \
   -af "volume=-3dB,treble=g=-4:f=7000" assets/lose.mp3
 ```
 
+## 架构约定（防止再出同类 bug）
+
+游戏逻辑是单文件单作用域的，几个状态一旦有多处写入点，就很容易"改了一处漏一处"。
+下面四条是硬约定，`npm run lint` 会强制检查：
+
+| 约定 | 为什么 | 检查方式 |
+| --- | --- | --- |
+| 结算只经 `settleLevel(kind)` | 胜利/失败曾经各写一份，**血量归零那条漏播了结算音效** | `state.mode='victory'\|'lose'` 只允许出现在 `13-settle.js`；`playVictoryAudio/playLoseAudio` 只允许 `settleLevel` 调用 |
+| 道具效果登记在 `ITEM_USE` | 新道具只改数据、不碰分发逻辑 | `SHOP_ITEMS` 与 `ITEM_USE` 的 key 必须一一对应 |
+| 勇者生命只经 `setHeroHP` | 手写赋值容易漏刷心形 HUD | 除 `05-state.js` 外禁止 `state.heroHP =` |
+| 刷新函数不改状态 | `refreshPlateBtn()` 曾偷偷取消放置，副作用藏得很深 | 取消逻辑移到 `update()` 的状态机里 |
+
+道具的效果函数返回 `false` 表示"这次没生效"（冷却中/满血/只是进入放置模式），
+`useItem` 据此决定要不要扣道具——扣减、存档、刷新只写一次。
+
 ## 测试
 
 ```bash
-npm run lint             # 源码自检：JS 语法、CSS 括号、$id 引用、manifest 完整性
-npm run smoke            # 无头 Edge 冒烟测试，20 项
+npm run lint             # 源码自检 + 上述结构约束，21 项
+npm run smoke            # 无头 Edge 冒烟测试，21 项
 node tools/shots.mjs     # 重新生成 preview/ 截图
 ```
 

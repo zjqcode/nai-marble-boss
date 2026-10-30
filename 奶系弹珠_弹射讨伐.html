@@ -940,7 +940,7 @@ function charLv(name){ return META.lv[name] || 1; }
 var SHOP_ITEMS = [
   {key:'potion',    n:'血瓶',       ico:'❤', cost:30, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
   {key:'multi',     n:'多球发射',   ico:'✹', cost:40, d:'立刻扇形发射 5 颗当前等级奶球'},
-  {key:'plate',     n:'反弹板',     ico:'▰', cost:50, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
+  {key:'plate',     n:'反弹板',     ico:'▰', cost:50, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
   {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:60, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
   {key:'portal',    n:'传送阵',     ico:'◎', cost:70, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
   {key:'thunder',   n:'雷电球',     ico:'⚡', cost:80, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
@@ -1873,6 +1873,19 @@ function formatTime(sec){
   var m = Math.floor(sec/60), s = sec%60;
   return (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
 }
+
+/* 改勇者生命只走 setHeroHP：
+   上限夹紧 + 心形 HUD 同步一次做完，避免各处手写赋值时漏刷界面。
+   hitFx=true 用于受伤时给对应的心加一下抖动。 */
+function setHeroHP(v, hitFx){
+  var hp = clamp(v | 0, 0, state.maxHP);
+  var changed = hp !== state.heroHP;
+  state.heroHP = hp;
+  if(changed || hitFx) updateHearts(hitFx);
+  return changed;
+}
+function healHero(n){ return setHeroHP(state.heroHP + (n | 0)); }
+
 function addMilk(n){
   n = Math.round(n);
   if(n <= 0) return;
@@ -1978,7 +1991,7 @@ function startLevel(idx){
   var hb = heroBonus();
   state.maxHP = 5 + hb.hp;
   state.heroDmg = hb.dmg;
-  state.heroHP = state.maxHP;
+  setHeroHP(state.maxHP);
   state.shield = 0;
   state.superT = 0;
   state.frenzyT = 0;
@@ -2673,8 +2686,7 @@ function heroHit(n, reason){
     Sound.shield();
     return;
   }
-  state.heroHP = Math.max(0, state.heroHP - n);
-  updateHearts(true);
+  setHeroHP(state.heroHP - n, true);
   state.flashHue = 'red';
   state.flash = Math.max(state.flash, .5);
   state.shake = Math.max(state.shake, 14);
@@ -2714,29 +2726,15 @@ function dodgeSuccess(){
   Sound.dodge();
 }
 
-/* 失败路径之一：血量归零（最常见的死法）。
-   注意失败有两条路径——这里和 13-settle.js 的 failLevel（超时），
-   两边都必须播失败音效，改一处别忘了另一处。 */
+/* 失败：血量归零（另一种是 13-settle.js 的 failLevel：超时）。
+   清场与结算音效由 settleLevel 统一负责，这里只管本路径特有的表现。 */
 function heroDown(reason){
-  if(state.mode !== 'play') return;
-  state.mode = 'lose';
+  if(!settleLevel('lose')) return;
   state.deadReason = reason || '反击';
-  state.telegraph = null;
-  state.suck = null;
-  state.beam = null;
-  state.comboQ = 0;
-  setWarn(false);
-  Sound.bgmStop();
-  playLoseAudio();
   Sound.lose();
   state.flash = Math.max(state.flash, .6);
   state.shake = Math.max(state.shake, 18);
-  state.result = {
-    chapter: state.chapter, milk: 0, score: state.score, time: state.timeMax - state.timer,
-    hpLeft: state.boss ? state.boss.hp : 0,
-    hpPct: state.boss ? Math.round(state.boss.hp/state.boss.maxHp*100) : 100,
-    reason: 'hero', attack: reason || 'Boss 反击'
-  };
+  state.result = loseResult({ reason: 'hero', attack: reason || 'Boss 反击' });
   saveMeta();
   setTimeout(function(){ if(state.mode === 'lose') showLose(); }, 700);
 }
@@ -3276,8 +3274,8 @@ function updateItemBar(){
   var html = '';
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
-    /* 反弹板有自己右侧的专用按钮，不再进通知道具栏，避免两个入口 */
-    if(it.key === 'plate') continue;
+    /* 有自己专用按钮的道具不进通用道具栏，避免两个入口（由数据标记，不硬编码 key） */
+    if(it.ownButton) continue;
     var n = itemCount(it.key);
     if(n > 0){
       html += '<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
@@ -3307,10 +3305,10 @@ function refreshItemBtnStates(){
   }
 }
 
-/* 反弹板专用按钮：数量 / 可用状态 / 放置中高亮 */
+/* 反弹板专用按钮：数量 / 可用状态 / 放置中高亮。
+   只负责把状态画到按钮上；「离开战斗时取消放置」是状态机的职责，
+   放在 15-loop.js 的 update 里做——别让一个 refresh 函数偷偷改状态。 */
 function refreshPlateBtn(){
-  /* 离开战斗（胜利/失败/暂停）时把没放下的预览丢掉，避免状态残留 */
-  if(state.placingPlate && (state.mode !== 'play' || state.paused)) cancelPlatePlacement(true);
   var btn = $id('bPlate');
   if(!btn) return;
   var n = itemCount('plate');
@@ -3333,15 +3331,32 @@ function itemFanfare(name, color, rgb){
   try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
 }
 
-function useItem(key){
-  if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
-  var n = itemCount(key);
-  if(n <= 0) return;
-  var it = shopItem(key);
-  if(!it) return;
-  var boss = state.boss;
+/* =========================================================
+   道具效果注册表
+   =========================================================
+   加新道具只需要两步：
+     1) 在 02-save.js 的 SHOP_ITEMS 里加一条（名称/图标/价格/说明）
+     2) 在下面 ITEM_USE 里注册同名的效果函数
+   handler 返回 false 表示「这次没生效，不该扣道具」（冷却中 / 满血 / 只是进入放置模式）。
+   扣道具、存档、刷新界面统一由 useItem 收尾，不在每个分支里重复写。
+   ========================================================= */
+var ITEM_USE = {
 
-  if(key === 'multi'){
+  /* 血瓶：只在受伤时可用，一次回 1 心，0.5 秒冷却防连点 */
+  potion: function(){
+    if(state.potionCd > 0) return false;
+    if(state.heroHP >= state.maxHP) return false;
+    healHero(1);
+    state.potionCd = 0.5;
+    popText(state.cannonX, view.pouchY - 92*view.s, '+1 心', 20, '#ffb3bb');
+    ring(state.cannonX, view.pouchY - 34*view.s, 12, view.w*0.55, '255,150,160', .6, 4);
+    burst(state.cannonX, view.pouchY - 34*view.s, 24, 20, 6, '#ffc4c9');
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .22);
+    Sound.shield();
+  },
+
+  multi: function(){
     var lv = state.loadLv;
     for(var k=0;k<5;k++){
       var ang = -Math.PI/2 + (k-2)*0.17;
@@ -3355,13 +3370,15 @@ function useItem(key){
     Sound.launch(1);
     state.flashHue = 'gold';
     itemFanfare('多球发射！', '#ffe6a8', '255,220,150');
+  },
 
-  } else if(key === 'plate'){
-    /* 反弹板改成手动拖拽放置：这里只进入放置模式，真正放下时才扣道具 */
+  /* 反弹板：这里只进入放置模式，真正放下时才扣道具 */
+  plate: function(){
     startPlatePlacement();
-    return;
+    return false;
+  },
 
-  } else if(key === 'portal'){
+  portal: function(){
     /* 临时传送阵：带 life，用新 pair 编号避免和关卡自带的串门 */
     var pair = 1;
     for(var qi=0;qi<state.portals.length;qi++) pair = Math.max(pair, (state.portals[qi].pair|0) + 1);
@@ -3376,8 +3393,10 @@ function useItem(key){
     burst(b2.x, b2.y, r, 16, 7, '#c9b6ff');
     Sound.portal(false);
     itemFanfare('传送阵开启！', '#d2c2ff', '190,150,255');
+  },
 
-  } else if(key === 'fire'){
+  fire: function(){
+    var boss = state.boss;
     state.fireT = 8;
     if(boss && !boss.dead){
       popText(boss.x, boss.y - boss.h*.5, '火焰灼烧！', 18, '#ffb070');
@@ -3387,8 +3406,10 @@ function useItem(key){
     Sound.upgrade();
     state.flashHue = 'gold';
     itemFanfare('火焰灼烧 · 伤害 +50%', '#ffc090', '255,150,70');
+  },
 
-  } else if(key === 'thunder'){
+  thunder: function(){
+    var boss = state.boss;
     if(boss && !boss.dead){
       for(var s=-1;s<=1;s++){
         var tx = clamp(boss.x + s*view.w*0.10, view.left+20, view.right-20);
@@ -3408,8 +3429,9 @@ function useItem(key){
     Sound.thunder(1);
     state.flashHue = 'blue';
     itemFanfare('雷电球！', '#cfe6ff', '170,214,255');
+  },
 
-  } else if(key === 'transform'){
+  transform: function(){
     state.superT = 12;
     refreshLoadLevel();
     for(var ti=0;ti<3;ti++){
@@ -3424,24 +3446,17 @@ function useItem(key){
     state.flashHue = 'gold';
     state.flash = Math.max(state.flash, .7);
     itemFanfare('变身超级奶娃！', '#fff2b0', '255,220,120');
-
-  } else if(key === 'potion'){
-    /* 血瓶：只在受伤时可用，一次回 1 心，0.5 秒冷却防连点。
-       满血 / 冷却中直接 return，不扣道具。暂停与阵亡由 useItem 开头统一拦住。 */
-    if(state.potionCd > 0) return;
-    if(state.heroHP >= state.maxHP) return;
-    state.heroHP = Math.min(state.maxHP, state.heroHP + 1);
-    state.potionCd = 0.5;
-    updateHearts();
-    popText(state.cannonX, view.pouchY - 92*view.s, '+1 心', 20, '#ffb3bb');
-    ring(state.cannonX, view.pouchY - 34*view.s, 12, view.w*0.55, '255,150,160', .6, 4);
-    burst(state.cannonX, view.pouchY - 34*view.s, 24, 20, 6, '#ffc4c9');
-    state.flashHue = 'gold';
-    state.flash = Math.max(state.flash, .22);
-    Sound.shield();
   }
+};
 
-  META.items[key] = n - 1;
+function useItem(key){
+  /* 暂停 / 阵亡 / 过场中一律不可用 */
+  if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
+  if(itemCount(key) <= 0) return;
+  var handler = ITEM_USE[key];
+  if(!handler) return;
+  if(handler() === false) return;      /* 没生效就不扣道具 */
+  META.items[key] = itemCount(key) - 1;
   saveMeta();
   updateItemBar();
   updateBuffs();
@@ -3518,26 +3533,59 @@ function confirmPlatePlacement(){
 
 /* =========================================================
    13. 结算
+   =========================================================
+   结算只允许经过 settleLevel()：
+     - 它是唯一设置 state.mode = 'victory' / 'lose' 的地方
+     - 清场（telegraph / suck / beam / 连段）与结算音效都在这里统一做
+   这样新增任何结束方式（新 Boss 机制、平局、复活失败…）都不会漏播音效、
+   也不会漏清状态。之前 failLevel / heroDown 各写一份，就漏过一次音效。
    ========================================================= */
+var SETTLE_MODE = { win: 'victory', lose: 'lose' };
+
+function settleLevel(kind){
+  if(state.mode !== 'play') return false;      /* 已经结算过，幂等 */
+  var mode = SETTLE_MODE[kind];
+  if(!mode) return false;
+  state.mode = mode;
+  state.telegraph = null;
+  state.suck = null;
+  state.beam = null;
+  state.comboQ = 0;
+  setWarn(false);
+  Sound.bgmStop();
+  /* 结算音效只在这里触发一次，任何结束路径都自动带上 */
+  if(kind === 'win') playVictoryAudio();
+  else playLoseAudio();
+  return true;
+}
+
+/* 失败面板共用的结果字段，两条失败路径只在差异字段上有区别 */
+function loseResult(extra){
+  var boss = state.boss;
+  var base = {
+    chapter: state.chapter,
+    milk: 0,
+    score: state.score,
+    time: Math.max(0, state.timeMax - state.timer),
+    hpLeft: boss ? boss.hp : 0,
+    hpPct: boss ? Math.round(boss.hp/boss.maxHp*100) : 100
+  };
+  if(extra) for(var k in extra) if(extra.hasOwnProperty(k)) base[k] = extra[k];
+  return base;
+}
+
 function bossDie(){
   var boss = state.boss;
   if(!boss || boss.dead) return;
   boss.dead = true;
-  state.mode = 'victory';
-  state.telegraph = null;
-  state.suck = null;
-  state.beam = null;
-  setWarn(false);
+  if(!settleLevel('win')) return;
   $id('bossAtk').classList.remove('hot');
   $id('bossAtk').textContent = '击破！';
-  state.comboQ = 0;
   state.flashHue = 'gold';
   state.flash = 1;
   state.slowmo = Math.max(state.slowmo, 0.6);
   state.shake = Math.max(state.shake, 26);
   cssShake('m');
-  Sound.bgmStop();
-  playVictoryAudio();
   setTimeout(function(){ Sound.win(); }, 700);
   ring(boss.x, boss.y, boss.r*0.3, boss.r*4.2, '255,235,170', .9, 6);
   ring(boss.x, boss.y, boss.r*0.3, boss.r*2.6, '255,150,120', .7, 4);
@@ -3569,29 +3617,12 @@ function bossDie(){
   setTimeout(function(){ if(state.mode === 'victory') showWin(); }, 1450);
 }
 
-/* 失败路径之二：超时。
-   另一条路径是 10-boss.js 的 heroDown（血量归零），两边都要播失败音效。 */
+/* 失败：时间耗尽（另一种是 10-boss.js 的 heroDown：血量归零） */
 function failLevel(){
-  if(state.mode !== 'play') return;
-  state.mode = 'lose';
-  state.telegraph = null;
-  state.suck = null;
-  state.beam = null;
-  state.comboQ = 0;
-  setWarn(false);
-  Sound.bgmStop();
-  playLoseAudio();
+  if(!settleLevel('lose')) return;
   Sound.lose();
   state.shake = Math.max(state.shake, 10);
-  state.result = {
-    chapter: state.chapter,
-    milk: 0,
-    score: state.score,
-    time: state.timeMax,
-    hpLeft: state.boss ? state.boss.hp : 0,
-    hpPct: state.boss ? Math.round(state.boss.hp/state.boss.maxHp*100) : 100,
-    reason: 'time'
-  };
+  state.result = loseResult({ reason: 'time' });
   saveMeta();
   setTimeout(function(){ if(state.mode === 'lose') showLose(); }, 700);
 }
@@ -3863,6 +3894,8 @@ function update(dt){
     state.uiT = 0.12;
     updateBuffs();
     updateBreakHUD();
+    /* 离开战斗（胜利 / 失败 / 暂停）时把没放下的反弹板预览丢掉，避免状态残留 */
+    if(state.placingPlate && (state.mode !== 'play' || state.paused)) cancelPlatePlacement(true);
     /* 血瓶可用状态 / 反弹板数量与放置高亮，跟着 0.12 秒的节流刷新 */
     refreshItemBtnStates();
     refreshPlateBtn();
@@ -5243,8 +5276,8 @@ function upgradeSelected(){
   var oldMax = state.maxHP;
   state.maxHP = 5 + hbU.hp;
   state.heroDmg = hbU.dmg;
-  state.heroHP = Math.min(state.maxHP, state.heroHP + Math.max(0, state.maxHP - oldMax));
-  updateHearts();
+  /* 升级同时强化勇者：新增的心直接补满（setHeroHP 会同步刷新心形 HUD） */
+  setHeroHP(state.heroHP + Math.max(0, state.maxHP - oldMax));
   saveMeta();
   updateMilkHUD();
   Sound.upgrade();

@@ -142,8 +142,8 @@ function upgradeSelected(){
   var oldMax = state.maxHP;
   state.maxHP = 5 + hbU.hp;
   state.heroDmg = hbU.dmg;
-  state.heroHP = Math.min(state.maxHP, state.heroHP + Math.max(0, state.maxHP - oldMax));
-  updateHearts();
+  /* 升级同时强化勇者：新增的心直接补满（setHeroHP 会同步刷新心形 HUD） */
+  setHeroHP(state.heroHP + Math.max(0, state.maxHP - oldMax));
   saveMeta();
   updateMilkHUD();
   Sound.upgrade();

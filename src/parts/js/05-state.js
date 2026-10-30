@@ -82,6 +82,19 @@ function formatTime(sec){
   var m = Math.floor(sec/60), s = sec%60;
   return (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
 }
+
+/* 改勇者生命只走 setHeroHP：
+   上限夹紧 + 心形 HUD 同步一次做完，避免各处手写赋值时漏刷界面。
+   hitFx=true 用于受伤时给对应的心加一下抖动。 */
+function setHeroHP(v, hitFx){
+  var hp = clamp(v | 0, 0, state.maxHP);
+  var changed = hp !== state.heroHP;
+  state.heroHP = hp;
+  if(changed || hitFx) updateHearts(hitFx);
+  return changed;
+}
+function healHero(n){ return setHeroHP(state.heroHP + (n | 0)); }
+
 function addMilk(n){
   n = Math.round(n);
   if(n <= 0) return;
