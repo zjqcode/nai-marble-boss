@@ -1,0 +1,33 @@
+# Netlify 部署配置
+#
+# 构建「外置资源版」：index.html 220 KB + assets/ 721 KB，同源部署。
+# 素材由 Netlify 的 CDN 分发并缓存，不需要外部对象存储。
+#
+# 本地等价命令： node build.js --web dist/web
+
+[build]
+  command = "node build.js --web dist/web"
+  publish = "dist/web"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# 入口 HTML：不缓存，保证改了源码重新部署后立刻生效
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# 素材文件名不带内容 hash，所以不要设 immutable 长缓存，
+# 一天 + Netlify 的 ETag 校验足够，既省流量又不会长期发旧图
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

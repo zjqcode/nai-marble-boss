@@ -267,6 +267,33 @@ node build.js --web dist/web-cdn \
 >   --audio-base "https://cdn.jsdelivr.net/gh/zjqcode/nai-marble-boss@main/assets"
 > ```
 
+### 托管到 Netlify（推荐，自带全球 CDN）
+
+仓库里已有 `netlify.toml`，**连接仓库后不用任何额外配置**：
+
+```toml
+[build]
+  command = "node build.js --web dist/web"   # 构建外置资源版
+  publish = "dist/web"                       # 发布目录
+```
+
+HTML 与素材**同源**部署，由 Netlify CDN 分发并缓存（素材 `max-age=86400`，
+入口 HTML 不缓存以保证更新即时生效）。实测该产物形态冒烟测试 21/21 通过。
+
+三种上线方式，按省事程度排：
+
+| 方式 | 需要什么 | 适合 |
+| --- | --- | --- |
+| **拖拽部署** | 无 | 最快试一下：本地 `node build.js --web`，把 `dist/web` 整个拖到 https://app.netlify.com/drop |
+| **Netlify CLI** | `npm i -g netlify-cli` | 不想动 GitHub：`netlify deploy --prod`（会读取 netlify.toml） |
+| **连接 Git 仓库** | GitHub/GitLab/Bitbucket | 长期维护，push 即自动部署 |
+
+> ⚠️ Netlify 的 Git 集成**不支持 Gitee**。要走自动部署，得先把仓库同步到 GitHub
+> （当前 GitHub 落后本地若干提交）。
+
+在 Netlify 上**不需要用 Gitee 存素材**——同源更快、无跨域、无 canvas taint，
+也不会因为第三方仓库限流而拖慢首屏。Gitee 那套方案只在你把 HTML 放到别处时才需要。
+
 ## 调试参数
 
 - `?debug` —— 暴露 `window.__NAI__`（`step(n)` / `spawn()` / `setBossHp()` / `damage()` / `win()` / `lose()` 等），冒烟测试就建立在它上面。
