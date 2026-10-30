@@ -36,6 +36,9 @@ function toggleSound(){
   if(state.soundOn){
     Sound.ui();
     if(state.mode === 'play') Sound.bgmStart();
+    /* 结算界面重新开音效时，把对应的循环音效接上 */
+    else if(state.mode === 'victory') playVictoryAudio();
+    else if(state.mode === 'lose') playLoseAudio();
   } else {
     stopBgm();
   }

@@ -77,34 +77,47 @@ function showVS(ch){
   vsTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);
 }
 
-/* 胜利音效（笑声）。素材是纯音频 mp3，内联为 data URI。
-   bgmEl 这个变量名沿用旧称，实际只用于胜利音效，和程序化 BGM 无关。 */
-var bgmEl = null, victoryRetryBound = false;
+/* 结算音效：胜利笑声（#bgm）/ 失败音效（#loseSnd），两者都**循环播放**。
+   变量名 bgmEl 沿用旧称，和程序化 BGM 无关。 */
+var bgmEl = null, loseEl = null;
+var sfxRetrying = { win: false, lose: false };
+/* 音量：失败音已在文件里压过 −3dB 并削了高频，这里再低一档，避免刺耳 */
+var SFX_VOL = { win: 0.72, lose: 0.62 };
 
-function playVictoryAudio(){
+function audioElFor(which){
+  if(which === 'lose'){
+    if(!loseEl) loseEl = $id('loseSnd');
+    return loseEl;
+  }
   if(!bgmEl) bgmEl = $id('bgm');
-  if(!bgmEl || !state.soundOn) return;
-  bgmEl.pause();
-  try{ bgmEl.currentTime = 0; }catch(e){}
-  bgmEl.loop = false;
-  bgmEl.muted = false;
-  bgmEl.volume = 0.72;
-  playVictoryAudioNow();
+  return bgmEl;
 }
 
-function playVictoryAudioNow(){
-  if(!bgmEl || !state.soundOn) return;
-  var p = bgmEl.play();
+function playSfxLoop(which){
+  var el = audioElFor(which);
+  if(!el || !state.soundOn) return;
+  el.pause();
+  try{ el.currentTime = 0; }catch(e){}
+  el.loop = true;
+  el.muted = false;
+  el.volume = SFX_VOL[which] || 0.7;
+  playSfxNow(which);
+}
+
+function playSfxNow(which){
+  var el = audioElFor(which);
+  if(!el || !state.soundOn) return;
+  var p = el.play();
   if(p && p.catch){
     p.catch(function(){
-      /* 被浏览器自动播放策略拦下时，等玩家下一次操作再补播，别让胜利静音 */
-      if(victoryRetryBound) return;
-      victoryRetryBound = true;
+      /* 被自动播放策略拦下时，等玩家下一次操作再补播，别让结算静音 */
+      if(sfxRetrying[which]) return;
+      sfxRetrying[which] = true;
       var retry = function(){
-        victoryRetryBound = false;
+        sfxRetrying[which] = false;
         window.removeEventListener('pointerdown', retry, true);
         window.removeEventListener('keydown', retry, true);
-        if(state.mode === 'victory') playVictoryAudioNow();
+        if(state.mode === (which === 'lose' ? 'lose' : 'victory')) playSfxNow(which);
       };
       window.addEventListener('pointerdown', retry, true);
       window.addEventListener('keydown', retry, true);
@@ -112,10 +125,16 @@ function playVictoryAudioNow(){
   }
 }
 
+function playVictoryAudio(){ playSfxLoop('win'); }
+function playLoseAudio(){ playSfxLoop('lose'); }
+
 function stopBgm(){
-  if(!bgmEl) bgmEl = $id('bgm');
-  if(!bgmEl) return;
-  bgmEl.pause();
-  try{ bgmEl.currentTime = 0; }catch(e){}
+  var which = ['win', 'lose'];
+  for(var i=0;i<which.length;i++){
+    var el = audioElFor(which[i]);
+    if(!el) continue;
+    el.pause();
+    try{ el.currentTime = 0; }catch(e){}
+  }
 }
 

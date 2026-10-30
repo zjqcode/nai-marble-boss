@@ -60,6 +60,7 @@ function failLevel(){
   state.comboQ = 0;
   setWarn(false);
   Sound.bgmStop();
+  playLoseAudio();
   Sound.lose();
   state.shake = Math.max(state.shake, 10);
   state.result = {

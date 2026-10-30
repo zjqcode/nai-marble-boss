@@ -88,10 +88,14 @@
 ## 音效
 
 - **程序化 BGM**：Web Audio 实时合成（低音 + 和声 + 鼓点），平静 / 狂暴 / 蓄力三档强度自动切换。
-- **胜利笑声**：击败 Boss 的瞬间先停掉程序化 BGM，再播放 `assets/laugh.mp3`（9 秒笑声，从原始视频抽取的音轨）；
-  进入下一关或关掉音效都会立即停止。若被浏览器自动播放策略拦下，会在玩家下一次点击/按键时补播。
+- **结算音效（循环播放）**：两条独立音轨，都设 `loop=true` 循环到玩家离开结算界面为止。
+  - 胜利：`assets/laugh.mp3`（9.1 秒笑声），音量 0.72。
+  - 失败：`assets/lose.mp3`（16.6 秒），音量 0.62。
+  - 失败音在转码时已压 −3 dB、并对 7 kHz 以上削 4 dB——源文件峰值顶到 0 dB（已削顶），
+    原样播放会很刺耳；播放音量也比胜利音低一档。
+  - 进下一关 / 重开 / 关掉音效都会立即停止；若被浏览器自动播放策略拦下，会在玩家下一次点击/按键时补播。
 - 奶球相撞：玻璃碰撞声；合成：噗叽声；命中 Boss：打击声；破防、反弹板、传送阵、变身各有专属音效。
-- 音效开关同时控制 BGM 与音效。
+- 音效开关同时控制 BGM、结算音效与音效。
 
 ## 画面
 
@@ -132,7 +136,7 @@ my_game/
 │  ├─ style.css            全部样式
 │  ├─ manifest.json        组装顺序（唯一权威）
 │  └─ js/                 01-data.js / 03-audio.js / 16-render.js …
-├─ assets/                 素材：WebP 立绘 + 图鉴 + laugh.mp3（胜利笑声）；背景是程序化生成的
+├─ assets/                 素材：WebP 立绘 + 图鉴 + laugh.mp3 / lose.mp3；背景是程序化生成的
 ├─ preview/                README 截图（由 tools/shots.mjs 生成）
 ├─ tools/                  构建与测试工具（零依赖，无需 npm install）
 ├─ build.js                构建脚本
@@ -148,7 +152,7 @@ node build.js --check         # 校验「现有产物 == 重新构建结果」�
 node build.js --emit-source   # 导出未内联素材的源码到 _source.html，便于调试
 ```
 
-产物约 0.81 MB，其中 90% 是 base64 素材。构建是**可复现**的：素材遍历顺序固定、
+产物约 1.15 MB，其中 90% 是 base64 素材。构建是**可复现**的：素材遍历顺序固定、
 占位符用函数式替换，同一份源码在任何机器上产出的 sha256 都一致。
 
 `assets/laugh.mp3` 是从原始笑声视频里抽出来的纯音频轨（丢掉 1920×1080 的视频轨，
@@ -158,11 +162,18 @@ node build.js --emit-source   # 导出未内联素材的源码到 _source.html�
 ffmpeg -i <原始视频>.mp4 -vn -c:a libmp3lame -b:a 128k -ar 44100 -ac 2 assets/laugh.mp3
 ```
 
+`assets/lose.mp3` 同理，另外压了电平、削了高频（源峰值顶到 0 dB，原样播放偏刺耳）：
+
+```bash
+ffmpeg -i <失败音视频>.mp4 -vn -c:a libmp3lame -b:a 128k -ar 44100 -ac 2 \
+  -af "volume=-3dB,treble=g=-4:f=7000" assets/lose.mp3
+```
+
 ## 测试
 
 ```bash
 npm run lint             # 源码自检：JS 语法、CSS 括号、$id 引用、manifest 完整性
-npm run smoke            # 无头 Edge 冒烟测试，19 项
+npm run smoke            # 无头 Edge 冒烟测试，20 项
 node tools/shots.mjs     # 重新生成 preview/ 截图
 ```
 

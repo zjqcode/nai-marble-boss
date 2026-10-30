@@ -118,15 +118,14 @@ if (!chart) throw new Error('缺少图鉴素材 assets/chart.(webp|jpg)');
 const data = { chart: b64(chart), sprites };
 if (bg) data.bg = b64(bg);
 
-/* 胜利音效：优先纯音频 mp3（浏览器兼容性最好），退回到旧版 mp4 容器 */
-const AUDIO_STEMS = ['laugh', 'bgm'];
+/* 结算音效：纯音频 mp3（浏览器兼容性最好），退回到 mp4 容器 */
 const AUDIO_EXTS = ['.mp3', '.m4a', '.mp4'];
-let audio = null;
-for (const stem of AUDIO_STEMS) {
-  audio = pick(stem, AUDIO_EXTS);
-  if (audio) break;
-}
-if (audio) data.audio = b64(audio);
+const winAudio = pick('laugh', AUDIO_EXTS) || pick('bgm', AUDIO_EXTS);
+const loseAudio = pick('lose', AUDIO_EXTS);
+if (winAudio) data.audioWin = b64(winAudio);
+else console.warn('[warn] 没有胜利音效素材（assets/laugh.mp3）');
+if (loseAudio) data.audioLose = b64(loseAudio);
+else console.warn('[warn] 没有失败音效素材（assets/lose.mp3）');
 
 if (!html.includes(TOKEN)) throw new Error('源码里找不到素材占位符 ' + TOKEN);
 /* 用函数式替换：避免素材数据中出现 $& / $' 时被当成替换模式 */
@@ -177,8 +176,8 @@ if (emitSource) {
 function report(label) {
   console.log(`${label}: ${outFile}`);
   console.log(`size  : ${(bytes.length / 1024 / 1024).toFixed(2)} MB`);
-  console.log(`sprites: ${Object.keys(sprites).length}  bg: ${bg ? path.basename(bg.file) : '(程序化动态背景)'}  chart: ${path.basename(chart.file)}` +
-    (audio ? `  audio: ${path.basename(audio.file)} (${audio.mime})` : '  audio: (无)'));
+  console.log(`sprites: ${Object.keys(sprites).length}  bg: ${bg ? path.basename(bg.file) : '(程序化动态背景)'}  chart: ${path.basename(chart.file)}`);
+  console.log(`audio  : win=${winAudio ? path.basename(winAudio.file) : '无'}  lose=${loseAudio ? path.basename(loseAudio.file) : '无'}`);
 }
 
 if (checkOnly) {

@@ -312,11 +312,18 @@ function boot(){
   buildGallery();
 
   bgmEl = $id('bgm');
-  if(bgmEl && ASSET_DATA && ASSET_DATA.audio){
-    bgmEl.src = ASSET_DATA.audio;
+  if(bgmEl && ASSET_DATA && ASSET_DATA.audioWin){
+    bgmEl.src = ASSET_DATA.audioWin;
     bgmEl.volume = 0.72;
-    bgmEl.loop = false;
+    bgmEl.loop = true;
     bgmEl.pause();
+  }
+  loseEl = $id('loseSnd');
+  if(loseEl && ASSET_DATA && ASSET_DATA.audioLose){
+    loseEl.src = ASSET_DATA.audioLose;
+    loseEl.volume = 0.62;
+    loseEl.loop = true;
+    loseEl.pause();
   }
 
   if(!ASSET_DATA) document.title = '奶系弹珠 · 弹射讨伐（源码调试）';

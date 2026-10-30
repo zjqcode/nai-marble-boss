@@ -14,6 +14,8 @@ const target = process.argv[2] || path.join(root, '奶系弹珠_弹射讨伐.htm
 const fileUrl = pathToFileURL(target).href;
 const results = [];
 let session;
+/* 真实等待（媒体播放要靠真实时间推进，不能只靠 __tick 的虚拟时钟） */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function check(name, fn) {
   return (async () => {
@@ -221,16 +223,71 @@ await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关
   const st = await session.evaluate(`
     (() => { const a = document.getElementById('bgm');
              return { paused: a.paused, t: +a.currentTime.toFixed(2), dur: +a.duration.toFixed(2),
-                      err: a.error ? a.error.code : null, vol: a.volume, muted: a.muted }; })()`);
+                      err: a.error ? a.error.code : null, vol: a.volume, muted: a.muted, loop: a.loop }; })()`);
   assert(st.err === null, '音频解码/播放错误码 ' + st.err);
   assert(st.muted === false, '音频处于静音状态');
+  assert(st.loop === true, '胜利音效应循环播放，但 loop=' + st.loop);
+
+  /* 真的绕过结尾一次：把播放头推到尾端，等它自动回到开头 */
+  await session.evaluate(`
+    (() => { const a = document.getElementById('bgm'); a.currentTime = Math.max(0, a.duration - 0.25); })()`);
+  await sleep(1400);
+  const wrapped = await session.evaluate(`
+    (() => { const a = document.getElementById('bgm'); return { t: +a.currentTime.toFixed(2), paused: a.paused }; })()`);
+  assert(!wrapped.paused, '循环后应继续播放');
+  assert(wrapped.t < 3, `循环未生效：播到尾端后 currentTime 仍为 ${wrapped.t}s`);
 
   /* 进下一关时必须停掉，否则笑声会盖在新关卡上 */
   await session.evaluate(`window.__NAI__.startLevel(0)`);
   const after = await session.evaluate(`document.getElementById('bgm').paused`);
   assert(after === true, '换关后笑声没有停止');
 
-  return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol}，换关即停`;
+  return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol} / 循环，换关即停`;
+});
+
+// ---------- 5b. 失败音效：独立音轨、循环、音量更低 ----------
+await check('失败时播放失败音效（独立音轨、循环、音量低于胜利音）', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  await session.waitFor(
+    `(() => { const a = document.getElementById('loseSnd'); return !!a && a.readyState >= 1; })()`,
+    15000, '失败音效元数据加载'
+  );
+  const meta = await session.evaluate(`
+    (() => { const a = document.getElementById('loseSnd');
+             return { src: (a.src || '').slice(0, 26), dur: +a.duration.toFixed(2),
+                      preload: a.getAttribute('preload') }; })()`);
+  assert(meta.src.startsWith('data:audio/mpeg'), '失败音效不是 mp3: ' + meta.src);
+  assert(meta.dur > 15 && meta.dur < 18, `失败音效时长异常: ${meta.dur}`);
+  assert(meta.preload === 'auto', '失败音效未预加载');
+
+  await session.evaluate(`window.__NAI__.step(170)`);
+  await session.evaluate(`window.__NAI__.lose()`);
+  assert(await session.evaluate(`window.__NAI__.state.mode`) === 'lose', '没进入失败态');
+
+  await session.waitFor(
+    `(() => { const a = document.getElementById('loseSnd'); return !a.paused && a.currentTime > 0.05; })()`,
+    10000, '失败音效开始播放'
+  );
+  const st = await session.evaluate(`
+    (() => {
+      const a = document.getElementById('loseSnd'), w = document.getElementById('bgm');
+      return { paused: a.paused, t: +a.currentTime.toFixed(2), dur: +a.duration.toFixed(2),
+               loop: a.loop, vol: +a.volume.toFixed(2), muted: a.muted,
+               err: a.error ? a.error.code : null,
+               winVol: +w.volume.toFixed(2), winPlaying: !w.paused };
+    })()`);
+  assert(st.err === null, '失败音效错误码 ' + st.err);
+  assert(st.loop === true, '失败音效应循环播放');
+  assert(st.muted === false, '失败音效处于静音状态');
+  assert(st.vol < st.winVol, `失败音效音量(${st.vol})应低于胜利音(${st.winVol})，避免刺耳`);
+  assert(!st.winPlaying, '失败时不应同时播放胜利音效');
+
+  await session.evaluate(`window.__NAI__.startLevel(0)`);
+  const after = await session.evaluate(`document.getElementById('loseSnd').paused`);
+  assert(after === true, '重开/换关后失败音效没有停止');
+
+  return `${st.dur}s / 已播到 ${st.t}s / 音量 ${st.vol} < 胜利${st.winVol} / 循环，换关即停`;
 });
 
 // ---------- 6. 血瓶：受伤才可用、回 1 心、0.5s 冷却、满血/暂停/阵亡禁用 ----------
