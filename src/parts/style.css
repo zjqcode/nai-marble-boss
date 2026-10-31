@@ -1187,3 +1187,6 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 }
 @keyframes ldIn{from{opacity:0}to{opacity:1}}
 @keyframes ldOut{from{opacity:1}to{opacity:0}}
+
+/* 暂停面板第三项「返回主页」占满一行 */
+.pause-grid .wide{grid-column:1/-1}

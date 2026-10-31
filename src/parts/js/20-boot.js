@@ -189,6 +189,7 @@ function bindEvents(){
     startLevel(state.chapterIndex);
   });
   $id('bPauseLevels').addEventListener('click', function(){ openLevels(); });
+  $id('bPauseHome').addEventListener('click', function(){ goHome(); });
 
   $id('bNext').addEventListener('click', function(){
     Sound.ui();

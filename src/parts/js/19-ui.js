@@ -66,6 +66,42 @@ function hideIntro(){
   setTimeout(function(){ el.style.display = 'none'; }, 800);
 }
 
+/* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
+function goHome(){
+  closeAllScreens();
+  Sound.ui();
+  /* 停掉结算音轨（BGM 是程序化生成的，跟着游戏状态停） */
+  var plays = ['bgm', 'loseSnd'];
+  for(var i=0;i<plays.length;i++){
+    var el = $id(plays[i]);
+    if(el){ try{ el.pause(); el.currentTime = 0; }catch(e){} }
+  }
+  /* 清场：球/岩石/粒子/弹道全部收掉，回到干净状态 */
+  state.balls.length = 0;
+  state.rocks.length = 0;
+  state.coins.length = 0;
+  state.parts.length = 0;
+  state.pops.length = 0;
+  state.rings.length = 0;
+  state.bolts.length = 0;
+  state.beams.length = 0;
+  state.springFx.length = 0;
+  state.mergeQ.length = 0;
+  state.telegraph = null;
+  state.suck = null;
+  state.beam = null;
+  state.aim.active = false;
+  state.aim.power = 0;
+  state.mode = 'intro';
+  state.paused = false;
+  state.stunT = 0;
+  state.invulnT = 0;
+  document.body.classList.remove('playing');
+  document.body.classList.remove('stunned');
+  var el = $id('intro');
+  if(el){ el.classList.remove('hide'); el.style.display = ''; }
+}
+
 function updateStartLabel(){
   var b = $id('bStart');
   if(!b) return;
