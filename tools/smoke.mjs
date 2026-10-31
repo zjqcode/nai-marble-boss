@@ -919,6 +919,64 @@ await check('结算面板：失败面板与「无新角色解锁」的胜利面�
   }
 });
 
+// ---------- 8i. 加时奶糖 ----------
+await check('加时奶糖：+10 秒、50 奶瓶、最多堆 6 个', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state;
+      N.tick(170);
+      const out = {};
+
+      N.META.milk = 100000;
+      N.META.items.time = 0;
+      document.getElementById('bShop').click();
+      const card = [...document.querySelectorAll('.shop-card')].find(c => c.textContent.includes('加时奶糖'));
+      out.hasCard = !!card;
+      out.cardText = card ? card.textContent.replace(/\\s+/g, ' ').trim() : '';
+
+      /* 连点 10 次，上限 6 */
+      for (let i = 0; i < 10; i++) {
+        const btn = document.querySelector('[data-buy="time"]');
+        if (!btn) break;
+        btn.click();
+      }
+      out.stacked = N.META.items.time;
+      out.buyLabel = (document.querySelector('[data-buy="time"]') || {}).textContent || '';
+      out.spent = 100000 - N.META.milk;
+
+      /* 关掉商店：openScreen 会把游戏置为暂停，useItem 会拒绝 */
+      const closeBtn = document.querySelector('#shop [data-close]');
+      if (closeBtn) closeBtn.click();
+
+      st.timer = 30;
+      const t0 = st.timer;
+      N.useItem('time');
+      out.delta = Math.round((st.timer - t0) * 100) / 100;
+      out.left = N.META.items.time;
+
+      const t1 = st.timer;
+      N.useItem('time'); N.useItem('time'); N.useItem('time');
+      out.delta3 = Math.round((st.timer - t1) * 100) / 100;
+      out.leftAfter = N.META.items.time;
+
+      N.updateItemBar();
+      out.inBar = !!document.querySelector('#itemBar [data-item="time"]');
+      return out;
+    })()`);
+  assert(r.hasCard, '商店里应有「加时奶糖」');
+  assert(/50 奶瓶/.test(r.cardText), '售价应为 50 奶瓶，实际卡片: ' + r.cardText.slice(0, 60));
+  assert(r.stacked === 6, `最多只能堆 6 个，实际 ${r.stacked}`);
+  assert(r.spent === 300, `买 6 个应花 300 奶瓶，实际 ${r.spent}`);
+  assert(/已满/.test(r.buyLabel), '买满后按钮应显示「已满」，实际 ' + r.buyLabel);
+  assert(r.delta === 10, `用 1 个应 +10 秒，实际 ${r.delta}`);
+  assert(r.left === 5, `用掉后应剩 5 个，实际 ${r.left}`);
+  assert(r.delta3 === 30, `连用 3 个应 +30 秒，实际 ${r.delta3}`);
+  assert(r.inBar, '道具栏里应出现加时奶糖');
+  return `堆到 ${r.stacked} 个 / 花 ${r.spent} 奶瓶 / +${r.delta} 秒 → +${r.delta3} 秒`;
+});
+
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------
 await check('动态背景：画面随时间变化（不再是一张静态图）', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);

@@ -209,6 +209,11 @@ function bindEvents(){
     var key = btn.getAttribute('data-buy');
     var it = shopItem(key);
     if(!it) return;
+    /* 有堆叠上限的道具（加时奶糖 6 个）买满就不再卖 */
+    if(it.max && itemCount(key) >= it.max){
+      toast(it.n + ' 最多存 ' + it.max + ' 个，先用掉一些吧');
+      return;
+    }
     if(META.milk < it.cost){ toast('奶瓶不够，还差 ' + (it.cost - META.milk)); return; }
     META.milk -= it.cost;
     META.items[key] = itemCount(key) + 1;

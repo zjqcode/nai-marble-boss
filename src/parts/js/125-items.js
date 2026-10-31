@@ -114,9 +114,13 @@ function buildShop(){
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
     var n = itemCount(it.key);
+    var full = it.max && n >= it.max;
+    var poor = META.milk < it.cost;
     html += '<div class="shop-card"><div class="shop-ico">' + it.ico + '</div>';
-    html += '<div class="shop-body"><b>' + it.n + ' <i>已拥有 ×' + n + '</i></b><p>' + it.d + '</p></div>';
-    html += '<button class="shop-buy' + (META.milk < it.cost ? ' poor' : '') + '" data-buy="' + it.key + '">' + it.cost + ' 奶瓶</button></div>';
+    html += '<div class="shop-body"><b>' + it.n + ' <i>已拥有 ×' + n +
+      (it.max ? ' / ' + it.max : '') + '</i></b><p>' + it.d + '</p></div>';
+    html += '<button class="shop-buy' + (full ? ' full' : poor ? ' poor' : '') +
+      '" data-buy="' + it.key + '">' + (full ? '已满' : it.cost + ' 奶瓶') + '</button></div>';
   }
   el.innerHTML = html;
 }
@@ -237,6 +241,19 @@ var ITEM_USE = {
   plate: function(){
     startPlatePlacement();
     return false;
+  },
+
+  /* 加时奶糖：关卡时间 +10 秒，可叠加（最多持有 6 个，见 SHOP_ITEMS.max） */
+  time: function(){
+    state.timer += 10;
+    updateLevelHUD();
+    var y = view.arenaTop + 46*view.s;
+    popText(view.cx, y, '+10 秒', 20, '#ffe9a8');
+    ring(view.cx, y, 8, view.w*0.46, '255,226,150', .5, 3);
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .18);
+    Sound.upgrade();
+    toast('加时 +10 秒');
   },
 
   portal: function(){

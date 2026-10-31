@@ -565,6 +565,9 @@ body.playing .stick{opacity:1;pointer-events:auto}
 .shop-body p{margin:3px 0 0;font-size:10px;color:var(--dim);line-height:1.45}
 .shop-buy{flex:0 0 auto;border:1px solid rgba(255,210,140,.4);background:rgba(255,200,120,.14);color:#ffe2a6;border-radius:10px;padding:8px 9px;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
 .shop-buy.poor{opacity:.45}
+/* 有堆叠上限的道具买满后："已满" + 不可点 */
+.shop-buy.full{opacity:.55;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);
+  color:rgba(255,236,200,.55);cursor:default;pointer-events:none}
 .shop-max{flex:0 0 auto;font-size:10px;color:var(--dim);border:1px solid rgba(255,255,255,.1);padding:6px 8px;border-radius:8px}
 /* 左侧竖排，位于左移按钮上方，不遮挡中间的弹弓 */
 #itemBar{
@@ -1181,6 +1184,7 @@ var SHOP_ITEMS = [
   {key:'potion',    n:'血瓶',       ico:'❤', cost:30, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
   {key:'multi',     n:'多球发射',   ico:'✹', cost:40, d:'立刻扇形发射 5 颗当前等级奶球'},
   {key:'plate',     n:'反弹板',     ico:'▰', cost:50, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
+  {key:'time',      n:'加时奶糖',   ico:'⏱', cost:50, max:6, d:'关卡时间 +10 秒。可叠加，最多持有 6 个'},
   {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:60, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
   {key:'portal',    n:'传送阵',     ico:'◎', cost:70, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
   {key:'thunder',   n:'雷电球',     ico:'⚡', cost:80, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
@@ -3670,9 +3674,13 @@ function buildShop(){
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
     var n = itemCount(it.key);
+    var full = it.max && n >= it.max;
+    var poor = META.milk < it.cost;
     html += '<div class="shop-card"><div class="shop-ico">' + it.ico + '</div>';
-    html += '<div class="shop-body"><b>' + it.n + ' <i>已拥有 ×' + n + '</i></b><p>' + it.d + '</p></div>';
-    html += '<button class="shop-buy' + (META.milk < it.cost ? ' poor' : '') + '" data-buy="' + it.key + '">' + it.cost + ' 奶瓶</button></div>';
+    html += '<div class="shop-body"><b>' + it.n + ' <i>已拥有 ×' + n +
+      (it.max ? ' / ' + it.max : '') + '</i></b><p>' + it.d + '</p></div>';
+    html += '<button class="shop-buy' + (full ? ' full' : poor ? ' poor' : '') +
+      '" data-buy="' + it.key + '">' + (full ? '已满' : it.cost + ' 奶瓶') + '</button></div>';
   }
   el.innerHTML = html;
 }
@@ -3793,6 +3801,19 @@ var ITEM_USE = {
   plate: function(){
     startPlatePlacement();
     return false;
+  },
+
+  /* 加时奶糖：关卡时间 +10 秒，可叠加（最多持有 6 个，见 SHOP_ITEMS.max） */
+  time: function(){
+    state.timer += 10;
+    updateLevelHUD();
+    var y = view.arenaTop + 46*view.s;
+    popText(view.cx, y, '+10 秒', 20, '#ffe9a8');
+    ring(view.cx, y, 8, view.w*0.46, '255,226,150', .5, 3);
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .18);
+    Sound.upgrade();
+    toast('加时 +10 秒');
   },
 
   portal: function(){
@@ -6180,6 +6201,11 @@ function bindEvents(){
     var key = btn.getAttribute('data-buy');
     var it = shopItem(key);
     if(!it) return;
+    /* 有堆叠上限的道具（加时奶糖 6 个）买满就不再卖 */
+    if(it.max && itemCount(key) >= it.max){
+      toast(it.n + ' 最多存 ' + it.max + ' 个，先用掉一些吧');
+      return;
+    }
     if(META.milk < it.cost){ toast('奶瓶不够，还差 ' + (it.cost - META.milk)); return; }
     META.milk -= it.cost;
     META.items[key] = itemCount(key) + 1;
