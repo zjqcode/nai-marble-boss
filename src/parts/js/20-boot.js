@@ -148,7 +148,7 @@ function bindEvents(){
   /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
   bindSticks();
 
-  $id('bFull').addEventListener('click', function(){
+  function toggleFullscreen(){
     Sound.ui();
     var el = document.documentElement;
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
@@ -166,7 +166,15 @@ function bindEvents(){
         if(ex) ex.call(document);
       }
     }catch(e){ toast('全屏切换失败'); }
-  });
+  }
+  $id('bFull').addEventListener('click', toggleFullscreen);
+  $id('bIntroFull').addEventListener('click', toggleFullscreen);
+  /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
+  syncIntroTools();
+  window.addEventListener('resize', syncIntroTools);
+  window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
+  document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
+  document.addEventListener('webkitfullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
 
   /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
   $id('bRotateGo').addEventListener('click', function(){

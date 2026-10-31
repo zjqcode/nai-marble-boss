@@ -77,6 +77,21 @@ document.addEventListener('error', function(e){
   el.setAttribute('src', src.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net'));
 }, true);
 
+/* 首页「全屏」按钮跟随静音按钮：`.intro-snd` 在多个媒体查询里换了 right/top/尺寸，
+   与其到处复制断点，不如量一次它的位置，把全屏按钮摆到它左边。 */
+function syncIntroTools(){
+  var fs = $id('bIntroFull'), snd = $id('bIntroSound');
+  if(!fs || !snd) return;
+  var par = fs.offsetParent;
+  if(!par) return;
+  var w = snd.offsetWidth, h = snd.offsetHeight;
+  if(!w || !h) return;
+  fs.style.width = w + 'px';
+  fs.style.height = h + 'px';
+  fs.style.top = snd.offsetTop + 'px';
+  fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+}
+
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
 function goHome(){
   closeAllScreens();

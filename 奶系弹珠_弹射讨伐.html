@@ -1202,6 +1202,17 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 暂停面板第三项「返回主页」占满一行 */
 .pause-grid .wide{grid-column:1/-1}
+
+/* 首页右上角全屏按钮：跟静音按钮并排，一左一右 */
+.intro-fs{
+  position:absolute;top:calc(var(--sat) + 14px);right:76px;z-index:4;width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;border:1px solid rgba(255,220,160,.22);background:rgba(9,17,29,.55);
+  color:rgba(255,236,200,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;font:inherit;
+  transition:right .15s ease, top .15s ease, width .15s ease, height .15s ease;
+}
+.intro-fs svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.intro-fs:active{transform:scale(.94)}
+.intro-fs.on{color:#ffd47e;border-color:rgba(255,210,130,.45);background:rgba(30,24,12,.55)}
 </style>
 </head>
 <body>
@@ -1354,6 +1365,9 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
     <div class="hero-tag"><span class="live-dot"></span> 奶系小队，集结！</div>
     <div class="orb-row" id="orbRow"></div>
   </div>
+  <button class="intro-fs" id="bIntroFull" aria-label="全屏">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 15v5h-5"/><path d="M15 4h5v5"/><path d="M9 20H4v-5"/></svg>
+  </button>
   <button class="intro-snd snd-btn on" id="bIntroSound" aria-label="音效开关" aria-pressed="true">
     <svg class="ico-on" viewBox="0 0 24 24"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M15.6 9.1a4.2 4.2 0 0 1 0 5.8"/><path d="M18.2 6.4a8 8 0 0 1 0 11.2"/></svg>
     <svg class="ico-off" viewBox="0 0 24 24" style="display:none"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M16.2 9.6l5 5M21.2 9.6l-5 5"/></svg>
@@ -6784,6 +6798,21 @@ document.addEventListener('error', function(e){
   el.setAttribute('src', src.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net'));
 }, true);
 
+/* 首页「全屏」按钮跟随静音按钮：`.intro-snd` 在多个媒体查询里换了 right/top/尺寸，
+   与其到处复制断点，不如量一次它的位置，把全屏按钮摆到它左边。 */
+function syncIntroTools(){
+  var fs = $id('bIntroFull'), snd = $id('bIntroSound');
+  if(!fs || !snd) return;
+  var par = fs.offsetParent;
+  if(!par) return;
+  var w = snd.offsetWidth, h = snd.offsetHeight;
+  if(!w || !h) return;
+  fs.style.width = w + 'px';
+  fs.style.height = h + 'px';
+  fs.style.top = snd.offsetTop + 'px';
+  fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+}
+
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
 function goHome(){
   closeAllScreens();
@@ -7070,7 +7099,7 @@ function bindEvents(){
   /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
   bindSticks();
 
-  $id('bFull').addEventListener('click', function(){
+  function toggleFullscreen(){
     Sound.ui();
     var el = document.documentElement;
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
@@ -7088,7 +7117,15 @@ function bindEvents(){
         if(ex) ex.call(document);
       }
     }catch(e){ toast('全屏切换失败'); }
-  });
+  }
+  $id('bFull').addEventListener('click', toggleFullscreen);
+  $id('bIntroFull').addEventListener('click', toggleFullscreen);
+  /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
+  syncIntroTools();
+  window.addEventListener('resize', syncIntroTools);
+  window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
+  document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
+  document.addEventListener('webkitfullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
 
   /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
   $id('bRotateGo').addEventListener('click', function(){

@@ -1190,3 +1190,14 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 暂停面板第三项「返回主页」占满一行 */
 .pause-grid .wide{grid-column:1/-1}
+
+/* 首页右上角全屏按钮：跟静音按钮并排，一左一右 */
+.intro-fs{
+  position:absolute;top:calc(var(--sat) + 14px);right:76px;z-index:4;width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;border:1px solid rgba(255,220,160,.22);background:rgba(9,17,29,.55);
+  color:rgba(255,236,200,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;font:inherit;
+  transition:right .15s ease, top .15s ease, width .15s ease, height .15s ease;
+}
+.intro-fs svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.intro-fs:active{transform:scale(.94)}
+.intro-fs.on{color:#ffd47e;border-color:rgba(255,210,130,.45);background:rgba(30,24,12,.55)}
