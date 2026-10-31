@@ -1216,19 +1216,21 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 首页全屏按钮的引导气泡：只在没进过全屏时出现，点一下或等几秒就收 */
 .fs-hint{
-  position:absolute;z-index:5;pointer-events:none;
-  display:flex;align-items:center;gap:6px;
-  padding:6px 11px;border-radius:11px;
-  background:rgba(12,28,27,.92);border:1px solid rgba(255,216,150,.34);
-  color:#ffe6b8;font-size:11px;letter-spacing:.04em;white-space:nowrap;
-  box-shadow:0 8px 20px rgba(0,0,0,.4);
+  position:absolute;z-index:7;pointer-events:none;
+  display:flex;align-items:center;gap:7px;
+  padding:9px 14px;border-radius:12px;
+  background:linear-gradient(160deg,#ffeec2,#eec078);border:none;
+  color:#26382a;font-size:13.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap;
+  box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px rgba(255,236,190,.5);
   opacity:0;transform:translateY(-4px);visibility:hidden;
 }
+.fs-hint b{font-size:15px}
+.fs-hint em{font-style:normal;font-size:15px;animation:fsArrow 1s ease-in-out infinite}
+@keyframes fsArrow{0%,100%{transform:translateY(1px)}50%{transform:translateY(-4px)}}
 .fs-hint.show{visibility:visible;animation:fsHintIn .3s ease forwards}
 .fs-hint i{
-  position:absolute;top:-5px;right:16px;width:9px;height:9px;
-  background:rgba(12,28,27,.92);border-left:1px solid rgba(255,216,150,.34);
-  border-top:1px solid rgba(255,216,150,.34);transform:rotate(45deg);
+  position:absolute;top:-6px;right:18px;width:12px;height:12px;
+  background:#ffeec2;transform:rotate(45deg);border-radius:2px;
 }
 .fs-hint.hide{visibility:visible;animation:fsHintOut .25s ease forwards}
 .fs-hint.show.pulse{animation:fsHintIn .3s ease forwards,fsPulse 1.6s .4s ease-in-out infinite}
@@ -1236,8 +1238,17 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 @keyframes fsHintOut{from{opacity:1}to{opacity:0;transform:translateY(-4px)}}
 @keyframes fsPulse{0%,100%{box-shadow:0 8px 20px rgba(0,0,0,.4)}50%{box-shadow:0 8px 20px rgba(0,0,0,.4),0 0 0 3px rgba(255,214,140,.18)}}
 /* 提示出现时，按钮本身也轻微呼吸，吸引注意 */
-.intro-fs.hint-on{animation:fsBtnPulse 1.6s ease-in-out infinite}
-@keyframes fsBtnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,214,140,0)}50%{box-shadow:0 0 0 4px rgba(255,214,140,.16)}}
+.intro-fs.hint-on{z-index:8;color:#ffd88c;border-color:rgba(255,214,140,.85);background:rgba(60,44,16,.75);animation:fsBtnPulse 1.2s ease-in-out infinite}
+@keyframes fsBtnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,214,140,.55),0 0 16px rgba(255,214,140,.25)}50%{box-shadow:0 0 0 7px rgba(255,214,140,.12),0 0 26px rgba(255,214,140,.5)}}
+
+/* 首次引导：整屏压暗，只在全屏按钮处留一个亮洞 */
+.fs-spot{
+  position:absolute;display:none;z-index:3;pointer-events:none;
+  border-radius:16px;
+  box-shadow:0 0 0 9999px rgba(4,12,12,.66), 0 0 0 3px rgba(255,214,140,.55), 0 0 34px rgba(255,214,140,.45);
+}
+.fs-spot.show{display:block;animation:fsSpotIn .25s ease}
+@keyframes fsSpotIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -1395,8 +1406,9 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   <button class="intro-fs" id="bIntroFull" aria-label="全屏">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 15v5h-5"/><path d="M15 4h5v5"/><path d="M9 20H4v-5"/></svg>
   </button>
+  <div class="fs-spot" id="fsSpot" aria-hidden="true"></div>
   <div class="fs-hint" id="fsHint" role="note">
-    <span>点这里全屏，视野更大</span><i aria-hidden="true"></i>
+    <em aria-hidden="true">↑</em><span><b>点这里</b> 全屏玩</span><i aria-hidden="true"></i>
   </div>
   <button class="intro-snd snd-btn on" id="bIntroSound" aria-label="音效开关" aria-pressed="true">
     <svg class="ico-on" viewBox="0 0 24 24"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M15.6 9.1a4.2 4.2 0 0 1 0 5.8"/><path d="M18.2 6.4a8 8 0 0 1 0 11.2"/></svg>
@@ -6865,6 +6877,8 @@ function hideFsHint(remember){
   }
   var btn = $id('bIntroFull');
   if(btn) btn.classList.remove('hint-on');
+  var spot = $id('fsSpot');
+  if(spot) spot.classList.remove('show');
 }
 /* 没进过全屏、且确实支持全屏时，才提示一次 */
 function maybeShowFsHint(){
@@ -6877,6 +6891,8 @@ function maybeShowFsHint(){
   el.classList.remove('hide');
   el.classList.add('show');
   el.classList.add('pulse');
+  var spot = $id('fsSpot');
+  if(spot) spot.classList.add('show');
   btn.classList.add('hint-on');
   /* 8 秒后自动收，别一直挡着 */
   setTimeout(function(){ hideFsHint(false); }, 8000);
@@ -6893,6 +6909,13 @@ function syncIntroTools(){
   fs.style.height = h + 'px';
   fs.style.top = snd.offsetTop + 'px';
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var spot = $id('fsSpot');
+  if(spot){
+    spot.style.left = (snd.offsetLeft - 10 - w - 7) + 'px';
+    spot.style.top = (snd.offsetTop - 7) + 'px';
+    spot.style.width = (w + 14) + 'px';
+    spot.style.height = (h + 14) + 'px';
+  }
   var hint = $id('fsHint');
   if(hint){
     hint.style.top = (snd.offsetTop + h + 10) + 'px';

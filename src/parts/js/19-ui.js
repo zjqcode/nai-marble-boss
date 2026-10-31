@@ -96,6 +96,8 @@ function hideFsHint(remember){
   }
   var btn = $id('bIntroFull');
   if(btn) btn.classList.remove('hint-on');
+  var spot = $id('fsSpot');
+  if(spot) spot.classList.remove('show');
 }
 /* 没进过全屏、且确实支持全屏时，才提示一次 */
 function maybeShowFsHint(){
@@ -108,6 +110,8 @@ function maybeShowFsHint(){
   el.classList.remove('hide');
   el.classList.add('show');
   el.classList.add('pulse');
+  var spot = $id('fsSpot');
+  if(spot) spot.classList.add('show');
   btn.classList.add('hint-on');
   /* 8 秒后自动收，别一直挡着 */
   setTimeout(function(){ hideFsHint(false); }, 8000);
@@ -124,6 +128,13 @@ function syncIntroTools(){
   fs.style.height = h + 'px';
   fs.style.top = snd.offsetTop + 'px';
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var spot = $id('fsSpot');
+  if(spot){
+    spot.style.left = (snd.offsetLeft - 10 - w - 7) + 'px';
+    spot.style.top = (snd.offsetTop - 7) + 'px';
+    spot.style.width = (w + 14) + 'px';
+    spot.style.height = (h + 14) + 'px';
+  }
   var hint = $id('fsHint');
   if(hint){
     hint.style.top = (snd.offsetTop + h + 10) + 'px';
