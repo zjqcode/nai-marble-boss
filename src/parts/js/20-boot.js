@@ -9,6 +9,16 @@ function startCampaign(){
 function bindEvents(){
   var c = cvs;
 
+  /* 双摇杆生效时，画布上的「拖拽瞄准」必须彻底停用：
+     它是单摇杆时代的旧交互，和右摇杆并存会导致「手指滑出摇杆就开始发射 /
+     左手还按着却打出球」这类误触。手机上只允许用右摇杆发射。 */
+  function sticksActive(){
+    var r = $id('stickR');
+    if(!r) return false;
+    var rect = r.getBoundingClientRect();
+    return rect.width > 0 && document.body.classList.contains('playing');
+  }
+
   c.addEventListener('pointerdown', function(e){
     Sound.init(); Sound.resume();
     /* 反弹板放置优先：一根手指定位，第二根手指旋转 */
@@ -27,6 +37,7 @@ function bindEvents(){
       return;
     }
     if(state.mode !== 'play' || state.paused) return;
+    if(sticksActive()) return;          /* 走摇杆：画布不再接管发射 */
     if(state.reloadT > 0.02) return;
     var hudEl = $id('hud');
     if(hudEl && e.clientY <= hudEl.getBoundingClientRect().bottom + 2) return;
@@ -53,6 +64,7 @@ function bindEvents(){
       e.preventDefault();
       return;
     }
+    if(sticksActive()) return;
     if(!state.aim.active) return;
     state.aim.px = e.clientX;
     state.aim.py = e.clientY;
@@ -80,6 +92,7 @@ function bindEvents(){
       return;
     }
     var a = state.aim;
+    if(sticksActive()){ a.active = false; a.power = 0; return; }
     if(!a.active) return;
     updateAimVectors();
     if(a.power >= 0.1){

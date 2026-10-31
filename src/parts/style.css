@@ -1237,3 +1237,31 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 }
 .fs-spot.show{display:block;animation:fsSpotIn .25s ease}
 @keyframes fsSpotIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- 教程引导气泡 ---------- */
+#coach{
+  position:fixed;z-index:130;pointer-events:none;
+  opacity:0;transform:translateY(6px);transition:opacity .22s ease,transform .22s ease;
+}
+#coach.show{opacity:1;transform:none}
+.coach-card{
+  pointer-events:auto;padding:11px 13px 12px;border-radius:14px;
+  background:linear-gradient(160deg,rgba(255,238,194,.97),rgba(238,192,120,.97));
+  color:#243a2c;box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(255,246,214,.6);
+}
+.coach-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.coach-step{
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#5a4a22;
+  background:rgba(255,255,255,.45);padding:2px 7px;border-radius:99px;
+}
+.coach-skip{
+  pointer-events:auto;border:none;background:none;padding:2px 0;cursor:pointer;
+  font:inherit;font-size:11px;color:#6b5a2e;text-decoration:underline;opacity:.85;
+}
+.coach-text{margin:0;font-size:13.5px;font-weight:700;line-height:1.45}
+.coach-sub{margin:3px 0 0;font-size:11px;color:#5b4a24;opacity:.85;line-height:1.4}
+.coach-arrow{
+  position:absolute;left:50%;bottom:-7px;width:14px;height:14px;margin-left:-7px;
+  background:rgba(240,198,128,.97);transform:rotate(45deg);border-radius:2px;
+}
+#coach.up .coach-arrow{bottom:auto;top:-7px;background:rgba(255,238,194,.97)}

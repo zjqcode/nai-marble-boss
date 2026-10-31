@@ -29,6 +29,7 @@ function beginTelegraph(isCombo){
   el.classList.add('hot');
   var stage = state.comboQ > 0 ? ' [' + (((ch.combo||1) - state.comboQ)) + '/' + (ch.combo||1) + ']' : '';
   el.textContent = '⚠ ' + ch.atkName + stage + ' · 伤害 ' + state.atkDmg + ' · 走出红区闪避';
+  if(typeof tutOnTelegraph === 'function') tutOnTelegraph();
 }
 
 function interruptAttack(){
@@ -204,6 +205,8 @@ function heroHit(n, reason, noStun){
 }
 
 function attackHit(tg, reason){
+  var tutHit = Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW;
+  if(typeof tutOnAttackResolved === 'function') tutOnAttackResolved(tutHit);
   if(Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW){
     /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀；同时不触发眩晕 */
     heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason, !!tg.combo);
@@ -420,6 +423,7 @@ function updateBoss(dt){
     }
     return;
   }
+  if(state.tutHold){ state.atkTimer = Math.max(state.atkTimer, 0.6); return; }
   state.atkTimer -= dt;
   if(state.atkTimer <= 0 && state.mode === 'play'){
     beginTelegraph();

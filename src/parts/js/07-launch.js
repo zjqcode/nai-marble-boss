@@ -36,6 +36,7 @@ function fireBall(){
   refreshLoadLevel();
   state.reloadT = state.reloadMax;
   state.aim.power = 0;
+  if(typeof tutOnFire === 'function') tutOnFire();
   Sound.launch(a.power);
   try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
   burst(px, py, r*0.7, 8, lv, '#ffd98f');

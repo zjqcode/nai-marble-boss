@@ -59,6 +59,7 @@ function stepPhysics(dt){
 }
 
 function update(dt){
+  if(typeof tutMoveTick === 'function') tutMoveTick();
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);

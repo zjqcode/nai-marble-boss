@@ -41,6 +41,7 @@ function startLevel(idx){
   Sound.init();
   Sound.setOn(state.soundOn);
   state.mode = 'play';
+  if(typeof tutStart === 'function') tutStart(idx);
   state.paused = false;
   state.balls.length = 0;
   state.rocks.length = 0;

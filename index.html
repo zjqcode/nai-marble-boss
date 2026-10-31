@@ -1249,6 +1249,34 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 }
 .fs-spot.show{display:block;animation:fsSpotIn .25s ease}
 @keyframes fsSpotIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- 教程引导气泡 ---------- */
+#coach{
+  position:fixed;z-index:130;pointer-events:none;
+  opacity:0;transform:translateY(6px);transition:opacity .22s ease,transform .22s ease;
+}
+#coach.show{opacity:1;transform:none}
+.coach-card{
+  pointer-events:auto;padding:11px 13px 12px;border-radius:14px;
+  background:linear-gradient(160deg,rgba(255,238,194,.97),rgba(238,192,120,.97));
+  color:#243a2c;box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(255,246,214,.6);
+}
+.coach-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.coach-step{
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#5a4a22;
+  background:rgba(255,255,255,.45);padding:2px 7px;border-radius:99px;
+}
+.coach-skip{
+  pointer-events:auto;border:none;background:none;padding:2px 0;cursor:pointer;
+  font:inherit;font-size:11px;color:#6b5a2e;text-decoration:underline;opacity:.85;
+}
+.coach-text{margin:0;font-size:13.5px;font-weight:700;line-height:1.45}
+.coach-sub{margin:3px 0 0;font-size:11px;color:#5b4a24;opacity:.85;line-height:1.4}
+.coach-arrow{
+  position:absolute;left:50%;bottom:-7px;width:14px;height:14px;margin-left:-7px;
+  background:rgba(240,198,128,.97);transform:rotate(45deg);border-radius:2px;
+}
+#coach.up .coach-arrow{bottom:auto;top:-7px;background:rgba(255,238,194,.97)}
 </style>
 </head>
 <body>
@@ -1266,6 +1294,14 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 <audio id="bgm" preload="metadata"></audio>
 <audio id="loseSnd" preload="metadata"></audio>
 <audio id="hahaSnd" preload="metadata"></audio>
+<div id="coach" aria-live="polite">
+  <div class="coach-card">
+    <div class="coach-top"><span class="coach-step">1/4</span>
+      <button class="coach-skip" type="button">跳过教程</button></div>
+    <p class="coach-text"></p><p class="coach-sub"></p>
+  </div>
+  <i class="coach-arrow" aria-hidden="true"></i>
+</div>
 <div id="warnEdge"></div>
 <div id="startFlash"></div>
 <div id="boot"></div>
@@ -2714,6 +2750,8 @@ var state = {
   stunT: 0, stunCd: 0, invulnT: 0,
   /* 狂暴阶梯 / 极限闪避：rageLv 层数、dangerT 距上次处于危险区的时间 */
   rageLv: 0, atkBase: 0, dangerT: 99,
+  /* 新手教程：tutHold 为真时 Boss 暂停计数，先让玩家学会操作 */
+  tutHold: false,
   /* 空放惩罚：missStreak 连续空放次数、reloadBase 未受罚的装填基准 */
   missStreak: 0, reloadBase: 0,
   superT: 0,
@@ -2829,6 +2867,7 @@ function startLevel(idx){
   Sound.init();
   Sound.setOn(state.soundOn);
   state.mode = 'play';
+  if(typeof tutStart === 'function') tutStart(idx);
   state.paused = false;
   state.balls.length = 0;
   state.rocks.length = 0;
@@ -3004,6 +3043,7 @@ function fireBall(){
   refreshLoadLevel();
   state.reloadT = state.reloadMax;
   state.aim.power = 0;
+  if(typeof tutOnFire === 'function') tutOnFire();
   Sound.launch(a.power);
   try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
   burst(px, py, r*0.7, 8, lv, '#ffd98f');
@@ -3159,6 +3199,138 @@ function bindSticks(){
       }
     }
   });
+}
+/* =========================================================
+   7c. 第一关 · 新手指引
+   =========================================================
+   只在「还没通关过教程」时，第一关开头给出 4 步引导：
+     1 左摇杆 → 左右移动
+     2 右摇杆 → 下拉蓄力、松手发射
+     3 打 Boss 身上的发光弱点
+     4 红区出现 → 用左摇杆躲开
+   前两步期间 Boss 不攻击（state.tutHold），先把操作学会。
+   完成或跳过都会写 localStorage，之后不再出现。
+   ========================================================= */
+var TUT_KEY = 'nai_tut_done';
+var TUT_STEPS = [
+  { target: 'stickL', text: '拖动左边摇杆，让奶娃左右跑', sub: '只能左右走，上下不动' },
+  { target: 'stickR', text: '右边摇杆往下拉，松手发射', sub: '拉得越深，力气越大' },
+  { target: 'boss',   text: '瞄准 Boss 身上两个发光圆点', sub: '打身体只有三成伤害' },
+  { target: 'stickL', text: '红区亮起来时，用左摇杆躲开', sub: '站着不动会被砸中' }
+];
+
+var tutEl = null, tutOn = false, tutStep = 0, tutStartX = 0, tutMoved = 0;
+
+function tutDone(){
+  try{ localStorage.setItem(TUT_KEY, '1'); }catch(e){}
+}
+function tutSeen(){
+  try{ return localStorage.getItem(TUT_KEY) === '1'; }catch(e){ return false; }
+}
+
+function tutBuild(){
+  if(tutEl) return tutEl;
+  var el = $id('coach');
+  if(!el) return null;
+  var skip = el.querySelector('.coach-skip');
+  if(skip) skip.addEventListener('click', function(e){
+    e.stopPropagation();
+    tutStop(true);
+    toast('已跳过教程，随时可以重玩第一关');
+  });
+  tutEl = el;
+  return el;
+}
+
+function tutPlace(target){
+  var el = tutBuild();
+  if(!el) return;
+  var W = window.innerWidth, H = window.innerHeight;
+  var x = W * 0.5, y = H * 0.5, below = true;
+  if(target === 'stickL' || target === 'stickR'){
+    var s = document.getElementById(target);
+    if(s){
+      var r = s.getBoundingClientRect();
+      x = r.left + r.width / 2;
+      y = r.top;
+      below = false;
+    }
+  } else if(target === 'boss' && state.boss){
+    x = state.boss.x;
+    y = view.arenaTop + 10;
+    below = true;
+  }
+  var halfW = Math.min(210, W * 0.46);
+  var left = Math.max(10, Math.min(W - halfW - 10, x - halfW));
+  el.style.width = (halfW * 2) + 'px';
+  el.style.left = left + 'px';
+  /* 摇杆在上方 → 气泡放摇杆上面；否则放下方 */
+  var cardH = 86;
+  el.style.top = (below ? y + 14 : y - cardH - 16) + 'px';
+  el.classList.toggle('up', !below);
+}
+
+function tutSetStep(n){
+  tutStep = n;
+  if(n >= TUT_STEPS.length){ tutStop(true); return; }
+  var st = TUT_STEPS[n];
+  var el = tutBuild();
+  if(!el) return;
+  el.classList.add('show');
+  el.querySelector('.coach-step').textContent = (n + 1) + '/' + TUT_STEPS.length;
+  el.querySelector('.coach-text').textContent = st.text;
+  el.querySelector('.coach-sub').textContent = st.sub || '';
+  tutPlace(st.target);
+  state.tutHold = (n <= 1);   /* 前两步 Boss 先别打人 */
+  if(n === 0){ tutStartX = state.cannonX; tutMoved = 0; }
+}
+
+function tutStart(chapterIndex){
+  if(chapterIndex !== 0 || tutSeen()) return;
+  tutOn = true;
+  tutSetStep(0);
+}
+
+function tutStop(done){
+  tutOn = false;
+  state.tutHold = false;
+  if(tutEl) tutEl.classList.remove('show');
+  if(done) tutDone();
+}
+
+/* 每帧调用：第 1 步靠位移判定 */
+function tutMoveTick(){
+  if(!tutOn || tutStep !== 0 || !state.boss) return;
+  var d = Math.abs(state.cannonX - tutStartX);
+  if(d > 50){
+    if(tutMoved === 0) tutMoved = 1;
+    tutSetStep(1);
+  }
+}
+
+function tutOnFire(){
+  if(!tutOn || tutStep !== 1) return;
+  tutSetStep(2);
+}
+
+function tutOnWeak(){
+  if(!tutOn || tutStep !== 2) return;
+  tutSetStep(3);
+}
+
+function tutOnTelegraph(){
+  if(!tutOn || tutStep !== 3) return;
+  var el = tutBuild();
+  if(!el) return;
+  el.querySelector('.coach-text').textContent = '红区亮了！快用左摇杆走出去';
+  el.querySelector('.coach-sub').textContent = '走出去就安全，不用跳';
+  tutPlace('stickL');
+}
+
+function tutOnAttackResolved(hit){
+  if(!tutOn || tutStep !== 3) return;
+  if(hit) return;                      /* 被砸到就再教一次 */
+  tutSetStep(4);
 }
 /* =========================================================
    8. 物理
@@ -3357,6 +3529,7 @@ function damageBoss(b, hx, hy, weak){
   state.maxLv = Math.max(state.maxLv, b.lv);
   /* 破防值只由身体命中积累，鼓励「打不中弱点也别停手」 */
   if(!weak) addBreak(dmg * 2.6, hx, hy);
+  if(weak && typeof tutOnWeak === 'function') tutOnWeak();
   damageBossRaw(hx, hy, dmg, crit, b.lv, weak, bounces);
 }
 
@@ -3595,6 +3768,7 @@ function beginTelegraph(isCombo){
   el.classList.add('hot');
   var stage = state.comboQ > 0 ? ' [' + (((ch.combo||1) - state.comboQ)) + '/' + (ch.combo||1) + ']' : '';
   el.textContent = '⚠ ' + ch.atkName + stage + ' · 伤害 ' + state.atkDmg + ' · 走出红区闪避';
+  if(typeof tutOnTelegraph === 'function') tutOnTelegraph();
 }
 
 function interruptAttack(){
@@ -3770,6 +3944,8 @@ function heroHit(n, reason, noStun){
 }
 
 function attackHit(tg, reason){
+  var tutHit = Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW;
+  if(typeof tutOnAttackResolved === 'function') tutOnAttackResolved(tutHit);
   if(Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW){
     /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀；同时不触发眩晕 */
     heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason, !!tg.combo);
@@ -3986,6 +4162,7 @@ function updateBoss(dt){
     }
     return;
   }
+  if(state.tutHold){ state.atkTimer = Math.max(state.atkTimer, 0.6); return; }
   state.atkTimer -= dt;
   if(state.atkTimer <= 0 && state.mode === 'play'){
     beginTelegraph();
@@ -5007,6 +5184,7 @@ function stepPhysics(dt){
 }
 
 function update(dt){
+  if(typeof tutMoveTick === 'function') tutMoveTick();
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
@@ -7070,6 +7248,16 @@ function startCampaign(){
 function bindEvents(){
   var c = cvs;
 
+  /* 双摇杆生效时，画布上的「拖拽瞄准」必须彻底停用：
+     它是单摇杆时代的旧交互，和右摇杆并存会导致「手指滑出摇杆就开始发射 /
+     左手还按着却打出球」这类误触。手机上只允许用右摇杆发射。 */
+  function sticksActive(){
+    var r = $id('stickR');
+    if(!r) return false;
+    var rect = r.getBoundingClientRect();
+    return rect.width > 0 && document.body.classList.contains('playing');
+  }
+
   c.addEventListener('pointerdown', function(e){
     Sound.init(); Sound.resume();
     /* 反弹板放置优先：一根手指定位，第二根手指旋转 */
@@ -7088,6 +7276,7 @@ function bindEvents(){
       return;
     }
     if(state.mode !== 'play' || state.paused) return;
+    if(sticksActive()) return;          /* 走摇杆：画布不再接管发射 */
     if(state.reloadT > 0.02) return;
     var hudEl = $id('hud');
     if(hudEl && e.clientY <= hudEl.getBoundingClientRect().bottom + 2) return;
@@ -7114,6 +7303,7 @@ function bindEvents(){
       e.preventDefault();
       return;
     }
+    if(sticksActive()) return;
     if(!state.aim.active) return;
     state.aim.px = e.clientX;
     state.aim.py = e.clientY;
@@ -7141,6 +7331,7 @@ function bindEvents(){
       return;
     }
     var a = state.aim;
+    if(sticksActive()){ a.active = false; a.power = 0; return; }
     if(!a.active) return;
     updateAimVectors();
     if(a.power >= 0.1){

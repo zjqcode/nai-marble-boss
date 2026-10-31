@@ -167,6 +167,19 @@ if (webMode) {
     console.log(`${constant} = ${base}`);
   };
   if (assetBaseArg) rewrite('ASSET_BASE', assetBaseArg);
+if (assetBaseArg) {
+  /* __preloadInjected：HTML 一解析就并行下载立绘，不用等内联脚本跑到 loadImages() */
+  const names = fs.readdirSync(assetsDir)
+    .filter((n) => /\.webp$/i.test(n) && n !== 'chart.webp')
+    .sort();
+  const links = names
+    .map((n) => '<link rel="preload" as="image" href="' + assetBaseArg + n + (assetsVer ? '?v=' + assetsVer : '') + '">')
+    .join('');
+  if (webHtml.includes('</head>')) {
+    webHtml = webHtml.replace('</head>', links + '</head>');
+    console.log('preload: 已注入 ' + names.length + ' 张立绘');
+  }
+}
   if (audioBaseArg) rewrite('AUDIO_BASE', audioBaseArg);
 
   /* 素材指纹：按内容算一个短哈希拼到图片 URL 后面。

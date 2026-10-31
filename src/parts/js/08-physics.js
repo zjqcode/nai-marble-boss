@@ -195,6 +195,7 @@ function damageBoss(b, hx, hy, weak){
   state.maxLv = Math.max(state.maxLv, b.lv);
   /* 破防值只由身体命中积累，鼓励「打不中弱点也别停手」 */
   if(!weak) addBreak(dmg * 2.6, hx, hy);
+  if(weak && typeof tutOnWeak === 'function') tutOnWeak();
   damageBossRaw(hx, hy, dmg, crit, b.lv, weak, bounces);
 }
 

@@ -12,6 +12,7 @@
     "js/06-level.js",
     "js/07-launch.js",
     "js/07b-sticks.js",
+    "js/07c-tutorial.js",
     "js/08-physics.js",
     "js/09-rocks.js",
     "js/10-boss.js",
