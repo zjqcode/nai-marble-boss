@@ -57,6 +57,8 @@ var state = {
   stunT: 0, stunCd: 0, invulnT: 0,
   /* 狂暴阶梯 / 极限闪避：rageLv 层数、dangerT 距上次处于危险区的时间 */
   rageLv: 0, atkBase: 0, dangerT: 99,
+  /* 空放惩罚：missStreak 连续空放次数、reloadBase 未受罚的装填基准 */
+  missStreak: 0, reloadBase: 0,
   superT: 0,
   frenzyT: 0,
   items: [],

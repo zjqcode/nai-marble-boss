@@ -376,6 +376,7 @@ body.playing #dock{opacity:1;pointer-events:auto}
 .buffs{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);display:flex;gap:5px;pointer-events:none;z-index:3}
 .buff-chip{font-size:9px;line-height:1;padding:4px 9px;border-radius:999px;background:rgba(255,170,70,.16);border:1px solid rgba(255,200,120,.45);color:#ffe1a0;white-space:nowrap;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .buff-chip.shield{background:rgba(110,190,255,.16);border-color:rgba(140,210,255,.45);color:#d6f0ff}
+.buff-chip.miss{background:rgba(255,120,90,.16);border-color:rgba(255,140,110,.45);color:#ffc9b8}
 .buff-chip.frenzy{background:rgba(255,80,80,.16);border-color:rgba(255,120,110,.45);color:#ffd3cc}
 #vs{position:fixed;inset:0;z-index:23;display:grid;place-items:center;background:radial-gradient(60% 60% at 50% 45%,rgba(20,10,16,.72),rgba(2,4,8,.94));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;pointer-events:none}
 #vs.show{opacity:1;visibility:visible}
@@ -664,7 +665,7 @@ body.playing #bPlate.arm{
   /* 右侧留给顶部工具条。用 clamp 而不是写死 258px：
      小屏（如 568x320）上 258px 会吃掉近一半宽度，血条只剩 14%。 */
   #hud{
-    left:0;right:clamp(272px, 31%, 288px);transform:none;width:auto;
+    left:0;right:calc(7 * var(--dockbtn) + 30px);transform:none;width:auto;
     top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
@@ -713,18 +714,17 @@ body.playing #bPlate.arm{
     background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
-  /* 只剩 4 个常用键（暂停/重开/音效/全屏），单键从 33x34 加到 42x36 */
-  .dock-btn{
-    flex:0 0 auto;width:42px;height:36px;
-    padding:3px 0 2px;border-radius:10px;gap:0;
+  /* 顶部 7 个入口统一尺寸：--dockbtn 随屏宽伸缩，HUD 按 7 键实际宽度精确让位，
+     这样不会再出现「大小不一」和「压住血量」的问题。 */
+  body{--dockbtn:clamp(30px, 3.6vw, 38px)}
+  .dock-btn,.dock-btn.sm{
+    flex:0 0 auto;
+    width:var(--dockbtn);height:var(--dockbtn);
+    padding:2px 0 1px;border-radius:9px;gap:0;
     background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:16px;height:16px}
+  .dock-btn svg{width:calc(var(--dockbtn) * .42);height:calc(var(--dockbtn) * .42)}
   .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.05}
-  /* 菜单键（章节/图鉴/商店）在顶部工具条里用小一号，给血条腾宽度 */
-  .dock-btn.sm{width:34px;height:32px;padding:2px 0 1px;border-radius:9px}
-  .dock-btn.sm svg{width:14px;height:14px}
-  .dock-btn.sm .tx{font-size:6.5px}
   .dock-sep{width:1px;align-self:stretch;margin:4px 1px;background:rgba(255,255,255,.12)}
 
   /* ---- 摇杆 ---- */
@@ -807,12 +807,10 @@ body.playing #bPlate.arm{
   .stick .knob{width:40px;height:40px;margin:-20px 0 0 -20px}
   .stick-tx{font-size:7px;bottom:4px}
 
-  /* 顶部 7 键在矮屏上更窄，HUD 右侧留白同步收小，别把血条挤没 */
-  #hud{right:236px}
-  .dock-btn{width:34px;height:32px}
-  .dock-btn.sm{width:28px;height:28px}
-  .dock-btn.sm .tx{display:none}
-  .dock-sep{height:18px;margin:0 2px}
+  /* 矮屏：整体再缩一档（HUD 留白由变量自动跟随） */
+  body{--dockbtn:27px}
+  .dock-btn .tx{display:none}
+  .dock-sep{height:16px;margin:0 2px}
 
   #itemBar,#itemBar2{top:calc(var(--sat) + 46px);bottom:auto;gap:4px}
   .item-btn{width:32px;height:32px}

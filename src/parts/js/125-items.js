@@ -99,6 +99,8 @@ function updateBuffs(){
   }
   if(state.boss && state.boss.brkT > 0) html += '<span class="buff-chip brk">破防 ' + state.boss.brkT.toFixed(1) + 's</span>';
   if(state.rageLv > 0) html += '<span class="buff-chip frenzy">Boss 狂暴 ×' + state.rageLv + '</span>';
+  if(state.missStreak >= 2) html += '<span class="buff-chip miss">空放 ×' + state.missStreak +
+    ' 装填+' + Math.round(Math.min(0.45, state.missStreak*0.09)*100) + '%</span>';
   if(state.dodgeStreak > 0) html += '<span class="buff-chip dodge">闪避 ×' + state.dodgeStreak + '</span>';
   if(el.innerHTML !== html) el.innerHTML = html;
 }

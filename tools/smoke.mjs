@@ -610,6 +610,14 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           bossBarFilter: bossBar.filter,
           /* 血条必须保持缩短（曾经为了填满而拉长到 76%，被反复投诉） */
           bossBarPct: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().width / innerWidth * 100),
+          /* 顶部 7 个入口必须等大，且不能压住血量/血条 */
+          dockUniform: (() => {
+            const ws = ['bPause','bRestart','bSound','bFull','bLevels','bGallery','bShop']
+              .map(id => Math.round(document.getElementById(id).getBoundingClientRect().width));
+            return Math.max(...ws) - Math.min(...ws) <= 1;
+          })(),
+          barRightVsDock: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().right)
+                            - Math.round(document.getElementById('dock').getBoundingClientRect().left),
           /* dock 在左侧竖栏，不能压场地，也不能被左摇杆盖住 */
           dock,
           dockOverlapsStickL: ov(dock, box('stickL')),
@@ -646,6 +654,8 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(!r.dockOverlapsStickL, `dock 不应碰到左摇杆（dock 底 ${r.dock.bottom}px）`);
     /* 3) 血条必须保持缩短 */
     assert(r.bossBarPct <= 55, `Boss 血条应保持缩短（≤55%），实际 ${r.bossBarPct}%`);
+    assert(r.dockUniform, '顶部 7 个入口尺寸必须一致');
+    assert(r.barRightVsDock <= 0, `血条右端不应压到按键区（差 ${r.barRightVsDock}px`);
     /* 3) 场地框必须贴到屏幕最底部（下面不该留空带） */
     assert(r.fieldBottomGap <= 8, `场地底边应贴到屏幕底部，实际留空 ${r.fieldBottomGap}px`);
     assert(r.arenaH >= 260, `场地贴底后可玩带应 ≥260px，实际 ${r.arenaH}px`);
@@ -1106,6 +1116,45 @@ await check('极限闪避：贴着一刻走开给 3 倍得分 + 奶瓶 + 子弹�
   assert(r.perfect.slowmo > 0.2, `极限闪避应触发短暂子弹时间，实际 ${r.perfect.slowmo}`);
   assert(r.normal.slowmo === 0, '普通闪避不应给子弹时间');
   return `极限 +${r.perfect.score}分/+${r.perfect.milk}奶瓶/慢放${r.perfect.slowmo}s vs 普通 +${r.normal.score}分`;
+});
+
+// ---------- 8m. 空放惩罚 ----------
+await check('空放惩罚：连续打空会拖慢装填，命中 Boss 立刻恢复', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state, v = N.view;
+      N.tick(170);
+      const base = st.reloadBase;
+      const out = { base: +base.toFixed(3) };
+
+      /* 往下方抛球：一定会掉出底部、碰不到 Boss */
+      for (let i = 0; i < 5; i++) {
+        N.spawn(1, st.cannonX, v.pouchY - 10, 0, 900);
+        for (let f = 0; f < 30; f++) N.step(1);
+      }
+      out.miss = st.missStreak;
+      out.penalized = +st.reloadMax.toFixed(3);
+      out.slowed = st.reloadMax > base * 1.1;
+
+      /* 打中 Boss 应清零并恢复 */
+      N.damage(50);
+      N.step(2);
+      /* damage() 走的是 damageBossRaw，不经过弹球；用一颗真球命中来验证 */
+      const b = N.spawn(3, st.boss.x, st.boss.y - 10, 0, -600);
+      for (let f = 0; f < 20 && st.missStreak > 0; f++) N.step(1);
+      N.damage(50);
+      out.afterHitStreak = st.missStreak;
+      out.afterHitReload = +st.reloadMax.toFixed(3);
+      out.restored = Math.abs(st.reloadMax - base) < 0.001;
+      return out;
+    })()`);
+  assert(r.miss >= 3, `连续空放应累计，实际 ${r.miss}`);
+  assert(r.slowed, `空放后装填应变慢（${r.base} → ${r.penalized}）`);
+  assert(r.afterHitStreak === 0, `命中 Boss 后空放计数应清零，实际 ${r.afterHitStreak}`);
+  assert(r.restored, `命中后装填应恢复到 ${r.base}，实际 ${r.afterHitReload}`);
+  return `空放 ${r.miss} 次 → 装填 ${r.base}→${r.penalized}s，命中后归零恢复`;
 });
 
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------

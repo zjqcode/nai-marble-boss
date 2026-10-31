@@ -17,6 +17,11 @@ function ballWall(b){
   /* 只有底部出界才消耗 */
   if(b.y + b.r > view.bottom){
     b.dead = true;
+    /* 空放（整段飞行没碰到 Boss）会拖慢装填，压制无脑连发 */
+    if(!b.hitBoss){
+      state.missStreak = Math.min(9, (state.missStreak || 0) + 1);
+      applyMissPenalty();
+    }
     burst(b.x, view.bottom-2, 8, 6, b.lv, '#ffb0a0');
     return;
   }
@@ -176,6 +181,8 @@ function levelColor(lv){
 
 function damageBoss(b, hx, hy, weak){
   var eff = state.eff;
+  /* 记「这一发打中了」：掉出场外时用来判断是不是空放 */
+  b.hitBoss = true;
   var bounces = b.bounce || 0;
   var bounceMul = 1 + Math.min(1.2, bounces*0.15);
   var crit = bounces >= 4 || Math.random() < eff.crit;
@@ -231,6 +238,8 @@ function triggerBreak(hx, hy){
 }
 
 function damageBossRaw(hx, hy, dmg, crit, lv, weak, bounces){
+  /* 只要对 Boss 造成伤害，就清掉空放惩罚（雷击/变身等道具伤害同样算） */
+  if(state.missStreak > 0){ state.missStreak = 0; applyMissPenalty(); }
   var boss = state.boss;
   if(!boss || boss.dead) return;
   dmg = Math.max(1, Math.round(dmg * (state.heroDmg || 1)));

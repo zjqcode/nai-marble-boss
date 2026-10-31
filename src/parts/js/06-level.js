@@ -15,6 +15,17 @@ function refreshLoadLevel(){
   return state.loadLv;
 }
 
+/* 空放惩罚：每连续空放一次，装填 +9%，最多 +45%；打中 Boss 立刻清零。
+   目的是让「乱按发射」自己变慢，而不是靠数值硬堆。 */
+function applyMissPenalty(){
+  var base = state.reloadBase || state.reloadMax;
+  var id = (state.chapter && state.chapter.id) || 1;
+  /* 惩罚上限按章节放宽：新手区最多 +25%，后期 +45%，别把人劝退 */
+  var cap = id <= 2 ? 0.25 : (id <= 5 ? 0.35 : 0.45);
+  state.reloadMax = base * (1 + Math.min(cap, (state.missStreak || 0) * 0.08));
+  if(state.missStreak >= 2) updateBuffs();
+}
+
 function flashStart(){
   var el = $id('startFlash');
   if(el){ el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); }
@@ -94,6 +105,8 @@ function startLevel(idx){
   /* 装填按章节分档：前两章慢一点，逼玩家认真对待每一发；后期维持原速 */
   var loadTier = ch.id <= 2 ? 1.24 : (ch.id <= 5 ? 1.12 : 1);
   state.reloadMax = 0.42 * loadTier / state.eff.reload;
+  state.reloadBase = state.reloadMax;    /* 空放惩罚在这个基准上叠加 */
+  state.missStreak = 0;
   state.aim.active = false;
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;
