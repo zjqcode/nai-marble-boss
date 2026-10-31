@@ -531,6 +531,26 @@ body.playing .stick{opacity:1;pointer-events:auto}
 /* 反弹板按钮：没有存货时整个不显示（由 refreshPlateBtn 打 .empty） */
 #bPlate.empty{display:none !important}
 
+/* ---------- 左侧竖栏：章节 / 图鉴 / 商店 ----------
+   常驻显示在左栏，战斗中随时可点，不用先进暂停面板。 */
+#sideDock{
+  position:fixed;z-index:14;left:12px;top:calc(var(--sat) + 54px);
+  display:flex;flex-direction:column;gap:6px;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+body.playing #sideDock{opacity:1;pointer-events:auto}
+#sideDock .dock-btn{
+  flex:0 0 auto;width:42px;height:42px;padding:4px 0 3px;border-radius:12px;gap:1px;
+  background:rgba(8,14,24,.42);border:1px solid rgba(255,255,255,.06);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+#sideDock .dock-btn svg{width:16px;height:16px}
+#sideDock .dock-btn .tx{font-size:7.5px}
+@media (orientation:portrait){
+  #sideDock{left:14px;top:calc(var(--sat) + 152px);gap:7px}
+  #sideDock .dock-btn{width:46px;height:46px}
+}
+
 /* ---------- 破防条 ---------- */
 .brk-row{display:flex;align-items:center;gap:6px;margin-top:5px}
 .brk-lbl{flex:0 0 auto;font-size:8.5px;letter-spacing:.18em;color:rgba(170,235,255,.65);font-weight:700}
@@ -715,16 +735,21 @@ body.playing #bPlate.arm{
   #stickR{right:14px}
 
   /* 道具栏放右上角横排：正好填住血条缩短后空出来的那一块 */
-  /* ---- 道具栏：左栏竖排 ----
-     把左栏那块空白用起来，和右栏的反弹板+摇杆左右对称。 */
-  #itemBar{top:calc(var(--sat) + 54px);bottom:auto;left:12px;right:auto;
-           flex-direction:column;gap:7px}
+  /* ---- 道具栏：右栏，2 列网格 ----
+     单列时拥有 5~6 种道具会一路顶到反弹板/摇杆上；2 列最多 3 行，
+     再配一个限高（超出的滚动），保证永远不压到下面的按钮。 */
+  #itemBar{
+    top:calc(var(--sat) + 54px);bottom:auto;left:auto;right:12px;
+    display:grid;grid-template-columns:repeat(2,auto);gap:7px;
+    max-height:max(82px, calc(100vh - 296px));
+    overflow-y:auto;overscroll-behavior:contain;
+  }
 
   /* ---- 反弹板按钮：右侧栏、右摇杆上方，留 20px 空隙 ----
      不占地、不挡框；没有存货时整个隐藏（见 refreshPlateBtn 的 .empty）。 */
   #bPlate{
     left:auto;right:14px;margin-left:0;
-    top:auto;bottom:calc(var(--sab) + 60px + 118px + 20px);
+    top:auto;bottom:calc(var(--sab) + 60px + 118px + 8px);
     width:48px;height:48px;border-radius:16px;
   }
   #bPlate .ico{font-size:13px}
@@ -776,6 +801,29 @@ body.playing #bPlate.arm{
   #win.no-unlock .sheet .win-stats,
   #win.no-unlock .sheet #bNext,
   #win.no-unlock .sheet #bWinLevels{grid-column:1}
+}
+
+/* =========================================================
+   矮屏横屏（≤400px 高，如 568x320 / 640x360）
+   竖排 3 个菜单键 + 118px 摇杆会撞上，这里整体收紧一档。
+   ========================================================= */
+@media (orientation:landscape) and (max-height:360px){
+  .stick{width:96px;height:96px;bottom:calc(var(--sab) + 8px)}
+  .stick .knob{width:40px;height:40px;margin:-20px 0 0 -20px}
+  .stick-tx{font-size:7px;bottom:4px}
+
+  #sideDock{top:calc(var(--sat) + 48px);gap:4px}
+  #sideDock .dock-btn{width:36px;height:36px;border-radius:10px}
+  #sideDock .dock-btn svg{width:14px;height:14px}
+  #sideDock .dock-btn .tx{font-size:6.5px}
+
+  #itemBar{top:calc(var(--sat) + 48px);gap:4px}
+  #itemBar .item-btn{width:34px;height:34px}
+
+  #bPlate{
+    width:40px;height:40px;border-radius:13px;
+    bottom:calc(var(--sab) + 8px + 96px + 6px);
+  }
 }
 
 /* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */

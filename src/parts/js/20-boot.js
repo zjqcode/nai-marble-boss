@@ -132,7 +132,8 @@ function bindEvents(){
     closeAllScreens();
     startLevel(state.chapterIndex);
   });
-  /* 章节入口已并入暂停面板（bPauseLevels），顶部工具条只留 4 个常用键 */
+  /* 左侧竖栏：章节 / 图鉴 / 商店常驻，不用先进暂停 */
+  $id('bLevels').addEventListener('click', openLevels);
   $id('bGallery').addEventListener('click', showGallery);
   $id('bShop').addEventListener('click', function(){ Sound.ui(); openShop(); });
   $id('itemBar').addEventListener('click', function(e){

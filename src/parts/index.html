@@ -82,6 +82,22 @@
   </button>
 </nav>
 
+<!-- 章节 / 图鉴 / 商店：常驻在左侧竖栏，任何时候都能点，不用先进暂停 -->
+<nav id="sideDock" aria-label="菜单">
+  <button class="dock-btn" id="bLevels" aria-label="章节">
+    <svg viewBox="0 0 24 24"><path d="M6 21V3"/><path d="M6 4h11l-2.2 4.2L17 13H6"/></svg>
+    <span class="tx">章节</span>
+  </button>
+  <button class="dock-btn" id="bGallery" aria-label="图鉴">
+    <svg viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="3.6" y="13.3" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="13.3" width="7.1" height="7.1" rx="1.7"/></svg>
+    <span class="tx">图鉴</span>
+  </button>
+  <button class="dock-btn" id="bShop" aria-label="商店">
+    <svg viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-1.4 11.2H5.6z"/><path d="M8.4 8.5a3.6 3.6 0 0 1 7.2 0"/></svg>
+    <span class="tx">商店</span>
+  </button>
+</nav>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <div id="vs">
@@ -207,11 +223,7 @@
       <button class="ghost-btn" id="bPauseRestart">重开本关</button>
       <button class="ghost-btn" id="bPauseLevels">选择章节</button>
     </div>
-    <!-- 图鉴 / 商店原来挤在顶部工具条里，挪到这里：顶部只留 4 个常用键，触控目标才够大 -->
-    <div class="pause-grid">
-      <button class="ghost-btn" id="bGallery">角色图鉴</button>
-      <button class="ghost-btn" id="bShop">奶瓶商店</button>
-    </div>
+
   </div>
 </section>
 

@@ -672,9 +672,16 @@ await check('暂停：按钮/P/Esc 都能切换，计时与 Boss 冻结，继续
       N.tick(170);                                  /* 跳过开场 */
       out.hasPauseBtn = !!document.getElementById('bPause');
       out.dockButtons = document.querySelectorAll('#dock .dock-btn').length;
-      /* 图鉴 / 商店已挪进暂停面板，顶部只留 4 个常用键 */
-      out.galleryInPause = !!document.querySelector('#pause #bGallery');
-      out.shopInPause = !!document.querySelector('#pause #bShop');
+      /* 章节 / 图鉴 / 商店必须常驻在左侧竖栏（不能藏进暂停面板） */
+      out.sideEntries = ['bLevels', 'bGallery', 'bShop'].map(id => {
+        const e = document.getElementById(id);
+        if (!e || !document.querySelector('#sideDock #' + id)) return false;
+        const b = e.getBoundingClientRect();
+        return b.width > 0 && b.height > 0 && getComputedStyle(e).display !== 'none';
+      });
+      out.sideDockBox = (() => { const e = document.getElementById('sideDock');
+        const b = e.getBoundingClientRect();
+        return { top: Math.round(b.top), bottom: Math.round(b.bottom) }; })();
 
       /* 点暂停 */
       document.getElementById('bPause').click();
@@ -718,7 +725,7 @@ await check('暂停：按钮/P/Esc 都能切换，计时与 Boss 冻结，继续
     })()`);
   assert(r.hasPauseBtn, '应有暂停按钮');
   assert(r.dockButtons === 4, `顶部应只留 4 个常用键，实际 ${r.dockButtons}`);
-  assert(r.galleryInPause && r.shopInPause, '图鉴与商店应放进暂停面板');
+  assert(r.sideEntries.every(Boolean), '章节/图鉴/商店应常驻左侧竖栏且可见');
   assert(r.paused && r.screenShown, '点暂停后应暂停并显示面板');
   assert(r.frozen, '暂停期间计时/Boss/球都应冻结');
   assert(!r.aimOnPause, '暂停时摇杆不应产生瞄准');
