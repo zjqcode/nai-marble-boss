@@ -84,7 +84,10 @@ function bindSticks(){
     onEnd: function(){ state.stickX = 0; }
   });
 
-  /* ---- 右摇杆：方向 + 蓄力 + 松手发射 ---- */
+  /* ---- 右摇杆：下拉蓄力，松手发射 ----
+     方向与拉动方向**相反**：下拉 -> 往上打，左拉 -> 往右打。
+     和场地里的弹弓拖动一致（都是往反方向拉），手感也顺：拇指自然停在底部，
+     往下拉最省力，想往上打不用把手够到屏幕顶上。 */
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
@@ -96,7 +99,7 @@ function bindSticks(){
       a.pull = mag * maxPull;
       if(mag > STICK_DEAD){
         var l = Math.hypot(nx, ny);
-        if(l > 0.001){ a.dx = nx/l; a.dy = ny/l; }
+        if(l > 0.001){ a.dx = -nx/l; a.dy = -ny/l; }   /* 取反：往哪边拉，奶球就往反方向飞 */
         a.moved = true;
       }
     },

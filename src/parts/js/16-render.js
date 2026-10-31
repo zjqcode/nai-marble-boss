@@ -946,7 +946,7 @@ function drawLauncher(){
     ctx.fillStyle = 'rgba(255,238,205,.9)';
     ctx.font = '600 ' + (10.5*view.s) + 'px ' + FONT;
     ctx.textAlign = 'center';
-    ctx.fillText('右摇杆瞄准 · 松手发射', view.cx, home.y - 92*view.s);
+    ctx.fillText('右摇杆下拉蓄力 · 松手发射', view.cx, home.y - 92*view.s);
     ctx.restore();
   }
   ctx.restore();

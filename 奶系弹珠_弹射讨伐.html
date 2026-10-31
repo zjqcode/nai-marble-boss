@@ -443,7 +443,17 @@ body.playing #dock{opacity:1;pointer-events:auto}
 @keyframes rotHint{0%,22%{transform:rotate(90deg)}62%,100%{transform:rotate(0deg)}}
 #rotate h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.06em;color:#ffe8b8}
 #rotate p{margin:8px 0 16px;font-size:11.5px;line-height:1.8;color:rgba(255,240,215,.55);letter-spacing:.04em}
-#rotate .ghost-btn{width:auto;padding:10px 24px;font-size:12px}
+#rotate .ghost-btn{width:auto}
+#rotate .rot-go{
+  padding:12px 34px;font-size:13.5px;font-weight:800;letter-spacing:.08em;
+  background:linear-gradient(180deg,#ffe9b4,#f0b64e);color:#2a1a08;border-color:rgba(255,245,215,.85);
+  box-shadow:0 8px 22px rgba(240,170,60,.28);
+}
+#rotate .rot-go:active{background:linear-gradient(180deg,#fff3cd,#ffcb6b)}
+#rotate .rot-skip{
+  margin-top:8px;padding:8px 18px;font-size:11px;letter-spacing:.04em;
+  background:none;border-color:rgba(255,255,255,.10);color:rgba(255,240,215,.45);
+}
 
 @media (max-height:640px){
   .kicker{font-size:8.5px}
@@ -713,16 +723,16 @@ body.playing #bPlate.arm{
   <span class="tx">反弹板</span>
   <b id="plateCount">0</b>
 </button>
-<!-- 双摇杆：左=炮台左右移动（只认横向），右=方向 + 蓄力 + 发射 -->
+<!-- 双摇杆：左=炮台左右移动（只认横向），右=下拉蓄力、松手发射（方向与拉动方向相反） -->
 <div id="stickL" class="stick" aria-label="左摇杆：炮台左右移动">
   <div class="stick-ring"></div>
   <div class="knob"></div>
   <span class="stick-tx">移动</span>
 </div>
-<div id="stickR" class="stick" aria-label="右摇杆：瞄准与发射">
+<div id="stickR" class="stick" aria-label="右摇杆：下拉蓄力，松手发射">
   <div class="stick-ring"></div>
   <div class="knob"></div>
-  <span class="stick-tx">瞄准</span>
+  <span class="stick-tx">下拉发射</span>
 </div>
 <nav id="dock" aria-label="游戏控制">
   <button class="dock-btn" id="bRestart" aria-label="重开">
@@ -870,8 +880,9 @@ body.playing #bPlate.arm{
 <div id="rotate">
   <div class="rot-phone"></div>
   <h2>请横屏游玩</h2>
-  <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手控方向与蓄力</p>
-  <button class="ghost-btn" id="bRotateOk">仍要竖屏游玩</button>
+  <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手下拉蓄力发射</p>
+  <button class="ghost-btn rot-go" id="bRotateGo">进入横屏</button>
+  <button class="ghost-btn rot-skip" id="bRotateOk">仍要竖屏游玩</button>
 </div>
 
 <script>
@@ -2333,7 +2344,10 @@ function bindSticks(){
     onEnd: function(){ state.stickX = 0; }
   });
 
-  /* ---- 右摇杆：方向 + 蓄力 + 松手发射 ---- */
+  /* ---- 右摇杆：下拉蓄力，松手发射 ----
+     方向与拉动方向**相反**：下拉 -> 往上打，左拉 -> 往右打。
+     和场地里的弹弓拖动一致（都是往反方向拉），手感也顺：拇指自然停在底部，
+     往下拉最省力，想往上打不用把手够到屏幕顶上。 */
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
@@ -2345,7 +2359,7 @@ function bindSticks(){
       a.pull = mag * maxPull;
       if(mag > STICK_DEAD){
         var l = Math.hypot(nx, ny);
-        if(l > 0.001){ a.dx = nx/l; a.dy = ny/l; }
+        if(l > 0.001){ a.dx = -nx/l; a.dy = -ny/l; }   /* 取反：往哪边拉，奶球就往反方向飞 */
         a.moved = true;
       }
     },
@@ -5094,7 +5108,7 @@ function drawLauncher(){
     ctx.fillStyle = 'rgba(255,238,205,.9)';
     ctx.font = '600 ' + (10.5*view.s) + 'px ' + FONT;
     ctx.textAlign = 'center';
-    ctx.fillText('右摇杆瞄准 · 松手发射', view.cx, home.y - 92*view.s);
+    ctx.fillText('右摇杆下拉蓄力 · 松手发射', view.cx, home.y - 92*view.s);
     ctx.restore();
   }
   ctx.restore();
@@ -5584,6 +5598,38 @@ function toast(msg){
   el._t = setTimeout(function(){ el.classList.remove('show'); }, 1800);
 }
 
+/* ---------- 横屏 ----------
+   不少手机浏览器/WebView 不会因为"页面想要横屏"就自动转，得主动请求：
+   1) 先全屏（Android Chrome 只有全屏状态下才允许锁方向）
+   2) 再 screen.orientation.lock('landscape')
+   iOS Safari 没有 lock API，但系统本身跟随旋转，所以失败也不影响。
+   全部静默失败，绝不因为锁不上就卡住玩家。 */
+function isPortraitNow(){ return window.innerHeight > window.innerWidth; }
+
+function lockLandscape(){
+  var so = screen.orientation;
+  if(!so || !so.lock) return Promise.resolve(false);
+  try{
+    return so.lock('landscape').then(function(){ return true; }, function(){ return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
+
+/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转） */
+function enterLandscape(){
+  var el = document.documentElement;
+  var fsFn = el.requestFullscreen || el.webkitRequestFullscreen;
+  var inFull = document.fullscreenElement || document.webkitFullscreenElement;
+  var step;
+  if(!inFull && fsFn){
+    try{ step = Promise.resolve(fsFn.call(el)); }
+    catch(e){ step = Promise.resolve(); }
+  } else {
+    step = Promise.resolve();
+  }
+  return step.then(function(){ return lockLandscape(); }, function(){ return false; })
+    .then(function(){ return isPortraitNow(); });
+}
+
 function hideIntro(){
   var el = $id('intro');
   if(!el || el.classList.contains('hide')) return;
@@ -5740,6 +5786,8 @@ function bindEvents(){
 
   $id('bStart').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
+    /* 开打是一次真实点击：顺手申请横屏（失败静默，不打断开局） */
+    if(isPortraitNow()) enterLandscape();
     startCampaign();
   });
   $id('bIntroLevels').addEventListener('click', openLevels);
@@ -5777,12 +5825,25 @@ function bindEvents(){
       if(!fs){
         var fn = el.requestFullscreen || el.webkitRequestFullscreen;
         if(!fn){ toast('当前浏览器不支持全屏'); return; }
-        fn.call(el);
+        /* 进全屏后顺手尝试锁横屏：Android Chrome 只有在全屏下才允许锁方向 */
+        Promise.resolve(fn.call(el)).then(function(){
+          lockLandscape();
+          return layout();
+        }).catch(function(){});
       } else {
         var ex = document.exitFullscreen || document.webkitExitFullscreen;
         if(ex) ex.call(document);
       }
     }catch(e){ toast('全屏切换失败'); }
+  });
+
+  /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
+  $id('bRotateGo').addEventListener('click', function(){
+    Sound.init(); Sound.resume(); Sound.ui();
+    enterLandscape().then(function(stillPortrait){
+      if(stillPortrait) toast('浏览器不允许锁定方向 · 请手动把手机横过来');
+      setTimeout(layout, 200);
+    });
   });
 
   $id('bNext').addEventListener('click', function(){

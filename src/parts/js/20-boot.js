@@ -96,6 +96,8 @@ function bindEvents(){
 
   $id('bStart').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
+    /* 开打是一次真实点击：顺手申请横屏（失败静默，不打断开局） */
+    if(isPortraitNow()) enterLandscape();
     startCampaign();
   });
   $id('bIntroLevels').addEventListener('click', openLevels);
@@ -133,12 +135,25 @@ function bindEvents(){
       if(!fs){
         var fn = el.requestFullscreen || el.webkitRequestFullscreen;
         if(!fn){ toast('当前浏览器不支持全屏'); return; }
-        fn.call(el);
+        /* 进全屏后顺手尝试锁横屏：Android Chrome 只有在全屏下才允许锁方向 */
+        Promise.resolve(fn.call(el)).then(function(){
+          lockLandscape();
+          return layout();
+        }).catch(function(){});
       } else {
         var ex = document.exitFullscreen || document.webkitExitFullscreen;
         if(ex) ex.call(document);
       }
     }catch(e){ toast('全屏切换失败'); }
+  });
+
+  /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
+  $id('bRotateGo').addEventListener('click', function(){
+    Sound.init(); Sound.resume(); Sound.ui();
+    enterLandscape().then(function(stillPortrait){
+      if(stillPortrait) toast('浏览器不允许锁定方向 · 请手动把手机横过来');
+      setTimeout(layout, 200);
+    });
   });
 
   $id('bNext').addEventListener('click', function(){

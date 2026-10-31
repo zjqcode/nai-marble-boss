@@ -434,7 +434,17 @@ body.playing #dock{opacity:1;pointer-events:auto}
 @keyframes rotHint{0%,22%{transform:rotate(90deg)}62%,100%{transform:rotate(0deg)}}
 #rotate h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.06em;color:#ffe8b8}
 #rotate p{margin:8px 0 16px;font-size:11.5px;line-height:1.8;color:rgba(255,240,215,.55);letter-spacing:.04em}
-#rotate .ghost-btn{width:auto;padding:10px 24px;font-size:12px}
+#rotate .ghost-btn{width:auto}
+#rotate .rot-go{
+  padding:12px 34px;font-size:13.5px;font-weight:800;letter-spacing:.08em;
+  background:linear-gradient(180deg,#ffe9b4,#f0b64e);color:#2a1a08;border-color:rgba(255,245,215,.85);
+  box-shadow:0 8px 22px rgba(240,170,60,.28);
+}
+#rotate .rot-go:active{background:linear-gradient(180deg,#fff3cd,#ffcb6b)}
+#rotate .rot-skip{
+  margin-top:8px;padding:8px 18px;font-size:11px;letter-spacing:.04em;
+  background:none;border-color:rgba(255,255,255,.10);color:rgba(255,240,215,.45);
+}
 
 @media (max-height:640px){
   .kicker{font-size:8.5px}

@@ -486,26 +486,27 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
       out.movedWhenVertical = Math.round(st.cannonX - x1);
       up('stickL');
 
-      /* 右摇杆：左上推 -> 朝左上发射；正上推 -> 朝正上发射 */
+      /* 右摇杆：方向与拉动方向相反——下拉 -> 向上发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', -35, -35);
+      down('stickR', 0, 45);                 /* 正下拉 */
       out.aim = { dx: +st.aim.dx.toFixed(2), dy: +st.aim.dy.toFixed(2),
                   power: +st.aim.power.toFixed(2), active: st.aim.active };
       up('stickR');
       N.step(2);
       const b1 = st.balls[st.balls.length - 1];
-      out.upLeft = b1 ? { vx: Math.round(b1.vx), vy: Math.round(b1.vy) } : null;
+      out.pullDown = b1 ? { vx: Math.round(b1.vx), vy: Math.round(b1.vy) } : null;
 
+      /* 左下位拉 -> 朝右上发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', 0, -45);
+      down('stickR', -35, 35);
       up('stickR');
       N.step(2);
       const b2 = st.balls[st.balls.length - 1];
-      out.straightUp = b2 ? { vx: Math.round(b2.vx), vy: Math.round(b2.vy) } : null;
+      out.pullDownLeft = b2 ? { vx: Math.round(b2.vx), vy: Math.round(b2.vy) } : null;
 
       /* 死区内的小推不应发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', 2, -2);
+      down('stickR', 2, 2);
       out.deadzonePower = +st.aim.power.toFixed(2);
       out.deadzoneActive = st.aim.active;
       up('stickR');
@@ -520,21 +521,51 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
   assert(r.stickXReleased === 0, '松手后 stickX 应归零');
   assert(r.stickXVertical === 0, `只上下推时不应产生横向输入，实际 stickX=${r.stickXVertical}`);
   assert(r.movedWhenVertical === 0, `只上下推时炮台不应移动，实际位移 ${r.movedWhenVertical}px`);
-  assert(r.aim.active && r.aim.dy < -0.5 && r.aim.dx < -0.5, '左上推的瞄准方向不对: ' + JSON.stringify(r.aim));
+  assert(r.aim.active && r.aim.dy < -0.5, '下拉的发射方向应朝上（取反）: ' + JSON.stringify(r.aim));
   assert(r.aim.power > 0.9, `推到底蓄力应接近 1，实际 ${r.aim.power}`);
-  assert(r.upLeft && r.upLeft.vx < 0 && r.upLeft.vy < 0, '左上推应朝左上发射: ' + JSON.stringify(r.upLeft));
-  assert(r.straightUp && Math.abs(r.straightUp.vx) < 40 && r.straightUp.vy < 0,
-    '正上推应近似垂直向上发射: ' + JSON.stringify(r.straightUp));
+  assert(r.pullDown && Math.abs(r.pullDown.vx) < 40 && r.pullDown.vy < 0,
+    '正下拉应近似垂直向上发射: ' + JSON.stringify(r.pullDown));
+  assert(r.pullDownLeft && r.pullDownLeft.vx > 0 && r.pullDownLeft.vy < 0,
+    '左下位拉应朝右上发射: ' + JSON.stringify(r.pullDownLeft));
   assert(!r.deadzoneActive && r.deadzonePower === 0, '死区内不应进入瞄准态');
   assert(r.deadzoneBalls === 0, '死区内松手不应发射');
 
   return `左推位移 ${r.movedRight}px / 纵推 ${r.movedWhenVertical}px / ` +
-    `左上发射 v(${r.upLeft.vx},${r.upLeft.vy}) / 正上 v(${r.straightUp.vx},${r.straightUp.vy})`;
+    `正下拉发射 v(${r.pullDown.vx},${r.pullDown.vy}) / 左下位拉 v(${r.pullDownLeft.vx},${r.pullDownLeft.vy})`;
 });
 
-// ---------- 8c. 横屏布局 ----------
-await check('横屏布局：HUD 压扁、场地变高、竖屏才提示转横屏', async () => {
+// ---------- 8c. 横屏布局 + 竖屏引导 ----------
+await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏」按钮且点了不报错', async () => {
   const orig = { width: 390, height: 844, deviceScaleFactor: 2, mobile: true };
+
+  /* 先确认竖屏：提示在、两个按钮在、点「进入横屏」不抛异常 */
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const portrait = await session.evaluate(`
+    (() => {
+      const vis = (id) => {
+        const e = document.getElementById(id);
+        if (!e) return null;
+        const b = e.getBoundingClientRect();
+        return getComputedStyle(e).display !== 'none' && b.width > 0 && b.height > 0;
+      };
+      const out = {
+        portrait: innerHeight > innerWidth,
+        rotate: getComputedStyle(document.getElementById('rotate')).display,
+        goBtn: vis('bRotateGo'),
+        skipBtn: vis('bRotateOk'),
+        throwErr: null,
+      };
+      try { document.getElementById('bRotateGo').click(); } catch (e) { out.throwErr = String(e); }
+      return out;
+    })()`);
+  assert(portrait.portrait, '冒烟会话应是竖屏');
+  assert(portrait.rotate !== 'none', '竖屏应显示「请横屏游玩」');
+  assert(portrait.goBtn, '竖屏提示里应有「进入横屏」按钮');
+  assert(portrait.skipBtn, '竖屏提示里应保留「仍要竖屏游玩」');
+  assert(portrait.throwErr === null, '点「进入横屏」不应抛异常: ' + portrait.throwErr);
+
+  /* 再切横屏测量布局 */
   await session.send('Emulation.setDeviceMetricsOverride', {
     width: 844, height: 390, deviceScaleFactor: 2, mobile: true,
   });
@@ -556,7 +587,6 @@ await check('横屏布局：HUD 压扁、场地变高、竖屏才提示转横屏
           viewW: Math.round(v.w),
           rotate: st('rotate').display,
           stickVisible: st('stickL').opacity,
-          stickLx: box('stickL').w,
           fieldLeft: Math.round(v.left), fieldRight: Math.round(v.right),
           stickRightEdge: Math.round(box('stickL').w + 14),
         };
@@ -564,9 +594,10 @@ await check('横屏布局：HUD 压扁、场地变高、竖屏才提示转横屏
     assert(r.viewport[0] > r.viewport[1], '应处于横屏视口');
     assert(r.hudH <= 64, `横屏 HUD 应压到 64px 以内，实际 ${r.hudH}px`);
     assert(r.arenaH >= 200, `横屏可玩带应 ≥200px，实际 ${r.arenaH}px`);
-    assert(r.rotate === 'none', '横屏不应再弹"转竖屏"提示');
+    assert(r.rotate === 'none', '横屏不应再弹"请横屏"提示');
     assert(r.stickRightEdge <= r.fieldLeft, `左摇杆(${r.stickRightEdge}px)不应压住场地(${r.fieldLeft}px 起)`);
-    return `HUD ${r.hudH}px / 场地 ${r.viewW}×${r.arenaH} / 摇杆在场地外`;
+    assertNoErrors('横屏引导');
+    return `HUD ${r.hudH}px / 场地 ${r.viewW}×${r.arenaH} / 摇杆在场地外 / 竖屏提示可点击`;
   } finally {
     await session.send('Emulation.setDeviceMetricsOverride', orig);
     await sleep(300);

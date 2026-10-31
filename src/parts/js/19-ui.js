@@ -9,6 +9,38 @@ function toast(msg){
   el._t = setTimeout(function(){ el.classList.remove('show'); }, 1800);
 }
 
+/* ---------- 横屏 ----------
+   不少手机浏览器/WebView 不会因为"页面想要横屏"就自动转，得主动请求：
+   1) 先全屏（Android Chrome 只有全屏状态下才允许锁方向）
+   2) 再 screen.orientation.lock('landscape')
+   iOS Safari 没有 lock API，但系统本身跟随旋转，所以失败也不影响。
+   全部静默失败，绝不因为锁不上就卡住玩家。 */
+function isPortraitNow(){ return window.innerHeight > window.innerWidth; }
+
+function lockLandscape(){
+  var so = screen.orientation;
+  if(!so || !so.lock) return Promise.resolve(false);
+  try{
+    return so.lock('landscape').then(function(){ return true; }, function(){ return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
+
+/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转） */
+function enterLandscape(){
+  var el = document.documentElement;
+  var fsFn = el.requestFullscreen || el.webkitRequestFullscreen;
+  var inFull = document.fullscreenElement || document.webkitFullscreenElement;
+  var step;
+  if(!inFull && fsFn){
+    try{ step = Promise.resolve(fsFn.call(el)); }
+    catch(e){ step = Promise.resolve(); }
+  } else {
+    step = Promise.resolve();
+  }
+  return step.then(function(){ return lockLandscape(); }, function(){ return false; })
+    .then(function(){ return isPortraitNow(); });
+}
+
 function hideIntro(){
   var el = $id('intro');
   if(!el || el.classList.contains('hide')) return;

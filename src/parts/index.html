@@ -50,16 +50,16 @@
   <span class="tx">反弹板</span>
   <b id="plateCount">0</b>
 </button>
-<!-- 双摇杆：左=炮台左右移动（只认横向），右=方向 + 蓄力 + 发射 -->
+<!-- 双摇杆：左=炮台左右移动（只认横向），右=下拉蓄力、松手发射（方向与拉动方向相反） -->
 <div id="stickL" class="stick" aria-label="左摇杆：炮台左右移动">
   <div class="stick-ring"></div>
   <div class="knob"></div>
   <span class="stick-tx">移动</span>
 </div>
-<div id="stickR" class="stick" aria-label="右摇杆：瞄准与发射">
+<div id="stickR" class="stick" aria-label="右摇杆：下拉蓄力，松手发射">
   <div class="stick-ring"></div>
   <div class="knob"></div>
-  <span class="stick-tx">瞄准</span>
+  <span class="stick-tx">下拉发射</span>
 </div>
 <nav id="dock" aria-label="游戏控制">
   <button class="dock-btn" id="bRestart" aria-label="重开">
@@ -207,8 +207,9 @@
 <div id="rotate">
   <div class="rot-phone"></div>
   <h2>请横屏游玩</h2>
-  <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手控方向与蓄力</p>
-  <button class="ghost-btn" id="bRotateOk">仍要竖屏游玩</button>
+  <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手下拉蓄力发射</p>
+  <button class="ghost-btn rot-go" id="bRotateGo">进入横屏</button>
+  <button class="ghost-btn rot-skip" id="bRotateOk">仍要竖屏游玩</button>
 </div>
 
 <script>/*__JS__*/</script>
