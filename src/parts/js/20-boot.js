@@ -132,7 +132,7 @@ function bindEvents(){
     closeAllScreens();
     startLevel(state.chapterIndex);
   });
-  $id('bLevels').addEventListener('click', openLevels);
+  /* 章节入口已并入暂停面板（bPauseLevels），顶部工具条只留 4 个常用键 */
   $id('bGallery').addEventListener('click', showGallery);
   $id('bShop').addEventListener('click', function(){ Sound.ui(); openShop(); });
   $id('itemBar').addEventListener('click', function(e){

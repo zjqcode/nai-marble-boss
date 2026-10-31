@@ -99,6 +99,19 @@ for (const name of fs.readdirSync(assetsDir)) {
   stems.add(stem);
 }
 
+/* 素材指纹：把所有图片按文件名+内容算一个短哈希。
+   任意一张立绘改了，哈希就变，URL 跟着变，CDN 缓存自然被击穿。 */
+const assetsVer = (() => {
+  const crypto = require('crypto');
+  const h = crypto.createHash('sha1');
+  const files = fs.readdirSync(assetsDir).filter((n) => /\.(png|webp)$/i.test(n)).sort();
+  for (const f of files) {
+    h.update(f);
+    h.update(fs.readFileSync(path.join(assetsDir, f)));
+  }
+  return files.length ? h.digest('hex').slice(0, 10) : '';
+})();
+
 const sprites = {};
 const spriteSource = {};
 for (const stem of [...stems].sort()) {
@@ -155,6 +168,15 @@ if (webMode) {
   };
   if (assetBaseArg) rewrite('ASSET_BASE', assetBaseArg);
   if (audioBaseArg) rewrite('AUDIO_BASE', audioBaseArg);
+
+  /* 素材指纹：按内容算一个短哈希拼到图片 URL 后面。
+     Netlify 上 assets/* 缓存 1 天，不加这个改了立绘要等缓存过期才生效。 */
+  if (assetsVer) {
+    const def = `var ASSET_VER = /*__ASSET_VER__*/'';`;
+    if (!webHtml.includes(def)) throw new Error('源码里找不到 ASSET_VER 占位，无法注入');
+    webHtml = webHtml.replace(def, () => `var ASSET_VER = ${JSON.stringify(assetsVer)};`);
+    console.log(`ASSET_VER = ${assetsVer}`);
+  }
 
   fs.writeFileSync(path.join(webDir, 'index.html'), webHtml, 'utf8');
 

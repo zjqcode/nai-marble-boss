@@ -334,6 +334,9 @@ body.playing #dock{opacity:1;pointer-events:auto}
 /* 暂停面板：沿用结算面板的结构与按钮，只换颜色，保证风格统一 */
 .pause-sheet{text-align:center;padding:24px 20px 20px}
 .pause-title{margin:2px 0 6px;font-size:21px;font-weight:900;letter-spacing:.06em;color:#ffe8b8}
+/* 暂停面板里的次级按钮排成两列，5 个按钮也放得下 */
+.pause-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.pause-grid .ghost-btn{margin-top:0}
 .result-kicker{margin:0 0 5px;font-size:9px;letter-spacing:.5em;color:rgba(255,206,120,.7);font-weight:700}
 .win-title{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em;color:#fff2d8}
 .win-title em{font-style:normal;color:#ffd477}
@@ -642,9 +645,10 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
-  /* 右侧留 258px 给「道具栏」，Boss 血条因此只占约 42%，不再横贯全屏 */
+  /* 右侧留给顶部工具条。用 clamp 而不是写死 258px：
+     小屏（如 568x320）上 258px 会吃掉近一半宽度，血条只剩 14%。 */
   #hud{
-    left:0;right:258px;transform:none;width:auto;
+    left:0;right:clamp(196px, 27%, 258px);transform:none;width:auto;
     top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
@@ -693,13 +697,14 @@ body.playing #bPlate.arm{
     background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
+  /* 只剩 4 个常用键（暂停/重开/音效/全屏），单键从 33x34 加到 42x36 */
   .dock-btn{
-    flex:0 0 auto;width:33px;height:34px;
-    padding:2px 0 1px;border-radius:9px;gap:0;
+    flex:0 0 auto;width:42px;height:36px;
+    padding:3px 0 2px;border-radius:10px;gap:0;
     background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:15px;height:15px}
-  .dock-btn .tx{font-size:6.5px;letter-spacing:0;line-height:1.05}
+  .dock-btn svg{width:16px;height:16px}
+  .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.05}
 
   /* ---- 摇杆 ---- */
   .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}

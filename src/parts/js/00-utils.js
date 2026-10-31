@@ -28,9 +28,14 @@ var ASSET_BASE = 'assets/';
    （它 302 到带签名的临时地址），浏览器 <audio> 无法流式解码，
    所以音频通常仍与 HTML 同源，图片则可以放心外置到仓库/CDN。 */
 var AUDIO_BASE = 'assets/';
+/* 素材指纹：由 build.js 按素材内容算出的短哈希，拼在 URL 后做缓存击穿。
+   文件名不变但内容变了也能立刻拿到新图，不用等 Netlify 那 1 天的 assets 缓存。
+   单文件版素材已内联，该值为空串，不影响。 */
+var ASSET_VER = /*__ASSET_VER__*/'';
 function assetURL(name){
   var slug = charImg(name);          /* 中文角色名 -> ASCII 文件名 */
   if(ASSET_DATA) return ASSET_DATA.sprites[slug] || '';
-  return ASSET_BASE + slug + '.' + SPRITE_EXT;
+  var q = ASSET_VER ? '?v=' + ASSET_VER : '';
+  return ASSET_BASE + slug + '.' + SPRITE_EXT + q;
 }
 

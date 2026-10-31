@@ -343,6 +343,9 @@ body.playing #dock{opacity:1;pointer-events:auto}
 /* 暂停面板：沿用结算面板的结构与按钮，只换颜色，保证风格统一 */
 .pause-sheet{text-align:center;padding:24px 20px 20px}
 .pause-title{margin:2px 0 6px;font-size:21px;font-weight:900;letter-spacing:.06em;color:#ffe8b8}
+/* 暂停面板里的次级按钮排成两列，5 个按钮也放得下 */
+.pause-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.pause-grid .ghost-btn{margin-top:0}
 .result-kicker{margin:0 0 5px;font-size:9px;letter-spacing:.5em;color:rgba(255,206,120,.7);font-weight:700}
 .win-title{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em;color:#fff2d8}
 .win-title em{font-style:normal;color:#ffd477}
@@ -651,9 +654,10 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
-  /* 右侧留 258px 给「道具栏」，Boss 血条因此只占约 42%，不再横贯全屏 */
+  /* 右侧留给顶部工具条。用 clamp 而不是写死 258px：
+     小屏（如 568x320）上 258px 会吃掉近一半宽度，血条只剩 14%。 */
   #hud{
-    left:0;right:258px;transform:none;width:auto;
+    left:0;right:clamp(196px, 27%, 258px);transform:none;width:auto;
     top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
@@ -702,13 +706,14 @@ body.playing #bPlate.arm{
     background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
+  /* 只剩 4 个常用键（暂停/重开/音效/全屏），单键从 33x34 加到 42x36 */
   .dock-btn{
-    flex:0 0 auto;width:33px;height:34px;
-    padding:2px 0 1px;border-radius:9px;gap:0;
+    flex:0 0 auto;width:42px;height:36px;
+    padding:3px 0 2px;border-radius:10px;gap:0;
     background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:15px;height:15px}
-  .dock-btn .tx{font-size:6.5px;letter-spacing:0;line-height:1.05}
+  .dock-btn svg{width:16px;height:16px}
+  .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.05}
 
   /* ---- 摇杆 ---- */
   .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
@@ -851,22 +856,10 @@ body.playing #bPlate.arm{
     <svg viewBox="0 0 24 24"><path d="M20.4 12.6A8.4 8.4 0 1 1 18 6.2"/><path d="M20 3.6v5.6h-5.6"/></svg>
     <span class="tx">重开</span>
   </button>
-  <button class="dock-btn" id="bLevels" aria-label="章节">
-    <svg viewBox="0 0 24 24"><path d="M6 21V3"/><path d="M6 4h11l-2.2 4.2L17 13H6"/></svg>
-    <span class="tx">章节</span>
-  </button>
-  <button class="dock-btn" id="bGallery" aria-label="图鉴">
-    <svg viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="3.6" y="13.3" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="13.3" width="7.1" height="7.1" rx="1.7"/></svg>
-    <span class="tx">图鉴</span>
-  </button>
   <button class="dock-btn on snd-btn" id="bSound" aria-label="音效开关" aria-pressed="true">
     <svg class="ico-on" viewBox="0 0 24 24"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M15.6 9.1a4.2 4.2 0 0 1 0 5.8"/><path d="M18.2 6.4a8 8 0 0 1 0 11.2"/></svg>
     <svg class="ico-off" viewBox="0 0 24 24" style="display:none"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M16.2 9.6l5 5M21.2 9.6l-5 5"/></svg>
     <span class="tx">音效</span>
-  </button>
-  <button class="dock-btn" id="bShop" aria-label="商店">
-    <svg viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-1.4 11.2H5.6z"/><path d="M8.4 8.5a3.6 3.6 0 0 1 7.2 0"/></svg>
-    <span class="tx">商店</span>
   </button>
   <button class="dock-btn" id="bFull" aria-label="全屏">
     <svg viewBox="0 0 24 24"><path d="M4 9V4.6h4.4"/><path d="M20 9V4.6h-4.4"/><path d="M4 15v4.4h4.4"/><path d="M20 15v4.4h-4.4"/></svg>
@@ -995,8 +988,15 @@ body.playing #bPlate.arm{
     <h2 class="pause-title">已暂停</h2>
     <p class="lose-sub">喝口水，回来接着打</p>
     <button id="bResume" class="start-btn small"><span>继 续 游 戏</span></button>
-    <button class="ghost-btn" id="bPauseRestart">重开本关</button>
-    <button class="ghost-btn" id="bPauseLevels">选择章节</button>
+    <div class="pause-grid">
+      <button class="ghost-btn" id="bPauseRestart">重开本关</button>
+      <button class="ghost-btn" id="bPauseLevels">选择章节</button>
+    </div>
+    <!-- 图鉴 / 商店原来挤在顶部工具条里，挪到这里：顶部只留 4 个常用键，触控目标才够大 -->
+    <div class="pause-grid">
+      <button class="ghost-btn" id="bGallery">角色图鉴</button>
+      <button class="ghost-btn" id="bShop">奶瓶商店</button>
+    </div>
   </div>
 </section>
 
@@ -1042,10 +1042,15 @@ var ASSET_BASE = 'assets/';
    （它 302 到带签名的临时地址），浏览器 <audio> 无法流式解码，
    所以音频通常仍与 HTML 同源，图片则可以放心外置到仓库/CDN。 */
 var AUDIO_BASE = 'assets/';
+/* 素材指纹：由 build.js 按素材内容算出的短哈希，拼在 URL 后做缓存击穿。
+   文件名不变但内容变了也能立刻拿到新图，不用等 Netlify 那 1 天的 assets 缓存。
+   单文件版素材已内联，该值为空串，不影响。 */
+var ASSET_VER = /*__ASSET_VER__*/'';
 function assetURL(name){
   var slug = charImg(name);          /* 中文角色名 -> ASCII 文件名 */
   if(ASSET_DATA) return ASSET_DATA.sprites[slug] || '';
-  return ASSET_BASE + slug + '.' + SPRITE_EXT;
+  var q = ASSET_VER ? '?v=' + ASSET_VER : '';
+  return ASSET_BASE + slug + '.' + SPRITE_EXT + q;
 }
 
 /* =========================================================
@@ -6124,7 +6129,7 @@ function bindEvents(){
     closeAllScreens();
     startLevel(state.chapterIndex);
   });
-  $id('bLevels').addEventListener('click', openLevels);
+  /* 章节入口已并入暂停面板（bPauseLevels），顶部工具条只留 4 个常用键 */
   $id('bGallery').addEventListener('click', showGallery);
   $id('bShop').addEventListener('click', function(){ Sound.ui(); openShop(); });
   $id('itemBar').addEventListener('click', function(e){
