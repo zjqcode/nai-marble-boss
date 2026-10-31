@@ -762,6 +762,21 @@ body.playing #bPlate.arm{
   #unlockBox .unlock-name{font-size:22px;margin:2px 0 2px}
   #unlockBox .unlock-skill{margin:0;font-size:11px}
   #unlockBox .unlock-kicker{margin:6px 0 0;font-size:9px}
+
+  /* ---- 左栏没内容时必须收成单栏 ----
+     否则网格仍然占着左半边，看起来就是"左边空这么大一块"。
+     两种情况：失败面板本来就没有左栏内容；胜利但这次没有新角色解锁。 */
+  #lose .sheet,
+  #win.no-unlock .sheet{
+    grid-template-columns:1fr;text-align:center;
+    width:min(520px,100%);
+  }
+  #lose .sheet .win-stats,
+  #lose .sheet #bRetry,
+  #lose .sheet #bLoseLevels,
+  #win.no-unlock .sheet .win-stats,
+  #win.no-unlock .sheet #bNext,
+  #win.no-unlock .sheet #bWinLevels{grid-column:1}
 }
 
 /* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */
@@ -5789,15 +5804,20 @@ function showWin(){
   $id('winTime').textContent = formatTime(res.time);
 
   var box = $id('unlockBox');
+  var winEl = $id('win');
   if(res.unlock){
     var c = charByName(res.unlock);
     box.classList.remove('hide');
+    /* 有解锁展示时左栏才有内容，横屏才能用两栏 */
+    if(winEl) winEl.classList.remove('no-unlock');
     $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n) + '" alt="">';
     $id('unlockName').textContent = '【' + c.n + '】';
     $id('unlockSkill').textContent = c.sname + ' ' + skillText(c, 1) + ' · 已加入图鉴';
     setTimeout(function(){ Sound.upgrade(); }, 350);
   } else {
     box.classList.add('hide');
+    /* 没有解锁展示：左栏会空掉大半，改成单栏居中 */
+    if(winEl) winEl.classList.add('no-unlock');
     $id('winTitle').textContent = ch.title + ' 再次击破！';
   }
 

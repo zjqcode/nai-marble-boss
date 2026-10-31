@@ -792,6 +792,7 @@ await check('胜利面板：横屏两栏，进入下一章与选择章节都在�
            正常存档下这一块可能已解锁过而隐藏，所以不能只在自然状态下测。 */
         const ub = document.getElementById('unlockBox');
         ub.style.display = 'flex';
+        document.getElementById('win').classList.remove('no-unlock');
         document.getElementById('unlockName').textContent = '【奶兔】';
         const sheet = document.querySelector('#win .sheet');
         const box = (id) => { const b = document.getElementById(id).getBoundingClientRect();
@@ -843,6 +844,79 @@ await check('切后台立即停掉循环的结算音效（不会在别的 App �
   assert(r.ctxAfter === 'suspended', '切后台后 Web Audio 应被挂起（BGM 靠它静音），实际 ' + r.ctxAfter);
   assert(!r.bgmAfter, '切后台后 BGM 调度器应停止');
   return `播放中 → 切后台后 paused / AudioContext ${r.ctxBefore}→${r.ctxAfter} / BGM 已停`;
+});
+
+// ---------- 8h. 结算面板：没有左栏内容时不能留空 ----------
+await check('结算面板：失败面板与「无新角色解锁」的胜利面板都收成单栏，不留空半边', async () => {
+  await session.send('Emulation.setDeviceMetricsOverride', {
+    width: 844, height: 390, deviceScaleFactor: 2, mobile: true,
+  });
+  await sleep(400);
+  try {
+    const probe = (sel) => `
+      (() => {
+        const sheet = document.querySelector('${sel} .sheet');
+        const sb = sheet.getBoundingClientRect();
+        const kids = [...sheet.children].filter(k => getComputedStyle(k).display !== 'none');
+        const minX = Math.min(...kids.map(k => Math.round(k.getBoundingClientRect().x)));
+        return { cols: getComputedStyle(sheet).gridTemplateColumns.split(' ').length,
+                 sheetW: Math.round(sb.width),
+                 centered: Math.abs((sb.x + sb.width / 2) - innerWidth / 2) < 8,
+                 leftGap: minX - Math.round(sb.x) };
+      })()`;
+
+    /* 1) 失败面板：本来就没有左栏内容 */
+    await session.goto(`${fileUrl}?debug&level=1`);
+    await waitImages();
+    await session.evaluate(`(() => { const N = window.__NAI__; N.tick(170); N.lose(); })()`);
+    for (let i = 0; i < 40; i++) {
+      if (await session.evaluate(`document.getElementById('lose').classList.contains('show')`)) break;
+      await session.evaluate(`window.__NAI__.tick(6)`);
+      await sleep(100);
+    }
+    const lose = await session.evaluate(probe('#lose'));
+    assert(lose.cols === 1, `失败面板应为单栏，实际 ${lose.cols} 栏`);
+    assert(lose.centered, '失败面板应水平居中');
+
+    /* 2) 胜利面板：两种状态都测。冒烟跑到这里角色大多已解锁，
+          所以直接构造两种状态，而不是依赖"第几次通关"。 */
+    await session.goto(`${fileUrl}?debug&level=1`);
+    await waitImages();
+    await session.evaluate(`(() => { const N = window.__NAI__; N.tick(170); N.win(); })()`);
+    for (let i = 0; i < 40; i++) {
+      if (await session.evaluate(`document.getElementById('win').classList.contains('show')`)) break;
+      await session.evaluate(`window.__NAI__.tick(6)`);
+      await sleep(100);
+    }
+
+    /* 2a) 无解锁：隐藏解锁块 + no-unlock -> 必须单栏 */
+    await session.evaluate(`
+      (() => {
+        document.getElementById('unlockBox').classList.add('hide');
+        document.getElementById('win').classList.add('no-unlock');
+      })()`);
+    await sleep(80);
+    const noUnlock = await session.evaluate(probe('#win'));
+    assert(noUnlock.cols === 1, `无解锁时应收成单栏，实际 ${noUnlock.cols} 栏`);
+    assert(noUnlock.centered, '无解锁单栏时应水平居中');
+
+    /* 2b) 有解锁：显示解锁块 + 去掉 no-unlock -> 必须两栏 */
+    await session.evaluate(`
+      (() => {
+        document.getElementById('unlockBox').classList.remove('hide');
+        document.getElementById('win').classList.remove('no-unlock');
+        document.getElementById('unlockName').textContent = '【奶兔】';
+      })()`);
+    await sleep(80);
+    const withUnlock = await session.evaluate(probe('#win'));
+    assert(withUnlock.cols === 2, `有解锁展示时应为两栏，实际 ${withUnlock.cols} 栏`);
+    return `失败单栏 ${lose.sheetW}px / 胜利无解锁 ${noUnlock.cols} 栏 ${noUnlock.sheetW}px / 有解锁 ${withUnlock.cols} 栏`;
+  } finally {
+    await session.send('Emulation.setDeviceMetricsOverride', {
+      width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
+    });
+    await sleep(300);
+  }
 });
 
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------

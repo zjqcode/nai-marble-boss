@@ -11,15 +11,20 @@ function showWin(){
   $id('winTime').textContent = formatTime(res.time);
 
   var box = $id('unlockBox');
+  var winEl = $id('win');
   if(res.unlock){
     var c = charByName(res.unlock);
     box.classList.remove('hide');
+    /* 有解锁展示时左栏才有内容，横屏才能用两栏 */
+    if(winEl) winEl.classList.remove('no-unlock');
     $id('unlockOrb').innerHTML = '<img src="' + assetURL(c.n) + '" alt="">';
     $id('unlockName').textContent = '【' + c.n + '】';
     $id('unlockSkill').textContent = c.sname + ' ' + skillText(c, 1) + ' · 已加入图鉴';
     setTimeout(function(){ Sound.upgrade(); }, 350);
   } else {
     box.classList.add('hide');
+    /* 没有解锁展示：左栏会空掉大半，改成单栏居中 */
+    if(winEl) winEl.classList.add('no-unlock');
     $id('winTitle').textContent = ch.title + ' 再次击破！';
   }
 
