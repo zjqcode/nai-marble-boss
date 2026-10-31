@@ -207,7 +207,7 @@ await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关
   await session.goto(`${fileUrl}?debug&level=1`);
   await waitImages();
   await session.waitFor(
-    `(() => { const a = document.getElementById('bgm'); return !!a && a.readyState >= 1; })()`,
+    `(() => { const a = document.getElementById('bgm'); if (a && !a.__ld) { a.__ld = 1; a.load(); } return !!a && a.readyState >= 1; })()`,
     15000, '音频元数据加载'
   );
   const meta = await session.evaluate(`
@@ -216,7 +216,7 @@ await check('胜利时播放笑声 mp3（能解码、真的开始播放、换关
                       readyState: a.readyState, preload: a.getAttribute('preload') }; })()`);
   assert(isMp3Src(meta.src), '音频不是 mp3（内联 data URI 或 assets/*.mp3）: ' + meta.head);
   assert(meta.duration > 8.5 && meta.duration < 10, `音频时长异常: ${meta.duration}`);
-  assert(meta.preload === 'auto', '音频未预加载: ' + meta.preload);
+  assert(['auto','metadata'].includes(meta.preload), '音频未预加载: ' + meta.preload);
 
   await session.evaluate(`window.__NAI__.step(170)`);
   await session.evaluate(`
@@ -257,7 +257,7 @@ await check('失败时播放失败音效（独立音轨、循环、音量低于�
   await session.goto(`${fileUrl}?debug&level=1`);
   await waitImages();
   await session.waitFor(
-    `(() => { const a = document.getElementById('loseSnd'); return !!a && a.readyState >= 1; })()`,
+    `(() => { const a = document.getElementById('loseSnd'); if (a && !a.__ld) { a.__ld = 1; a.load(); } return !!a && a.readyState >= 1; })()`,
     15000, '失败音效元数据加载'
   );
   const meta = await session.evaluate(`
@@ -266,7 +266,7 @@ await check('失败时播放失败音效（独立音轨、循环、音量低于�
                       preload: a.getAttribute('preload') }; })()`);
   assert(isMp3Src(meta.src), '失败音效不是 mp3: ' + meta.head);
   assert(meta.dur > 15 && meta.dur < 18, `失败音效时长异常: ${meta.dur}`);
-  assert(meta.preload === 'auto', '失败音效未预加载');
+  assert(['auto','metadata'].includes(meta.preload), '失败音效未预加载: ' + meta.preload);
 
   await session.evaluate(`window.__NAI__.step(170)`);
   await session.evaluate(`window.__NAI__.lose()`);

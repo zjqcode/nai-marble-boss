@@ -27,22 +27,61 @@ function recalcRadii(){
   for(var i=0;i<CHARS.length;i++) RADII[i] = 10.8 * Math.pow(1.125, i) * view.s;
 }
 
+/* ---------- 素材加载弹窗 ----------
+   慢网时先给个奶娃跑动的等待画面，加载完自动淡出。
+   只在超过 220ms 还没加载完时才显示，避免一闪而过。 */
+var LD_EL = null, LD_NUM = null, LD_FILL = null, LD_TIP = null, LD_TOTAL = 0, LD_SHOWN = false, LD_DONE = false;
+var LD_TIPS = ['马上就好，别催', '奶娃背着奶瓶狂奔中', '再等一下下，狗子在加载'];
+
+function loadingBegin(total){
+  LD_TOTAL = total;
+  LD_EL = document.getElementById('loading');
+  LD_NUM = document.getElementById('ldNum');
+  LD_FILL = document.getElementById('ldFill');
+  LD_TIP = document.getElementById('ldTip');
+  var all = document.getElementById('ldAll');
+  if(all) all.textContent = total;
+  if(LD_TIP) LD_TIP.textContent = LD_TIPS[Math.floor(Math.random() * LD_TIPS.length)];
+  loadingTick(0);
+  /* 快的话不弹，避免闪一下 */
+  setTimeout(function(){ if(!LD_DONE && LD_EL){ LD_SHOWN = true; LD_EL.classList.add('show'); } }, 220);
+  /* 兜底：最多 12 秒，别把人锁在弹窗里 */
+  setTimeout(loadingDone, 12000);
+}
+
+function loadingTick(n){
+  if(LD_NUM) LD_NUM.textContent = n;
+  if(LD_FILL) LD_FILL.style.width = Math.round(100 * n / Math.max(1, LD_TOTAL)) + '%';
+}
+
+function loadingDone(){
+  if(LD_DONE) return;
+  LD_DONE = true;
+  if(!LD_EL) return;
+  loadingTick(LD_TOTAL);
+  LD_EL.classList.remove('show');
+  LD_EL.classList.add('done');
+  setTimeout(function(){ if(LD_EL) LD_EL.style.display = 'none'; }, 340);
+}
+
 function loadImages(){
   var chart = new Image();
   chart.src = ASSET_DATA ? ASSET_DATA.chart : ASSET_BASE + 'chart.webp';
   IMG.chart = chart;
   var loaded = 0;
+  loadingBegin(CHARS.length);
+  function tick(){
+    loaded++;
+    loadingTick(loaded);
+    if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); loadingDone(); }
+  }
   CHARS.forEach(function(c){
     var im = new Image();
-    im.onload = function(){
-      loaded++;
-      if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
-    };
+    im.onload = tick;
     /* 单个素材失败也要计数，否则 loaded 永远到不了 CHARS.length，贴图再也不会重建 */
     im.onerror = function(){
-      loaded++;
       try { console.warn('素材加载失败: ' + assetURL(c.n)); } catch(e) {}
-      if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
+      tick();
     };
     im.src = assetURL(c.n);
     IMG[c.n] = im;

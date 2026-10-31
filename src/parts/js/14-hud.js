@@ -107,6 +107,8 @@ function playSfxLoop(which){
 function playSfxNow(which){
   var el = audioElFor(which);
   if(!el || !state.soundOn) return;
+  /* preload=none：真正要播之前才把音频拉下来 */
+  if(el.readyState === 0){ try{ el.load(); }catch(e){} }
   var p = el.play();
   if(p && p.catch){
     p.catch(function(){

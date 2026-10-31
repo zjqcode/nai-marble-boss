@@ -13,14 +13,49 @@
 <style>/*__STYLE__*/</style>
 </head>
 <body>
+<!-- 素材加载弹窗：奶娃在跑道上狂奔，加载完自动消失 -->
+<div id="loading" role="status" aria-live="polite">
+  <div class="ld-card">
+    <div class="ld-track">
+      <span class="ld-line"></span>
+      <div class="ld-runner">
+        <span class="ld-dust d1"></span>
+        <span class="ld-dust d2"></span>
+        <svg class="ld-baby" viewBox="0 0 64 64" aria-hidden="true">
+          <ellipse cx="32" cy="36" rx="21" ry="20" fill="#f7dfae"/>
+          <ellipse cx="32" cy="35" rx="21" ry="20" fill="url(#ldGrad)"/>
+          <defs>
+            <radialGradient id="ldGrad" cx="35%" cy="28%" r="78%">
+              <stop offset="0" stop-color="#fff6da"/>
+              <stop offset="1" stop-color="#f2d79b" stop-opacity=".15"/>
+            </radialGradient>
+          </defs>
+          <circle cx="24" cy="31" r="2.6" fill="#3a2a12"/>
+          <circle cx="40" cy="31" r="2.6" fill="#3a2a12"/>
+          <circle cx="24.9" cy="30.2" r=".9" fill="#fff"/>
+          <circle cx="40.9" cy="30.2" r=".9" fill="#fff"/>
+          <path d="M27 38q5 4.5 10 0" stroke="#3a2a12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="32" cy="58" rx="19" ry="3.4" fill="#0a1a18" opacity=".5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="ld-title">奶娃正在赶来的路上<span class="ld-dots"><i>.</i><i>.</i><i>.</i></span></div>
+    <div class="ld-sub">加载素材 <b id="ldNum">0</b> / <b id="ldAll">12</b></div>
+    <div class="ld-bar"><i id="ldFill"></i></div>
+    <div class="ld-tip" id="ldTip">马上就好，别催</div>
+
 <noscript><div id="noscript">这个游戏需要开启 JavaScript 才能运行。<br>请在浏览器设置里允许 JavaScript 后刷新页面。</div></noscript>
 <canvas id="game" aria-label="弹射打 Boss 游戏区域"></canvas>
-<!-- 结算音效只在结束时播放，preload=auto 会在开局白下 411KB -->
-<audio id="bgm" preload="none"></audio>
-<audio id="loseSnd" preload="none"></audio>
+<!-- 结算音效只在结束时播放：preload=metadata 只取几 KB 头部，避免开局白下 411KB -->
+<audio id="bgm" preload="metadata"></audio>
+<audio id="loseSnd" preload="metadata"></audio>
 <div id="warnEdge"></div>
 <div id="startFlash"></div>
 <div id="boot"></div>
+
+
+  </div>
+</div>
 
 <header id="hud">
   <div class="hud-row">
