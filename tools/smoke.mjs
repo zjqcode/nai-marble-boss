@@ -608,8 +608,11 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           hudCardFilter: hudCard.filter,
           bossBarBg: bossBar.backgroundImage,
           bossBarFilter: bossBar.filter,
-          /* dock 在左侧竖栏，不能压场地；反弹板在右侧栏、右摇杆上方 */
+          /* 血条必须保持缩短（曾经为了填满而拉长到 76%，被反复投诉） */
+          bossBarPct: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().width / innerWidth * 100),
+          /* dock 在左侧竖栏，不能压场地，也不能被左摇杆盖住 */
           dock,
+          dockOverlapsStickL: ov(dock, box('stickL')),
           field: { x: Math.round(v.left), y: Math.round(v.top), right: Math.round(v.right), bottom: Math.round(v.bottom) },
           dockOverlapsField: ov(dock, { x: v.left, y: v.top, right: v.right, bottom: v.bottom }),
           fieldBottomGap: innerHeight - Math.round(v.bottom),
@@ -637,8 +640,12 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(r.bossBarBg === 'none', `Boss 血条背景应去掉，实际 ${r.bossBarBg}`);
     assert(/drop-shadow|blur/.test(r.hudCardFilter), 'HUD 应保留阴影以保证可读性，实际 ' + r.hudCardFilter);
     assert(/drop-shadow|blur/.test(r.bossBarFilter), 'Boss 血条应保留阴影');
-    /* 2) 功能键在左侧竖栏，不能压场地 */
-    assert(!r.dockOverlapsField, `dock 不应与场地重叠，实际 ${JSON.stringify(r.dock)}`);
+    /* 2) 功能键在顶部一排：不得越过可玩区顶线，也不得碰到摇杆 */
+    assert(r.dock.bottom <= r.field.y + 40,
+      `dock 不应侵入可玩区（场地顶 ${r.field.y} / dock 底 ${r.dock.bottom}）`);
+    assert(!r.dockOverlapsStickL, `dock 不应碰到左摇杆（dock 底 ${r.dock.bottom}px）`);
+    /* 3) 血条必须保持缩短 */
+    assert(r.bossBarPct <= 55, `Boss 血条应保持缩短（≤55%），实际 ${r.bossBarPct}%`);
     /* 3) 场地框必须贴到屏幕最底部（下面不该留空带） */
     assert(r.fieldBottomGap <= 8, `场地底边应贴到屏幕底部，实际留空 ${r.fieldBottomGap}px`);
     assert(r.arenaH >= 260, `场地贴底后可玩带应 ≥260px，实际 ${r.arenaH}px`);

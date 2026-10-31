@@ -639,10 +639,10 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
-  /* 功能键已挪到左侧竖栏，HUD 恢复通栏，不再让右边空一大块 */
+  /* 右侧留 258px 给「道具栏」，Boss 血条因此只占约 42%，不再横贯全屏 */
   #hud{
-    left:0;right:0;transform:none;width:auto;
-    top:calc(var(--sat) + 2px);padding:0 10px;
+    left:0;right:258px;transform:none;width:auto;
+    top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
   .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
@@ -679,21 +679,24 @@ body.playing #bPlate.arm{
   /* ---- 6 个功能键搬到右上角竖排（原来压在底部中央，紧挨弹弓、容易误触） ----
      竖排会挡住右摇杆，所以排成 2 列 × 3 行。 */
   /* 7 个功能键改成左侧竖栏（2 列 × 4 行），把左栏那块空白填掉 */
+  /* ---- 7 个功能键：顶部一排，与 HUD 同高 ----
+     放顶部是硬要求：竖栏往下排会一路怼到摇杆上（之前 4 行排到 y=252 就被摇杆盖住了）。
+     现在整排结束在 y≈44，离摇杆（212 起）有 168px，物理上不可能遮挡。 */
   #dock{
-    left:12px;right:auto;bottom:auto;transform:none;
-    top:calc(var(--sat) + 54px);
-    width:auto;padding:3px;gap:3px;border-radius:14px;
-    flex-direction:column;flex-wrap:wrap;max-height:178px;
+    left:auto;right:8px;bottom:auto;transform:none;
+    top:calc(var(--sat) + 2px);
+    width:auto;padding:2px;gap:2px;border-radius:13px;
+    flex-direction:row;flex-wrap:nowrap;
     background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
   .dock-btn{
-    flex:0 0 auto;width:40px;height:40px;
-    padding:4px 0 3px;border-radius:11px;gap:1px;
-    background:rgba(255,255,255,.035);border:none;
+    flex:0 0 auto;width:33px;height:34px;
+    padding:2px 0 1px;border-radius:9px;gap:0;
+    background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:16px;height:16px}
-  .dock-btn .tx{font-size:7.5px;letter-spacing:0;line-height:1.1}
+  .dock-btn svg{width:15px;height:15px}
+  .dock-btn .tx{font-size:6.5px;letter-spacing:0;line-height:1.05}
 
   /* ---- 摇杆 ---- */
   .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
@@ -703,14 +706,17 @@ body.playing #bPlate.arm{
   #stickL{left:14px}
   #stickR{right:14px}
 
-  /* 道具栏挪到右栏，和左边的功能键对称，两边都不空 */
-  #itemBar{top:calc(var(--sat) + 54px);bottom:auto;left:auto;right:12px;gap:6px}
+  /* 道具栏放右上角横排：正好填住血条缩短后空出来的那一块 */
+  /* ---- 道具栏：左栏竖排 ----
+     把左栏那块空白用起来，和右栏的反弹板+摇杆左右对称。 */
+  #itemBar{top:calc(var(--sat) + 54px);bottom:auto;left:12px;right:auto;
+           flex-direction:column;gap:7px}
 
-  /* ---- 反弹板按钮：右侧栏、右摇杆上方 ----
+  /* ---- 反弹板按钮：右侧栏、右摇杆上方，留 20px 空隙 ----
      不占地、不挡框；没有存货时整个隐藏（见 refreshPlateBtn 的 .empty）。 */
   #bPlate{
     left:auto;right:14px;margin-left:0;
-    top:auto;bottom:calc(var(--sab) + 60px + 118px + 12px);
+    top:auto;bottom:calc(var(--sab) + 60px + 118px + 20px);
     width:48px;height:48px;border-radius:16px;
   }
   #bPlate .ico{font-size:13px}
