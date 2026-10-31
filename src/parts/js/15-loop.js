@@ -75,6 +75,21 @@ function update(dt){
       return;
     }
     updateLevelHUD();
+    /* 眩晕 / 无敌帧 / 眩晕冷却 —— 眩晕期间锁住移动与发射，但道具仍可用（自救通道） */
+    if(state.stunCd > 0) state.stunCd = Math.max(0, state.stunCd - dt);
+    if(state.invulnT > 0) state.invulnT = Math.max(0, state.invulnT - dt);
+    if(state.stunT > 0){
+      state.stunT = Math.max(0, state.stunT - dt);
+      state.stickX = 0;
+      state.moveDir = 0;
+      state.aim.active = false;
+      state.aim.power = 0;
+      if(state.stunT === 0){
+        state.stickX = 0;                 /* 解除瞬间别让残留输入突然窜出去 */
+        document.body.classList.remove('stunned');
+        popText(state.cannonX, view.pouchY - 70*view.s, '恢复行动', 14, '#bfe8ff');
+      }
+    }
     /* 炮台左右移动：这是闪避能成立的前提。
        左摇杆给出 -1~1 的连续值（推多远走多快），键盘给 ±1；摇杆优先。 */
     var mv = state.stickX !== 0 ? state.stickX : state.moveDir;

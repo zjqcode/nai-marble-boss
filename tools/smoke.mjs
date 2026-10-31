@@ -988,6 +988,64 @@ await check('加时奶糖：+10 秒、50 奶瓶、最多堆 6 个', async () => 
   return `堆到 ${r.stacked} 个 / 花 ${r.spent} 奶瓶 / +${r.delta} 秒 → +${r.delta3} 秒`;
 });
 
+// ---------- 8j. 眩晕 ----------
+await check('眩晕：被命中触发、锁输入、有无敌帧与冷却、护盾可免', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state, out = {};
+      N.tick(170);
+
+      st.heroHP = 5; st.stunCd = 0; st.invulnT = 0; st.shield = 0;
+      N.hurtHero(1, '测试');
+      out.stun = +st.stunT.toFixed(2);
+      out.bodyStunned = document.body.classList.contains('stunned');
+      out.invuln = +st.invulnT.toFixed(2);
+      out.cd = +st.stunCd.toFixed(2);
+
+      /* 眩晕中：右摇杆不产生瞄准 */
+      document.getElementById('stickR').dispatchEvent(new PointerEvent('pointerdown', {
+        clientX: 400, clientY: 300, pointerId: 77, bubbles: true, cancelable: true }));
+      out.aimWhileStunned = st.aim.active;
+      document.getElementById('stickR').dispatchEvent(new PointerEvent('pointerup', {
+        pointerId: 77, bubbles: true, cancelable: true }));
+
+      /* 眩晕中：再打不掉血（无敌帧） */
+      const hp0 = st.heroHP;
+      N.hurtHero(1, '测试');
+      out.hpUnchanged = st.heroHP === hp0;
+
+      /* 眩晕结束后清输入 */
+      N.step(Math.ceil((st.stunT + 0.06) * 60));
+      out.ended = st.stunT === 0;
+      out.bodyCleared = !document.body.classList.contains('stunned');
+      out.stickCleared = st.stickX === 0;
+
+      /* 冷却内再命中：掉血但不晕 */
+      st.stunCd = 2.0; st.invulnT = 0; st.heroHP = 5;
+      const hp1 = st.heroHP;
+      N.hurtHero(1, '测试');
+      out.cdBlocks = (st.stunT === 0) && (st.heroHP === hp1 - 1);
+
+      /* 护盾：挡住且不晕 */
+      st.stunCd = 0; st.invulnT = 0; st.shield = 1; st.heroHP = 5;
+      N.hurtHero(1, '测试');
+      out.shieldNoStun = st.stunT === 0 && st.shield === 0;
+      return out;
+    })()`);
+  assert(r.stun > 0.3 && r.stun <= 1.0, `第 1 章眩晕应在 0.3~1.0s，实际 ${r.stun}`);
+  assert(r.bodyStunned, '眩晕时应给 body 加 .stunned（摇杆变灰）');
+  assert(r.invuln >= r.stun, `无敌帧(${r.invuln})应不短于眩晕(${r.stun})`);
+  assert(r.cd === 2.5, `眩晕冷却应为 2.5s，实际 ${r.cd}`);
+  assert(!r.aimWhileStunned, '眩晕时右摇杆不应产生瞄准');
+  assert(r.hpUnchanged, '眩晕期间再被命中不应掉血（无敌帧）');
+  assert(r.ended && r.bodyCleared && r.stickCleared, '眩晕结束后应解除并清空输入');
+  assert(r.cdBlocks, '冷却内再被命中应只掉血、不眩晕');
+  assert(r.shieldNoStun, '护盾抵挡时不应眩晕');
+  return `第1章 ${r.stun}s / 无敌 ${r.invuln}s / 冷却 ${r.cd}s / 护盾免疫 ✓`;
+});
+
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------
 await check('动态背景：画面随时间变化（不再是一张静态图）', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);

@@ -91,6 +91,7 @@ function bindSticks(){
   bindStick($id('stickL'), {
     horizontal: true,
     onMove: function(nx){
+      if(state.stunT > 0){ state.stickX = 0; return; }
       state.stickX = Math.abs(nx) < STICK_DEAD ? 0 : clamp(nx, -1, 1);
     },
     onEnd: function(){ state.stickX = 0; }
@@ -100,7 +101,7 @@ function bindSticks(){
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
-      if(state.mode !== 'play' || state.paused) return;
+      if(state.mode !== 'play' || state.paused || state.stunT > 0) return;
       var a = state.aim;
       /* 玩家重新开始拉杆：之前排队的那一发作废，避免补发出手方向对不上 */
       if(mag > STICK_DEAD) state.pendingShot = null;
@@ -116,7 +117,7 @@ function bindSticks(){
     },
     onEnd: function(){
       var a = state.aim;
-      if(!a.active) return;
+      if(!a.active || state.stunT > 0) { a.active = false; a.power = 0; return; }
       if(a.power >= 0.12){
         if(state.reloadT <= 0.02){
           fireBall();

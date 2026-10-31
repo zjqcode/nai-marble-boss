@@ -147,16 +147,42 @@ function executeTelegraph(){
   }
 }
 
-function heroHit(n, reason){
+/* 眩晕时长按章节递增：前面轻、后面重，但不至于"一晕就死"。
+   配合 heroHit 里的无敌帧（眩晕时长 + 0.45s），保证晕完有一段喘息。 */
+function chapterStun(){
+  var id = (state.chapter && state.chapter.id) || 1;
+  if(id <= 2) return 0.5;
+  if(id <= 5) return 0.7;
+  return 0.9;
+}
+
+function startStun(sec){
+  state.stunT = sec;
+  state.stunCd = 2.5;          /* 冷却内再被命中只掉血，不重复眩晕，避免锁死 */
+  state.stickX = 0;
+  state.moveDir = 0;
+  state.aim.active = false;
+  state.aim.power = 0;
+  state.pendingShot = null;
+  document.body.classList.add('stunned');
+  popText(state.cannonX, view.pouchY - 112*view.s, '眩晕！', 20, '#ffd166');
+  ring(state.cannonX, view.pouchY - 46*view.s, 10, 70, '255,209,102', .5, 3);
+  try{ if(navigator.vibrate) navigator.vibrate([30, 40, 30]); }catch(e){}
+}
+
+function heroHit(n, reason, noStun){
   if(state.mode !== 'play' || state.cineT > 0) return;
+  /* 无敌帧：眩晕期间及刚结束的一小段不会再被命中 */
+  if(state.invulnT > 0) return;
   if(state.shield > 0){
     state.shield--;
+    state.invulnT = 0.8;
     updateBuffs();
     popText(state.cannonX, view.pouchY - 66, '护盾抵挡！', 16, '#bfe8ff');
     ring(state.cannonX, view.pouchY, 24, 100, '140,210,255', .5, 4);
     state.shake = Math.max(state.shake, 6);
     Sound.shield();
-    return;
+    return;                    /* 护盾抵挡不眩晕 */
   }
   setHeroHP(state.heroHP - n, true);
   state.flashHue = 'red';
@@ -167,14 +193,20 @@ function heroHit(n, reason){
   try{ if(navigator.vibrate) navigator.vibrate(35); }catch(e){}
   popText(state.cannonX, view.pouchY - 58, '勇者 -' + n + ' · ' + reason, 15, '#ff9a8a');
   state.dodgeStreak = 0;
+
+  /* 眩晕：连段后续段不触发（否则一轮连段直接锁死），冷却内也不触发 */
+  var stun = (!noStun && state.stunCd <= 0) ? chapterStun() : 0;
+  if(stun > 0 && state.heroHP > 0) startStun(stun);
+  state.invulnT = stun > 0 ? stun + 0.45 : 0.6;
+
   updateBuffs();
   if(state.heroHP <= 0) heroDown(reason);
 }
 
 function attackHit(tg, reason){
   if(Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW){
-    /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀 */
-    heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason);
+    /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀；同时不触发眩晕 */
+    heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason, !!tg.combo);
   } else {
     dodgeSuccess();
   }

@@ -1012,6 +1012,41 @@ function predictPath(){
   return {pts:pts, hit: hitBoss};
 }
 
+/* 眩晕表现：炮台上方三颗绕圈的金色小星 + 一圈脉动光晕 */
+function drawStun(){
+  if(!(state.stunT > 0)) return;
+  var fade = Math.min(1, state.stunT / 0.25);
+  var cy = view.pouchY - 66*view.s;
+  var R = 30*view.s;
+
+  ctx.save();
+  ctx.globalAlpha = 0.85 * fade;
+  /* 脉动光晕，提示"现在动不了" */
+  var g = ctx.createRadialGradient(state.cannonX, cy, 0, state.cannonX, cy, R*1.8);
+  g.addColorStop(0, 'rgba(255,209,102,.28)');
+  g.addColorStop(1, 'rgba(255,209,102,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(state.cannonX, cy, R*1.8, 0, TAU); ctx.fill();
+
+  ctx.globalCompositeOperation = 'lighter';
+  for(var i=0;i<3;i++){
+    var a = T*7 + i*TAU/3;
+    var x = state.cannonX + Math.cos(a)*R;
+    var y = cy + Math.sin(a)*R*0.42;
+    var rr = (4.2 + 1.2*Math.sin(T*9 + i)) * view.s;
+    var sg = ctx.createRadialGradient(x, y, 0, x, y, rr*3);
+    sg.addColorStop(0, 'rgba(255,236,170,.95)');
+    sg.addColorStop(.45,'rgba(255,200,90,.55)');
+    sg.addColorStop(1, 'rgba(255,190,70,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(x, y, rr*3, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,248,222,.95)';
+    ctx.beginPath(); ctx.arc(x, y, rr*0.8, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+
+}
+
 function drawAim(){
   if(!state.aim.active || state.mode !== 'play') return;
   var a = state.aim;
@@ -1229,6 +1264,7 @@ function draw(){
   if(state.mode !== 'intro'){
     drawLauncher();
     drawAim();
+    drawStun();
   }
   drawAtkAnim();
   drawEffects();

@@ -53,6 +53,8 @@ var state = {
   heroDmg: 1,
   potionCd: 0,        /* 血瓶冷却，防止连点 */
   shield: 0,
+  /* 眩晕：stunT 剩余时长 / stunCd 触发冷却 / invulnT 无敌帧 */
+  stunT: 0, stunCd: 0, invulnT: 0,
   superT: 0,
   frenzyT: 0,
   items: [],

@@ -528,6 +528,10 @@ body.playing .stick{opacity:1;pointer-events:auto}
 }
 .stick:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
+/* 眩晕中：摇杆变灰，明确告诉玩家"不是没操作，是系统禁用" */
+body.stunned .stick{opacity:.45;filter:grayscale(.55);border-color:rgba(255,255,255,.12)}
+body.stunned .stick .knob{box-shadow:0 0 0 2px rgba(255,209,102,.45)}
+
 /* 反弹板按钮：没有存货时整个不显示（由 refreshPlateBtn 打 .empty） */
 #bPlate.empty{display:none !important}
 

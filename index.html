@@ -537,6 +537,10 @@ body.playing .stick{opacity:1;pointer-events:auto}
 }
 .stick:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
+/* 眩晕中：摇杆变灰，明确告诉玩家"不是没操作，是系统禁用" */
+body.stunned .stick{opacity:.45;filter:grayscale(.55);border-color:rgba(255,255,255,.12)}
+body.stunned .stick .knob{box-shadow:0 0 0 2px rgba(255,209,102,.45)}
+
 /* 反弹板按钮：没有存货时整个不显示（由 refreshPlateBtn 打 .empty） */
 #bPlate.empty{display:none !important}
 
@@ -2190,6 +2194,8 @@ var state = {
   heroDmg: 1,
   potionCd: 0,        /* 血瓶冷却，防止连点 */
   shield: 0,
+  /* 眩晕：stunT 剩余时长 / stunCd 触发冷却 / invulnT 无敌帧 */
+  stunT: 0, stunCd: 0, invulnT: 0,
   superT: 0,
   frenzyT: 0,
   items: [],
@@ -2356,6 +2362,8 @@ function startLevel(idx){
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;
   state.pendingShot = null;
+  state.stunT = 0; state.stunCd = 0; state.invulnT = 0;
+  document.body.classList.remove('stunned');
   state.stickX = 0;
   state.boss = {
     char: ch.char, title: ch.title, chap: ch.chap,
@@ -2572,6 +2580,7 @@ function bindSticks(){
   bindStick($id('stickL'), {
     horizontal: true,
     onMove: function(nx){
+      if(state.stunT > 0){ state.stickX = 0; return; }
       state.stickX = Math.abs(nx) < STICK_DEAD ? 0 : clamp(nx, -1, 1);
     },
     onEnd: function(){ state.stickX = 0; }
@@ -2581,7 +2590,7 @@ function bindSticks(){
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
-      if(state.mode !== 'play' || state.paused) return;
+      if(state.mode !== 'play' || state.paused || state.stunT > 0) return;
       var a = state.aim;
       /* 玩家重新开始拉杆：之前排队的那一发作废，避免补发出手方向对不上 */
       if(mag > STICK_DEAD) state.pendingShot = null;
@@ -2597,7 +2606,7 @@ function bindSticks(){
     },
     onEnd: function(){
       var a = state.aim;
-      if(!a.active) return;
+      if(!a.active || state.stunT > 0) { a.active = false; a.power = 0; return; }
       if(a.power >= 0.12){
         if(state.reloadT <= 0.02){
           fireBall();
@@ -3158,16 +3167,42 @@ function executeTelegraph(){
   }
 }
 
-function heroHit(n, reason){
+/* 眩晕时长按章节递增：前面轻、后面重，但不至于"一晕就死"。
+   配合 heroHit 里的无敌帧（眩晕时长 + 0.45s），保证晕完有一段喘息。 */
+function chapterStun(){
+  var id = (state.chapter && state.chapter.id) || 1;
+  if(id <= 2) return 0.5;
+  if(id <= 5) return 0.7;
+  return 0.9;
+}
+
+function startStun(sec){
+  state.stunT = sec;
+  state.stunCd = 2.5;          /* 冷却内再被命中只掉血，不重复眩晕，避免锁死 */
+  state.stickX = 0;
+  state.moveDir = 0;
+  state.aim.active = false;
+  state.aim.power = 0;
+  state.pendingShot = null;
+  document.body.classList.add('stunned');
+  popText(state.cannonX, view.pouchY - 112*view.s, '眩晕！', 20, '#ffd166');
+  ring(state.cannonX, view.pouchY - 46*view.s, 10, 70, '255,209,102', .5, 3);
+  try{ if(navigator.vibrate) navigator.vibrate([30, 40, 30]); }catch(e){}
+}
+
+function heroHit(n, reason, noStun){
   if(state.mode !== 'play' || state.cineT > 0) return;
+  /* 无敌帧：眩晕期间及刚结束的一小段不会再被命中 */
+  if(state.invulnT > 0) return;
   if(state.shield > 0){
     state.shield--;
+    state.invulnT = 0.8;
     updateBuffs();
     popText(state.cannonX, view.pouchY - 66, '护盾抵挡！', 16, '#bfe8ff');
     ring(state.cannonX, view.pouchY, 24, 100, '140,210,255', .5, 4);
     state.shake = Math.max(state.shake, 6);
     Sound.shield();
-    return;
+    return;                    /* 护盾抵挡不眩晕 */
   }
   setHeroHP(state.heroHP - n, true);
   state.flashHue = 'red';
@@ -3178,14 +3213,20 @@ function heroHit(n, reason){
   try{ if(navigator.vibrate) navigator.vibrate(35); }catch(e){}
   popText(state.cannonX, view.pouchY - 58, '勇者 -' + n + ' · ' + reason, 15, '#ff9a8a');
   state.dodgeStreak = 0;
+
+  /* 眩晕：连段后续段不触发（否则一轮连段直接锁死），冷却内也不触发 */
+  var stun = (!noStun && state.stunCd <= 0) ? chapterStun() : 0;
+  if(stun > 0 && state.heroHP > 0) startStun(stun);
+  state.invulnT = stun > 0 ? stun + 0.45 : 0.6;
+
   updateBuffs();
   if(state.heroHP <= 0) heroDown(reason);
 }
 
 function attackHit(tg, reason){
   if(Math.abs(state.cannonX - tg.aimX) <= tg.dodgeW){
-    /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀 */
-    heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason);
+    /* 连段的后续段伤害 -1，避免站桩一轮直接秒杀；同时不触发眩晕 */
+    heroHit(tg.combo ? Math.max(1, state.atkDmg - 1) : state.atkDmg, reason, !!tg.combo);
   } else {
     dodgeSuccess();
   }
@@ -4394,6 +4435,21 @@ function update(dt){
       return;
     }
     updateLevelHUD();
+    /* 眩晕 / 无敌帧 / 眩晕冷却 —— 眩晕期间锁住移动与发射，但道具仍可用（自救通道） */
+    if(state.stunCd > 0) state.stunCd = Math.max(0, state.stunCd - dt);
+    if(state.invulnT > 0) state.invulnT = Math.max(0, state.invulnT - dt);
+    if(state.stunT > 0){
+      state.stunT = Math.max(0, state.stunT - dt);
+      state.stickX = 0;
+      state.moveDir = 0;
+      state.aim.active = false;
+      state.aim.power = 0;
+      if(state.stunT === 0){
+        state.stickX = 0;                 /* 解除瞬间别让残留输入突然窜出去 */
+        document.body.classList.remove('stunned');
+        popText(state.cannonX, view.pouchY - 70*view.s, '恢复行动', 14, '#bfe8ff');
+      }
+    }
     /* 炮台左右移动：这是闪避能成立的前提。
        左摇杆给出 -1~1 的连续值（推多远走多快），键盘给 ±1；摇杆优先。 */
     var mv = state.stickX !== 0 ? state.stickX : state.moveDir;
@@ -5492,6 +5548,41 @@ function predictPath(){
   return {pts:pts, hit: hitBoss};
 }
 
+/* 眩晕表现：炮台上方三颗绕圈的金色小星 + 一圈脉动光晕 */
+function drawStun(){
+  if(!(state.stunT > 0)) return;
+  var fade = Math.min(1, state.stunT / 0.25);
+  var cy = view.pouchY - 66*view.s;
+  var R = 30*view.s;
+
+  ctx.save();
+  ctx.globalAlpha = 0.85 * fade;
+  /* 脉动光晕，提示"现在动不了" */
+  var g = ctx.createRadialGradient(state.cannonX, cy, 0, state.cannonX, cy, R*1.8);
+  g.addColorStop(0, 'rgba(255,209,102,.28)');
+  g.addColorStop(1, 'rgba(255,209,102,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(state.cannonX, cy, R*1.8, 0, TAU); ctx.fill();
+
+  ctx.globalCompositeOperation = 'lighter';
+  for(var i=0;i<3;i++){
+    var a = T*7 + i*TAU/3;
+    var x = state.cannonX + Math.cos(a)*R;
+    var y = cy + Math.sin(a)*R*0.42;
+    var rr = (4.2 + 1.2*Math.sin(T*9 + i)) * view.s;
+    var sg = ctx.createRadialGradient(x, y, 0, x, y, rr*3);
+    sg.addColorStop(0, 'rgba(255,236,170,.95)');
+    sg.addColorStop(.45,'rgba(255,200,90,.55)');
+    sg.addColorStop(1, 'rgba(255,190,70,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(x, y, rr*3, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,248,222,.95)';
+    ctx.beginPath(); ctx.arc(x, y, rr*0.8, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+
+}
+
 function drawAim(){
   if(!state.aim.active || state.mode !== 'play') return;
   var a = state.aim;
@@ -5709,6 +5800,7 @@ function draw(){
   if(state.mode !== 'intro'){
     drawLauncher();
     drawAim();
+    drawStun();
   }
   drawAtkAnim();
   drawEffects();

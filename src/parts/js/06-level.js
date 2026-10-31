@@ -94,6 +94,8 @@ function startLevel(idx){
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;
   state.pendingShot = null;
+  state.stunT = 0; state.stunCd = 0; state.invulnT = 0;
+  document.body.classList.remove('stunned');
   state.stickX = 0;
   state.boss = {
     char: ch.char, title: ch.title, chap: ch.chap,
