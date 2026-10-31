@@ -79,6 +79,40 @@ document.addEventListener('error', function(e){
 
 /* 首页「全屏」按钮跟随静音按钮：`.intro-snd` 在多个媒体查询里换了 right/top/尺寸，
    与其到处复制断点，不如量一次它的位置，把全屏按钮摆到它左边。 */
+var FS_HINT_KEY = 'nai_fs_hint_seen';
+function fsHintSeen(){
+  try { return localStorage.getItem(FS_HINT_KEY) === '1'; } catch(e) { return false; }
+}
+function markFsHintSeen(){
+  try { localStorage.setItem(FS_HINT_KEY, '1'); } catch(e) {}
+}
+function hideFsHint(remember){
+  if(remember) markFsHintSeen();
+  var el = $id('fsHint');
+  if(el){
+    el.classList.remove('show');
+    el.classList.remove('pulse');
+    el.classList.add('hide');
+  }
+  var btn = $id('bIntroFull');
+  if(btn) btn.classList.remove('hint-on');
+}
+/* 没进过全屏、且确实支持全屏时，才提示一次 */
+function maybeShowFsHint(){
+  var el = $id('fsHint'), btn = $id('bIntroFull');
+  if(!el || !btn) return;
+  if(fsHintSeen()) return;
+  if(document.fullscreenElement || document.webkitFullscreenElement) return;
+  var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+  if(!can) return;
+  el.classList.remove('hide');
+  el.classList.add('show');
+  el.classList.add('pulse');
+  btn.classList.add('hint-on');
+  /* 8 秒后自动收，别一直挡着 */
+  setTimeout(function(){ hideFsHint(false); }, 8000);
+}
+
 function syncIntroTools(){
   var fs = $id('bIntroFull'), snd = $id('bIntroSound');
   if(!fs || !snd) return;
@@ -90,6 +124,11 @@ function syncIntroTools(){
   fs.style.height = h + 'px';
   fs.style.top = snd.offsetTop + 'px';
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var hint = $id('fsHint');
+  if(hint){
+    hint.style.top = (snd.offsetTop + h + 10) + 'px';
+    hint.style.right = (par.clientWidth - (snd.offsetLeft + 10 - h) - w) + 'px';
+  }
 }
 
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */

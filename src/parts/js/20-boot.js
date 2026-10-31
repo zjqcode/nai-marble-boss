@@ -157,6 +157,7 @@ function bindEvents(){
         var fn = el.requestFullscreen || el.webkitRequestFullscreen;
         if(!fn){ toast('当前浏览器不支持全屏'); return; }
         /* 进全屏后顺手尝试锁横屏：Android Chrome 只有在全屏下才允许锁方向 */
+        hideFsHint(true);
         Promise.resolve(fn.call(el)).then(function(){
           lockLandscape();
           return layout();
@@ -171,6 +172,7 @@ function bindEvents(){
   $id('bIntroFull').addEventListener('click', toggleFullscreen);
   /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
   syncIntroTools();
+  maybeShowFsHint();
   window.addEventListener('resize', syncIntroTools);
   window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
   document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });

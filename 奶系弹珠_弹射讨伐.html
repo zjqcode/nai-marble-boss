@@ -1213,6 +1213,31 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 .intro-fs svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .intro-fs:active{transform:scale(.94)}
 .intro-fs.on{color:#ffd47e;border-color:rgba(255,210,130,.45);background:rgba(30,24,12,.55)}
+
+/* 首页全屏按钮的引导气泡：只在没进过全屏时出现，点一下或等几秒就收 */
+.fs-hint{
+  position:absolute;z-index:5;pointer-events:none;
+  display:flex;align-items:center;gap:6px;
+  padding:6px 11px;border-radius:11px;
+  background:rgba(12,28,27,.92);border:1px solid rgba(255,216,150,.34);
+  color:#ffe6b8;font-size:11px;letter-spacing:.04em;white-space:nowrap;
+  box-shadow:0 8px 20px rgba(0,0,0,.4);
+  opacity:0;transform:translateY(-4px);visibility:hidden;
+}
+.fs-hint.show{visibility:visible;animation:fsHintIn .3s ease forwards}
+.fs-hint i{
+  position:absolute;top:-5px;right:16px;width:9px;height:9px;
+  background:rgba(12,28,27,.92);border-left:1px solid rgba(255,216,150,.34);
+  border-top:1px solid rgba(255,216,150,.34);transform:rotate(45deg);
+}
+.fs-hint.hide{visibility:visible;animation:fsHintOut .25s ease forwards}
+.fs-hint.show.pulse{animation:fsHintIn .3s ease forwards,fsPulse 1.6s .4s ease-in-out infinite}
+@keyframes fsHintIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes fsHintOut{from{opacity:1}to{opacity:0;transform:translateY(-4px)}}
+@keyframes fsPulse{0%,100%{box-shadow:0 8px 20px rgba(0,0,0,.4)}50%{box-shadow:0 8px 20px rgba(0,0,0,.4),0 0 0 3px rgba(255,214,140,.18)}}
+/* 提示出现时，按钮本身也轻微呼吸，吸引注意 */
+.intro-fs.hint-on{animation:fsBtnPulse 1.6s ease-in-out infinite}
+@keyframes fsBtnPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,214,140,0)}50%{box-shadow:0 0 0 4px rgba(255,214,140,.16)}}
 </style>
 </head>
 <body>
@@ -1368,6 +1393,9 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   <button class="intro-fs" id="bIntroFull" aria-label="全屏">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 15v5h-5"/><path d="M15 4h5v5"/><path d="M9 20H4v-5"/></svg>
   </button>
+  <div class="fs-hint" id="fsHint" role="note">
+    <span>点这里全屏，视野更大</span><i aria-hidden="true"></i>
+  </div>
   <button class="intro-snd snd-btn on" id="bIntroSound" aria-label="音效开关" aria-pressed="true">
     <svg class="ico-on" viewBox="0 0 24 24"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M15.6 9.1a4.2 4.2 0 0 1 0 5.8"/><path d="M18.2 6.4a8 8 0 0 1 0 11.2"/></svg>
     <svg class="ico-off" viewBox="0 0 24 24" style="display:none"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M16.2 9.6l5 5M21.2 9.6l-5 5"/></svg>
@@ -6800,6 +6828,40 @@ document.addEventListener('error', function(e){
 
 /* 首页「全屏」按钮跟随静音按钮：`.intro-snd` 在多个媒体查询里换了 right/top/尺寸，
    与其到处复制断点，不如量一次它的位置，把全屏按钮摆到它左边。 */
+var FS_HINT_KEY = 'nai_fs_hint_seen';
+function fsHintSeen(){
+  try { return localStorage.getItem(FS_HINT_KEY) === '1'; } catch(e) { return false; }
+}
+function markFsHintSeen(){
+  try { localStorage.setItem(FS_HINT_KEY, '1'); } catch(e) {}
+}
+function hideFsHint(remember){
+  if(remember) markFsHintSeen();
+  var el = $id('fsHint');
+  if(el){
+    el.classList.remove('show');
+    el.classList.remove('pulse');
+    el.classList.add('hide');
+  }
+  var btn = $id('bIntroFull');
+  if(btn) btn.classList.remove('hint-on');
+}
+/* 没进过全屏、且确实支持全屏时，才提示一次 */
+function maybeShowFsHint(){
+  var el = $id('fsHint'), btn = $id('bIntroFull');
+  if(!el || !btn) return;
+  if(fsHintSeen()) return;
+  if(document.fullscreenElement || document.webkitFullscreenElement) return;
+  var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+  if(!can) return;
+  el.classList.remove('hide');
+  el.classList.add('show');
+  el.classList.add('pulse');
+  btn.classList.add('hint-on');
+  /* 8 秒后自动收，别一直挡着 */
+  setTimeout(function(){ hideFsHint(false); }, 8000);
+}
+
 function syncIntroTools(){
   var fs = $id('bIntroFull'), snd = $id('bIntroSound');
   if(!fs || !snd) return;
@@ -6811,6 +6873,11 @@ function syncIntroTools(){
   fs.style.height = h + 'px';
   fs.style.top = snd.offsetTop + 'px';
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var hint = $id('fsHint');
+  if(hint){
+    hint.style.top = (snd.offsetTop + h + 10) + 'px';
+    hint.style.right = (par.clientWidth - (snd.offsetLeft + 10 - h) - w) + 'px';
+  }
 }
 
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
@@ -7108,6 +7175,7 @@ function bindEvents(){
         var fn = el.requestFullscreen || el.webkitRequestFullscreen;
         if(!fn){ toast('当前浏览器不支持全屏'); return; }
         /* 进全屏后顺手尝试锁横屏：Android Chrome 只有在全屏下才允许锁方向 */
+        hideFsHint(true);
         Promise.resolve(fn.call(el)).then(function(){
           lockLandscape();
           return layout();
@@ -7122,6 +7190,7 @@ function bindEvents(){
   $id('bIntroFull').addEventListener('click', toggleFullscreen);
   /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
   syncIntroTools();
+  maybeShowFsHint();
   window.addEventListener('resize', syncIntroTools);
   window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
   document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
