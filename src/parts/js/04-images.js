@@ -78,8 +78,16 @@ function loadImages(){
   CHARS.forEach(function(c){
     var im = new Image();
     im.onload = tick;
-    /* 单个素材失败也要计数，否则 loaded 永远到不了 CHARS.length，贴图再也不会重建 */
+    /* 素材走 CDN 时，单个节点抖动/被墙就换镜像节点重试一次；
+       两次都失败才计入完成（游戏会用占位轮廓兜底，不至于卡在加载条） */
     im.onerror = function(){
+      if(!im.__alt){
+        var url = assetURL(c.n);
+        if(url.indexOf('cdn.jsdelivr.net') >= 0){
+          im.__alt = true;
+          try { im.src = url.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net'); return; } catch(e) {}
+        }
+      }
       try { console.warn('素材加载失败: ' + assetURL(c.n)); } catch(e) {}
       tick();
     };

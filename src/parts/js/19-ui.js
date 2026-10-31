@@ -66,6 +66,17 @@ function hideIntro(){
   setTimeout(function(){ el.style.display = 'none'; }, 800);
 }
 
+/* CDN 兜底：任意 <img> 加载失败且指向主节点时，换镜像节点重试一次。
+   放在捕获阶段，能收到不冒泡的 img error 事件。 */
+document.addEventListener('error', function(e){
+  var el = e.target;
+  if(!el || el.tagName !== 'IMG' || el.__alt) return;
+  var src = el.getAttribute('src') || '';
+  if(src.indexOf('cdn.jsdelivr.net') < 0) return;
+  el.__alt = true;
+  el.setAttribute('src', src.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net'));
+}, true);
+
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
 function goHome(){
   closeAllScreens();
