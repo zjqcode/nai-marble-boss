@@ -1168,90 +1168,48 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   .cd-scroll>.orb{grid-row:auto;margin:0;width:75px;height:75px}.char-detail .cd-body{grid-column:2}.char-detail>.up-btn{width:100%}
 }
 
-/* ---------- 素材加载弹窗 ---------- */
+/* ---------- 素材加载条（小条框） ---------- */
 #loading{
-  position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(120% 100% at 50% 0,rgba(16,43,42,.94),rgba(6,16,16,.97));
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  opacity:1;pointer-events:auto;transition:opacity .3s ease;animation:ldIn .26s ease both;
+  position:fixed;left:50%;bottom:calc(var(--sab) + 14px);transform:translateX(-50%);
+  z-index:120;pointer-events:none;opacity:0;animation:ldIn .2s ease forwards;
 }
-#loading.done{opacity:0;pointer-events:none}
-.ld-card{
-  width:min(320px,82vw);padding:18px 18px 14px;border-radius:18px;
-  background:linear-gradient(160deg,rgba(28,58,54,.96),rgba(14,32,31,.98));
-  border:1px solid rgba(255,220,160,.22);
-  box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,240,200,.12);
-  text-align:center;color:#f6e7c6;
-}
-.ld-track{position:relative;height:74px;margin-bottom:6px;overflow:hidden}
-.ld-line{
-  position:absolute;left:8%;right:8%;bottom:12px;height:2px;border-radius:2px;
-  background:repeating-linear-gradient(90deg,rgba(255,225,170,.4) 0 8px,transparent 8px 16px);
+#loading.done{opacity:0;transition:opacity .3s ease;animation:none}
+.ld-bar{
+  position:relative;display:flex;align-items:center;gap:8px;
+  padding:6px 13px 8px;border-radius:12px;
+  background:rgba(9,24,23,.88);border:1px solid rgba(255,220,160,.2);
+  box-shadow:0 8px 22px rgba(0,0,0,.42);
+  color:#f4e6c8;font-size:12px;letter-spacing:.03em;white-space:nowrap;
+  overflow:hidden;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 .ld-runner{
-  position:absolute;bottom:10px;left:8%;
-  animation:ldRun 1.15s cubic-bezier(.42,0,.58,1) infinite alternate;
+  width:26px;height:26px;object-fit:contain;display:block;
+  animation:ldRun .62s ease-in-out infinite;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));
 }
-.ld-baby{
-  display:block;width:46px;height:46px;
-  filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
-  animation:ldBob .575s ease-in-out infinite alternate;
+.ld-text b{color:#ffe3a8;font-variant-numeric:tabular-nums}
+.ld-fill{
+  position:absolute;left:0;bottom:0;height:2px;width:0;border-radius:0 2px 2px 0;
+  background:linear-gradient(90deg,#f8dca0,#e9b96a);transition:width .25s ease;
 }
-@keyframes ldRun{from{left:6%}to{left:62%}}
-@keyframes ldBob{from{transform:translateY(0) scale(1,1)}to{transform:translateY(-6px) scale(1.04,.96)}}
-.ld-dust{
-  position:absolute;bottom:2px;width:6px;height:6px;border-radius:50%;
-  background:rgba(255,238,200,.55);opacity:0;
+@keyframes ldRun{
+  0%{transform:translateY(0) rotate(-3deg) scale(1,1)}
+  50%{transform:translateY(-3px) rotate(3deg) scale(1.04,.97)}
+  100%{transform:translateY(0) rotate(-3deg) scale(1,1)}
 }
-.ld-dust.d1{animation:ldDust .58s ease-out infinite}
-.ld-dust.d2{animation:ldDust .58s .22s ease-out infinite}
-@keyframes ldDust{0%{opacity:.7;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(-14px,-8px) scale(.4)}}
-.ld-title{font-size:14px;letter-spacing:.04em;font-weight:600}
-.ld-dots i{animation:ldDot 1.2s infinite;font-style:normal}
-.ld-dots i:nth-child(2){animation-delay:.2s}
-.ld-dots i:nth-child(3){animation-delay:.4s}
-@keyframes ldDot{0%,60%{opacity:.25}30%{opacity:1}}
-.ld-sub{margin-top:6px;font-size:11px;color:rgba(246,231,198,.72)}
-.ld-sub b{color:#ffe3a8;font-variant-numeric:tabular-nums}
-.ld-bar{margin-top:8px;height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
-.ld-bar i{display:block;height:100%;width:0;border-radius:99px;
-  background:linear-gradient(90deg,#f8dca0,#e9b96a);transition:width .25s ease}
-.ld-tip{margin-top:8px;font-size:10.5px;color:rgba(255,255,255,.42);letter-spacing:.06em}
 @keyframes ldIn{from{opacity:0}to{opacity:1}}
+@keyframes ldOut{from{opacity:1}to{opacity:0}}
 </style>
 </head>
 <body>
-<!-- 素材加载弹窗：奶娃在跑道上狂奔，加载完自动消失 -->
+<!-- 素材加载条：奶豆在跑，加载完自动消失 -->
 <div id="loading" role="status" aria-live="polite">
-  <div class="ld-card">
-    <div class="ld-track">
-      <span class="ld-line"></span>
-      <div class="ld-runner">
-        <span class="ld-dust d1"></span>
-        <span class="ld-dust d2"></span>
-        <svg class="ld-baby" viewBox="0 0 64 64" aria-hidden="true">
-          <ellipse cx="32" cy="36" rx="21" ry="20" fill="#f7dfae"/>
-          <ellipse cx="32" cy="35" rx="21" ry="20" fill="url(#ldGrad)"/>
-          <defs>
-            <radialGradient id="ldGrad" cx="35%" cy="28%" r="78%">
-              <stop offset="0" stop-color="#fff6da"/>
-              <stop offset="1" stop-color="#f2d79b" stop-opacity=".15"/>
-            </radialGradient>
-          </defs>
-          <circle cx="24" cy="31" r="2.6" fill="#3a2a12"/>
-          <circle cx="40" cy="31" r="2.6" fill="#3a2a12"/>
-          <circle cx="24.9" cy="30.2" r=".9" fill="#fff"/>
-          <circle cx="40.9" cy="30.2" r=".9" fill="#fff"/>
-          <path d="M27 38q5 4.5 10 0" stroke="#3a2a12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-          <ellipse cx="32" cy="58" rx="19" ry="3.4" fill="#0a1a18" opacity=".5"/>
-        </svg>
-      </div>
-    </div>
-    <div class="ld-title">奶娃正在赶来的路上<span class="ld-dots"><i>.</i><i>.</i><i>.</i></span></div>
-    <div class="ld-sub">加载素材 <b id="ldNum">0</b> / <b id="ldAll">12</b></div>
-    <div class="ld-bar"><i id="ldFill"></i></div>
-    <div class="ld-tip" id="ldTip">马上就好，别催</div>
-
+  <div class="ld-bar">
+    <img class="ld-runner" alt="" src="data:image/webp;base64,UklGRmALAABXRUJQVlA4WAoAAAAQAAAAXQAAUwAAQUxQSDcFAAABCQVtGzlKf//3+QPeECL6PwEQpyGu0GxgI2+ILSJJmxp1Qvs/tR4sxbgLQVJUgOqNMLAwFLRtw3j8cf8RiIgJINZR+A1ZV00kSdEu8Q8eMEDhX9qlNw4iJmACqGnbdkbS7vuNqqrL6urPtm3btm0uQUv4lmH8s217rMZ0uVPJ+wzrrc6bBUTEBKiwFCynEoHVBEhIpVUcFjQpHM7GcaQ2+WVZAgENi0klao/DfDfgKC73FCiAHg3acccpyOiymy85dMYmQHLnNJAtOv2AKhsLtWIk4YaQcDTOvfDkY45qA6QdrOQP2X/kN2tTcRhHGmMOY4GrcdqxBzTZrkHEDlx2ZC6jpncdxNheAFAAEDvOlesFRo29TmmByaN/js7u1mpOVQABAWJMASgQAKqyz77HTgM6acRJB6n6LuVcAICYLAmNmYP2aWhOEUwWBCvqXEISe818Y9eWhyTTPezAEpWIcPmEfmHPmeJMJUHUXiNfGIVIqtsol6vNFsBkEO3ArzaW4sSATrmUDQhJBpwgCCotJNoPAtfNTCWBVHvVlJv1kgW42ZzbcJePoncrRh49JN7LRrrfhiwTsm41V9m15iQPThgt/ipcHnfPcxZXlfUIVsa9hX83UACidHojX8+HsFKwuHLtGk0AUG6hnKPYAfZ/+3v9ehgRDzO7a9gCaXcircXShAsri7kItAUc9GWjCSh/9EaqCHvDXndFQaDYysSwVzD6589DLItSuOsSWM34l7+vPPDi6/cVq4C1/+iFSVH2uG8/0rL5v2Qp4mTA60/yYHs4G0kHE6UULinEtA2RHs1GnAj23AMpKNRRdyKgrAyVfVBhOBBOQtrfb6LYl5PBoDsJXT/ZHcB+AbrhJhgTxceeu6YBpkC5WhAz4IgTdtu1hDR0PJUBzfJugFSUYPeZA2FKqey7q5JUAKYbe3hiAHi7V5CWlWatAZrUpryUIPzdqgGMm60ymAoQp1akGRykaWzm+iniuMqAktnFZ3rQdwwAJ+cgRUWMwqGbIoowz84oSQ0qGvmVDJEeDkED9tYhRVzCVBb+D5kaSmLIWMLe6nWrIWnBuATjcH4R6akLEJPNnfmIqYE+aPLPug09SEqIMwtD4fC3DXNISwomuHrTICWo2z0xEsz/u2LIVEBn3YY5I0A2zXYhKSAIw4UOxISI6yUXtA/Q/UWaAYNCxlUpwNH6XgjCmPEgk8+kAMJOV0HMgHY28JR1wvlOH5yEil1PpwDmQg+Tle7mpYxjmbA7O/QnhOGfc240tAvxirgH6slw6Yfv1i1atnZhzqdg4vH0TNW1qbHHNwXJVzj+/FZgkVtvPUJSly5qKHvifH73KhgAyPF7ZZRY4kzVp5rCUsqH1Aq0I+6x5ABnTTMCLXC8fl8jgdJRA0HihUEx6yKZRS8SSLJEnJwvSCqdA2EqoIxDM91dWDNCYtURZwzEgBhfOF48DDu/zq0Dk0LsfeTPoUG4ZtbJZjMKgHK8vHCcqN/+9//1IQSJFRQ+WRHuLBZEb7y82Z2eLrgutePvc0lDxpDFDat+GyHZlLe/mt2JE8XR2i8HGJOtO55pjrG09MeHACVZ+PyL9VG4A08VqyEcgQAQgJDcU8/uTOKFz6BEI+Gdd/5bmB2J1lrj7BZEY1ylCy9myR1g+JFPjcTzr3dm8x4l6qO6O4yVPtiH3k7Y+QPKBpm5/azjhlqr4WtgbAKlH35JCwitaptgqdp9r2y54yz6FBgTu7xxNHb4X2gJBctJ2e/qRtDLFjetBGMrABJCQGQSY1NjGQEAVlA4IAIGAAAwIACdASpeAFQAPlkkjUUjoiEbisWYOAWEtgBhlgwi7+c5JrouN4/G5052O3i8znmq/4D9mewA/ZTrQv2g9gD9WvTV/2/uU/tl+43sy///NVfoA8B7fiMiW1GZ5/0vNJ+Tf6j2CP5B/Q/Ru6g/9UF+4AshyhiaLLK4u6EiHgQ2CDO+1qCDtYMDj67ero2E4iksUGV2PhYDDGWEXZhqAYhpZkV2PRIoWXQMh6gng2A7Whh8Fk0O/NQtJHKguH7bz0M8J75l8kM9mEAJBfRo6T3tgNSWlSFgXTMiqdh746K85aFVZmgHX7Wiy8prhsd7cHOLRbIbQh1kyySjtTKEDDmz3ErMqEpVc4rcAAD+3mvP/cQFT+dsWLn8oN6xWnRhVvqr84F3/M/uCxHfULHd0lk8c0tWTHKZf5JLDEiyngp+RvEjVAiFkpFns/uwOvEZNI2RvZq+rXmczwra6RfFWsqrsS/spVXUz7+wmMrvRP38an+ll5n/+3hj7x2Rm4vbeLpnJ/XNL+FtosmqcbgU+0pExD+B3fKEXs2Z/X/t7ha2MSvJUNUPcSRrB8+PKHfzAlDiOqwoNrzjO+fbUvPhMT//nNu6Ny1R0+vu1lqDUT3vMwB/NEw47VCEkSef++NXf9LXCTsI6axU1vbDPoE0u5blPi55+p38MCPU9GGx9A7po2A7C28iyeeEffe5hOxjKACA3I/KoDHgRJu4h6kil86k3dDzJ9TWUPZ2AmQ5pPvFXyZIMUaE7T9fSynmgD+Z/dfat58ECsa4Fiz741V+nltkF2vFFDwGSALVeQb4LAnrbPYXZuyJxGhEkMk/wvqB5sBLPs+WgXhbbgtn1vWbvwRYFU28dU4IF4KNTn/sVDrGJvbvTEYTeY3hMQKLVmEBgT8U9ekNpNa35/4ugD0v7yuySetog7uQTwnd9HDL479vylg+OFeBM8uCuB6fYpk9cM3rD/VHAIJkwwS5Tb4sB5q8TirZKDvQVF0y9ijEAfbYxk606OziAgAr/33MqJrKwDY5kTHH/1oW45QZD77EG0misIvZsL19Z8d+meeVDlzZKtt53/FpA+LByj288rDjUwR2Wb2TpzNN7DalCa46Zyb8KFwXFy/DqZy1OEX+WMRn72gUAra64b60+HKc1nDgfxmwujtId3OceZatxZqC3TC8ZPbTp/ZiU6GCsC/36NmOqVHCF8g1PTxGXy47Cqi54F8DIAX2FkHv2mc8rNlq3fLIRHIC1VaboWgIK91nquyevFckPNIT7g/MPbRmicn9p8RHvPWj2TXCJNBHSYAv8tJd2rBvM+RjGinbc8uiAOnIp8XVQ34B/06PGYOfCvmyPJlR9qvjclztJ+LXdX5wx0CHLK8jpzLTD/kui7ek1IHycM2Uxa2Y3C7CrFYpEDN7QaiW9B7nf9W+0ZdSiFSXvJInhYrzI+aodAX8huvM3ROkkxacuivZD84Xj7U19zk8YzmZb/a1bqYJ2/67D1vVJ++0QvKup5693T0fHYzzX46iN1GKzg95eRip0Jt2XaDbJTr7e59fYTehexceXuu6Q0eZW7nGjs0qRdZhC/zx+xElekjkU4bcFPwiPq+ZejQe5eu+VFs8M+KUP2T733rUqGypTF2urL6i7Y8GXBcq2yI5iYsFdXWSnoeMyYNErEOpQaI5GoCvXA0KRqbU7oUafmHY49ZwRu0K7AxXjWZasX89CplQ2v6evi8Bn/q0GbAjsIRGAv1iVmY3y/+JJjBBFhrmNq7jY2Y3h+48mEwc+bepZhDdgHXnPTthZpg9Lcri/Ka/QDdoiOhfNGTP92fJT/9VR5VULxYJ9l5O+XSCNxqFLHlw3/WzBO1IukDwBCMw9dcjTCd/vGr6zXYzSfNIXb7gqkjOyhV3/GANBFODEyG9Z8H2Vcz5uRbVqPqgvib4xH3/0qscR7kwd8Gy3P5d4NmXU9WxX2F6eB+qQO49nfnH9/1aZydd/5L7KjuPwHcIjGTRtUq5QiBSUg5scPMawLQyMf3V654P/qj8CeqwfH50Ggk4u2F1fr+qPrFoApzQAAAAAA==">
+    <span class="ld-text">加载中 <b id="ldNum">0</b>/<b id="ldAll">12</b></span>
+    <i id="ldFill" class="ld-fill"></i>
+  </div>
+</div>
 <noscript><div id="noscript">这个游戏需要开启 JavaScript 才能运行。<br>请在浏览器设置里允许 JavaScript 后刷新页面。</div></noscript>
 <canvas id="game" aria-label="弹射打 Boss 游戏区域"></canvas>
 <!-- 结算音效只在结束时播放：preload=metadata 只取几 KB 头部，避免开局白下 411KB -->

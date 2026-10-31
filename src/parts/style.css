@@ -1156,53 +1156,34 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   .cd-scroll>.orb{grid-row:auto;margin:0;width:75px;height:75px}.char-detail .cd-body{grid-column:2}.char-detail>.up-btn{width:100%}
 }
 
-/* ---------- 素材加载弹窗 ---------- */
+/* ---------- 素材加载条（小条框） ---------- */
 #loading{
-  position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(120% 100% at 50% 0,rgba(16,43,42,.94),rgba(6,16,16,.97));
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  opacity:1;pointer-events:auto;transition:opacity .3s ease;animation:ldIn .26s ease both;
+  position:fixed;left:50%;bottom:calc(var(--sab) + 14px);transform:translateX(-50%);
+  z-index:120;pointer-events:none;opacity:0;animation:ldIn .2s ease forwards;
 }
-#loading.done{opacity:0;pointer-events:none}
-.ld-card{
-  width:min(320px,82vw);padding:18px 18px 14px;border-radius:18px;
-  background:linear-gradient(160deg,rgba(28,58,54,.96),rgba(14,32,31,.98));
-  border:1px solid rgba(255,220,160,.22);
-  box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,240,200,.12);
-  text-align:center;color:#f6e7c6;
-}
-.ld-track{position:relative;height:74px;margin-bottom:6px;overflow:hidden}
-.ld-line{
-  position:absolute;left:8%;right:8%;bottom:12px;height:2px;border-radius:2px;
-  background:repeating-linear-gradient(90deg,rgba(255,225,170,.4) 0 8px,transparent 8px 16px);
+#loading.done{opacity:0;transition:opacity .3s ease;animation:none}
+.ld-bar{
+  position:relative;display:flex;align-items:center;gap:8px;
+  padding:6px 13px 8px;border-radius:12px;
+  background:rgba(9,24,23,.88);border:1px solid rgba(255,220,160,.2);
+  box-shadow:0 8px 22px rgba(0,0,0,.42);
+  color:#f4e6c8;font-size:12px;letter-spacing:.03em;white-space:nowrap;
+  overflow:hidden;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 .ld-runner{
-  position:absolute;bottom:10px;left:8%;
-  animation:ldRun 1.15s cubic-bezier(.42,0,.58,1) infinite alternate;
+  width:26px;height:26px;object-fit:contain;display:block;
+  animation:ldRun .62s ease-in-out infinite;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));
 }
-.ld-baby{
-  display:block;width:46px;height:46px;
-  filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
-  animation:ldBob .575s ease-in-out infinite alternate;
+.ld-text b{color:#ffe3a8;font-variant-numeric:tabular-nums}
+.ld-fill{
+  position:absolute;left:0;bottom:0;height:2px;width:0;border-radius:0 2px 2px 0;
+  background:linear-gradient(90deg,#f8dca0,#e9b96a);transition:width .25s ease;
 }
-@keyframes ldRun{from{left:6%}to{left:62%}}
-@keyframes ldBob{from{transform:translateY(0) scale(1,1)}to{transform:translateY(-6px) scale(1.04,.96)}}
-.ld-dust{
-  position:absolute;bottom:2px;width:6px;height:6px;border-radius:50%;
-  background:rgba(255,238,200,.55);opacity:0;
+@keyframes ldRun{
+  0%{transform:translateY(0) rotate(-3deg) scale(1,1)}
+  50%{transform:translateY(-3px) rotate(3deg) scale(1.04,.97)}
+  100%{transform:translateY(0) rotate(-3deg) scale(1,1)}
 }
-.ld-dust.d1{animation:ldDust .58s ease-out infinite}
-.ld-dust.d2{animation:ldDust .58s .22s ease-out infinite}
-@keyframes ldDust{0%{opacity:.7;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(-14px,-8px) scale(.4)}}
-.ld-title{font-size:14px;letter-spacing:.04em;font-weight:600}
-.ld-dots i{animation:ldDot 1.2s infinite;font-style:normal}
-.ld-dots i:nth-child(2){animation-delay:.2s}
-.ld-dots i:nth-child(3){animation-delay:.4s}
-@keyframes ldDot{0%,60%{opacity:.25}30%{opacity:1}}
-.ld-sub{margin-top:6px;font-size:11px;color:rgba(246,231,198,.72)}
-.ld-sub b{color:#ffe3a8;font-variant-numeric:tabular-nums}
-.ld-bar{margin-top:8px;height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
-.ld-bar i{display:block;height:100%;width:0;border-radius:99px;
-  background:linear-gradient(90deg,#f8dca0,#e9b96a);transition:width .25s ease}
-.ld-tip{margin-top:8px;font-size:10.5px;color:rgba(255,255,255,.42);letter-spacing:.06em}
 @keyframes ldIn{from{opacity:0}to{opacity:1}}
+@keyframes ldOut{from{opacity:1}to{opacity:0}}
