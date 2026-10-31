@@ -136,5 +136,28 @@ function stopBgm(){
     el.pause();
     try{ el.currentTime = 0; }catch(e){}
   }
+  resultAudioActive = null;
+}
+
+/* ---------- 切后台 / 离开页面时不要让结算音效继续响 ----------
+   结算是循环播放的，如果不管，切到别的 App 之后 laughter 会一直响，
+   用户会以为游戏卡住了。所以隐藏时统一暂停，回来时如果还停在结算面板再续上。 */
+var resultAudioActive = null;
+
+function audioSuspend(){
+  var which = ['win', 'lose'];
+  for(var i=0;i<which.length;i++){
+    var el = audioElFor(which[i]);
+    if(!el) continue;
+    if(!el.paused) resultAudioActive = which[i];
+    el.pause();
+  }
+}
+
+function audioResume(){
+  var w = resultAudioActive;
+  resultAudioActive = null;
+  if(!w) return;
+  if(state.mode === (w === 'lose' ? 'lose' : 'victory')) playSfxNow(w);
 }
 

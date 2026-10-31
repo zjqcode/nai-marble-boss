@@ -504,6 +504,18 @@ body.playing .stick{opacity:1;pointer-events:auto}
   position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);
   font-size:9px;letter-spacing:.18em;color:rgba(255,232,186,.42);white-space:nowrap;
 }
+
+/* 右摇杆的蓄力环：--p 由 07b-sticks 每帧写入（0~1） */
+.stick .power-arc{
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from -90deg,
+    rgba(255,198,112,.92) calc(var(--p,0) * 360deg),
+    rgba(255,255,255,0) 0);
+  -webkit-mask:radial-gradient(circle, transparent 0 76%, #000 78%);
+  mask:radial-gradient(circle, transparent 0 76%, #000 78%);
+  opacity:0;transition:opacity .15s;
+}
+#stickR.active .power-arc{opacity:1}
 .stick.active{border-color:rgba(255,226,163,.62);box-shadow:inset 0 0 26px rgba(0,0,0,.35),0 0 22px rgba(247,190,90,.22)}
 .stick.hot{border-color:rgba(255,170,120,.85);box-shadow:inset 0 0 26px rgba(0,0,0,.3),0 0 26px rgba(255,140,80,.4)}
 /* 左摇杆只允许横向：给一根横向轨道提示，暗示上下无效 */
@@ -682,22 +694,56 @@ body.playing #bPlate.arm{
   .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.1}
 
   /* ---- 摇杆 ---- */
-  .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}
-  .stick .knob{width:42px;height:42px;margin:-21px 0 0 -21px}
+  .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
+  .stick .knob{width:48px;height:48px;margin:-24px 0 0 -24px}
+  /* 标签收进摇杆圈内：放外面会被左下角的「反弹板」按钮压住 */
+  .stick-tx{bottom:6px;font-size:8px;letter-spacing:.12em}
   #stickL{left:14px}
   #stickR{right:14px}
 
   #itemBar{bottom:calc(var(--sab) + 180px);left:14px;gap:5px}
 
-  /* ---- 反弹板按钮挪到最底部正中（原来在右侧，和摇杆抢位置） ----
-     用 margin-left 居中而不是 transform，避免和 :active/.arm 的 scale 相互覆盖。 */
+  /* ---- 反弹板按钮贴左下角底部 ----
+     不和摇杆抢位置，也不像原来那样悬在正中挡视线。 */
   #bPlate{
-    left:50%;right:auto;margin-left:-23px;
+    left:14px;right:auto;margin-left:0;
     bottom:calc(var(--sab) + 4px);
     width:46px;height:46px;border-radius:15px;
   }
   #bPlate .ico{font-size:13px}
   #bPlate .tx{font-size:7.5px}
+}
+
+/* =========================================================
+   结算面板在横屏下的排版
+   =========================================================
+   竖屏时面板是一条竖列；横屏只有 441px 高，"解锁新角色"那块一撑，
+   「进入下一章」就被挤到滚动区外面——玩家会以为根本没有这个按钮。
+   横屏改成两栏：左边解锁展示，右边数据 + 按钮，一屏放得下，不用滚。
+   ========================================================= */
+@media (orientation:landscape){
+  .result-sheet{
+    width:min(820px,100%);
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+    gap:8px 20px;align-items:center;
+    padding:12px 18px 8px;text-align:left;
+  }
+  .result-sheet .result-kicker,
+  .result-sheet .win-title,
+  .result-sheet .lose-title,
+  .result-sheet .lose-sub{grid-column:1 / -1;text-align:center}
+  .result-sheet .win-title{font-size:19px}
+  .result-sheet .win-stats{grid-column:2;margin:0;padding:8px 10px}
+  .result-sheet #bNext,
+  .result-sheet #bRetry{grid-column:2;margin-top:4px}
+  .result-sheet #bWinLevels,
+  .result-sheet #bLoseLevels{grid-column:2;margin-top:6px}
+  #unlockBox{grid-column:1;margin:0;padding:10px 12px 12px}
+  /* 解锁展示整体缩小，别把面板撑爆 */
+  #unlockBox .orb.xl{width:78px;height:78px;margin:0 auto 4px}
+  #unlockBox .unlock-name{font-size:22px;margin:2px 0 2px}
+  #unlockBox .unlock-skill{margin:0;font-size:11px}
+  #unlockBox .unlock-kicker{margin:6px 0 0;font-size:9px}
 }
 
 /* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */

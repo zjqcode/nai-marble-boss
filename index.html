@@ -513,6 +513,18 @@ body.playing .stick{opacity:1;pointer-events:auto}
   position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);
   font-size:9px;letter-spacing:.18em;color:rgba(255,232,186,.42);white-space:nowrap;
 }
+
+/* 右摇杆的蓄力环：--p 由 07b-sticks 每帧写入（0~1） */
+.stick .power-arc{
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from -90deg,
+    rgba(255,198,112,.92) calc(var(--p,0) * 360deg),
+    rgba(255,255,255,0) 0);
+  -webkit-mask:radial-gradient(circle, transparent 0 76%, #000 78%);
+  mask:radial-gradient(circle, transparent 0 76%, #000 78%);
+  opacity:0;transition:opacity .15s;
+}
+#stickR.active .power-arc{opacity:1}
 .stick.active{border-color:rgba(255,226,163,.62);box-shadow:inset 0 0 26px rgba(0,0,0,.35),0 0 22px rgba(247,190,90,.22)}
 .stick.hot{border-color:rgba(255,170,120,.85);box-shadow:inset 0 0 26px rgba(0,0,0,.3),0 0 26px rgba(255,140,80,.4)}
 /* 左摇杆只允许横向：给一根横向轨道提示，暗示上下无效 */
@@ -691,22 +703,56 @@ body.playing #bPlate.arm{
   .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.1}
 
   /* ---- 摇杆 ---- */
-  .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}
-  .stick .knob{width:42px;height:42px;margin:-21px 0 0 -21px}
+  .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
+  .stick .knob{width:48px;height:48px;margin:-24px 0 0 -24px}
+  /* 标签收进摇杆圈内：放外面会被左下角的「反弹板」按钮压住 */
+  .stick-tx{bottom:6px;font-size:8px;letter-spacing:.12em}
   #stickL{left:14px}
   #stickR{right:14px}
 
   #itemBar{bottom:calc(var(--sab) + 180px);left:14px;gap:5px}
 
-  /* ---- 反弹板按钮挪到最底部正中（原来在右侧，和摇杆抢位置） ----
-     用 margin-left 居中而不是 transform，避免和 :active/.arm 的 scale 相互覆盖。 */
+  /* ---- 反弹板按钮贴左下角底部 ----
+     不和摇杆抢位置，也不像原来那样悬在正中挡视线。 */
   #bPlate{
-    left:50%;right:auto;margin-left:-23px;
+    left:14px;right:auto;margin-left:0;
     bottom:calc(var(--sab) + 4px);
     width:46px;height:46px;border-radius:15px;
   }
   #bPlate .ico{font-size:13px}
   #bPlate .tx{font-size:7.5px}
+}
+
+/* =========================================================
+   结算面板在横屏下的排版
+   =========================================================
+   竖屏时面板是一条竖列；横屏只有 441px 高，"解锁新角色"那块一撑，
+   「进入下一章」就被挤到滚动区外面——玩家会以为根本没有这个按钮。
+   横屏改成两栏：左边解锁展示，右边数据 + 按钮，一屏放得下，不用滚。
+   ========================================================= */
+@media (orientation:landscape){
+  .result-sheet{
+    width:min(820px,100%);
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+    gap:8px 20px;align-items:center;
+    padding:12px 18px 8px;text-align:left;
+  }
+  .result-sheet .result-kicker,
+  .result-sheet .win-title,
+  .result-sheet .lose-title,
+  .result-sheet .lose-sub{grid-column:1 / -1;text-align:center}
+  .result-sheet .win-title{font-size:19px}
+  .result-sheet .win-stats{grid-column:2;margin:0;padding:8px 10px}
+  .result-sheet #bNext,
+  .result-sheet #bRetry{grid-column:2;margin-top:4px}
+  .result-sheet #bWinLevels,
+  .result-sheet #bLoseLevels{grid-column:2;margin-top:6px}
+  #unlockBox{grid-column:1;margin:0;padding:10px 12px 12px}
+  /* 解锁展示整体缩小，别把面板撑爆 */
+  #unlockBox .orb.xl{width:78px;height:78px;margin:0 auto 4px}
+  #unlockBox .unlock-name{font-size:22px;margin:2px 0 2px}
+  #unlockBox .unlock-skill{margin:0;font-size:11px}
+  #unlockBox .unlock-kicker{margin:6px 0 0;font-size:9px}
 }
 
 /* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */
@@ -765,6 +811,7 @@ body.playing #bPlate.arm{
 </div>
 <div id="stickR" class="stick" aria-label="右摇杆：下拉蓄力，松手发射">
   <div class="stick-ring"></div>
+  <div class="power-arc"></div>
   <div class="knob"></div>
   <span class="stick-tx">下拉发射</span>
 </div>
@@ -2331,7 +2378,7 @@ function fireBall(){
    4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
 var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
-var STICK_TRAVEL = 0.32;  /* 推到底需要的位移 = 摇杆直径 × 该比例 */
+var STICK_TRAVEL = 0.26;  /* 推到底需要的位移 = 摇杆直径 × 该比例（越小越省力） */
 
 function bindStick(el, opts){
   if(!el) return;
@@ -2339,6 +2386,8 @@ function bindStick(el, opts){
   var knob = el.querySelector('.knob');
 
   function paint(dx, dy, mag){
+    /* 右摇杆的蓄力用一圈环形进度表示，手指不用离开也能看见蓄了多少 */
+    if(!opts.horizontal) el.style.setProperty('--p', Math.max(0, Math.min(1, mag)).toFixed(3));
     if(knob){
       /* 左摇杆纵向钉死，视觉上也只走横向，避免误导 */
       var ky = opts.horizontal ? 0 : dy;
@@ -3807,10 +3856,11 @@ function startPlatePlacement(){
   state.aim.active = false;
   state.aim.power = 0;
   var p = clampPlatePos(view.cx, arenaY(0.66));
-  state.placingPlate = { x:p.x, y:p.y, ang:PLATE_TILT, dragging:false };
+  /* dragId / rotId：第一根手指定位，第二根手指调角度（360° 任意） */
+  state.placingPlate = { x:p.x, y:p.y, ang:PLATE_TILT, dragging:false, dragId:null, rotId:null };
   document.body.classList.add('placing');
   refreshPlateBtn();
-  toast('拖动到场地空处，松手放下（可存在 8 秒）');
+  toast('拖动定位 · 第二根手指旋转角度 · 松手放下');
   Sound.ui();
   try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){}
 }
@@ -3821,6 +3871,26 @@ function movePlateTo(clientX, clientY){
   var p = clampPlatePos(clientX, clientY);
   pl.x = p.x;
   pl.y = p.y;
+}
+
+/* 第二根手指相对板心的方向 => 板的朝向。
+   长轴与「板心->手指」垂直，也就是手指指向哪边，球就被往那边弹。吸附到 5° 便于微调。 */
+var PLATE_ANG_STEP = Math.PI / 36;
+function rotatePlateTo(clientX, clientY){
+  var pl = state.placingPlate;
+  if(!pl) return;
+  var dx = clientX - pl.x, dy = clientY - pl.y;
+  if(Math.hypot(dx, dy) < 14) return;          /* 离板心太近不判角度，防抖 */
+  var a = Math.atan2(dy, dx) + Math.PI / 2;
+  pl.ang = Math.round(a / PLATE_ANG_STEP) * PLATE_ANG_STEP;
+}
+
+/* 键盘 Q / E 微调角度（桌面端） */
+function nudgePlateAngle(dir){
+  var pl = state.placingPlate;
+  if(!pl) return false;
+  pl.ang += dir * (Math.PI / 12);
+  return true;
 }
 
 function cancelPlatePlacement(silent){
@@ -4082,6 +4152,29 @@ function stopBgm(){
     el.pause();
     try{ el.currentTime = 0; }catch(e){}
   }
+  resultAudioActive = null;
+}
+
+/* ---------- 切后台 / 离开页面时不要让结算音效继续响 ----------
+   结算是循环播放的，如果不管，切到别的 App 之后 laughter 会一直响，
+   用户会以为游戏卡住了。所以隐藏时统一暂停，回来时如果还停在结算面板再续上。 */
+var resultAudioActive = null;
+
+function audioSuspend(){
+  var which = ['win', 'lose'];
+  for(var i=0;i<which.length;i++){
+    var el = audioElFor(which[i]);
+    if(!el) continue;
+    if(!el.paused) resultAudioActive = which[i];
+    el.pause();
+  }
+}
+
+function audioResume(){
+  var w = resultAudioActive;
+  resultAudioActive = null;
+  if(!w) return;
+  if(state.mode === (w === 'lose' ? 'lose' : 'victory')) playSfxNow(w);
 }
 
 /* =========================================================
@@ -4964,6 +5057,33 @@ function drawPlateGhost(){
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
+
+  /* 角度环 + 度数：第二根手指旋转时能直接看到变化 */
+  var ringR = Math.max(30, len*0.72);
+  var deg = Math.round(g.ang * 180 / Math.PI);
+  deg = ((deg % 360) + 360) % 360;
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.strokeStyle = 'rgba(170,255,228,.35)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(g.x, g.y, ringR, 0, TAU);
+  ctx.stroke();
+  /* 法线指示：球会被往这个方向弹回去 */
+  var nx = -Math.sin(g.ang), ny = Math.cos(g.ang);
+  ctx.strokeStyle = 'rgba(255,240,180,.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(g.x + nx*ringR*0.35, g.y + ny*ringR*0.35);
+  ctx.lineTo(g.x + nx*ringR*0.95, g.y + ny*ringR*0.95);
+  ctx.stroke();
+  ctx.globalAlpha = 0.95;
+  ctx.font = '700 ' + Math.round(12*view.s + 2) + 'px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(210,255,240,.92)';
+  ctx.fillText(deg + '°', g.x, g.y - ringR - 11);
+  ctx.restore();
 }
 
 function drawItems(){
@@ -5803,11 +5923,18 @@ function bindEvents(){
 
   c.addEventListener('pointerdown', function(e){
     Sound.init(); Sound.resume();
-    /* 反弹板放置优先：此时拖动是在摆放板子，不是拉弹弓 */
+    /* 反弹板放置优先：一根手指定位，第二根手指旋转 */
     if(state.placingPlate && state.mode === 'play' && !state.paused){
+      var pl = state.placingPlate;
       try{ c.setPointerCapture(e.pointerId); }catch(err){}
-      state.placingPlate.dragging = true;
-      movePlateTo(e.clientX, e.clientY);
+      if(pl.dragId == null){
+        pl.dragId = e.pointerId;
+        pl.dragging = true;
+        movePlateTo(e.clientX, e.clientY);
+      } else if(pl.rotId == null){
+        pl.rotId = e.pointerId;
+        rotatePlateTo(e.clientX, e.clientY);
+      }
       e.preventDefault();
       return;
     }
@@ -5832,7 +5959,9 @@ function bindEvents(){
 
   c.addEventListener('pointermove', function(e){
     if(state.placingPlate){
-      if(state.placingPlate.dragging) movePlateTo(e.clientX, e.clientY);
+      var pl = state.placingPlate;
+      if(e.pointerId === pl.rotId) rotatePlateTo(e.clientX, e.clientY);
+      else if(pl.dragging && e.pointerId === pl.dragId) movePlateTo(e.clientX, e.clientY);
       e.preventDefault();
       return;
     }
@@ -5847,8 +5976,16 @@ function bindEvents(){
   function endAim(e){
     /* 松手放下反弹板 */
     if(state.placingPlate){
-      if(state.placingPlate.dragging){
-        state.placingPlate.dragging = false;
+      var pl2 = state.placingPlate;
+      /* 抬起的若是旋转指，只结束旋转，不确认放置 */
+      if(e && e.pointerId === pl2.rotId){
+        pl2.rotId = null;
+        e.preventDefault();
+        return;
+      }
+      if(pl2.dragging && (!e || e.pointerId === pl2.dragId)){
+        pl2.dragging = false;
+        pl2.dragId = null;
         confirmPlatePlacement();
       }
       if(e) e.preventDefault();
@@ -6071,6 +6208,10 @@ function bindEvents(){
       openScreen('gallery'); buildGallery();
     } else if(k === 'l'){
       openLevels();
+    } else if((k === 'q' || k === 'e') && state.placingPlate){
+      /* 桌面端微调反弹板角度 */
+      e.preventDefault();
+      nudgePlateAngle(k === 'q' ? -1 : 1);
     } else if(k === 'p'){
       /* P 键暂停/继续 */
       e.preventDefault();
@@ -6094,8 +6235,18 @@ function bindEvents(){
     setTimeout(layout, 250);
   });
   document.addEventListener('visibilitychange', function(){
-    if(document.hidden) saveMeta();
+    if(document.hidden){
+      saveMeta();
+      /* 切后台/锁屏：立刻掐掉循环的结算音效，否则会在别的 App 上一直响 */
+      audioSuspend();
+      state.moveDir = 0;
+      state.stickX = 0;
+    } else {
+      audioResume();
+    }
   });
+  /* 关闭页面、从微信返回时同样要停 */
+  window.addEventListener('pagehide', function(){ audioSuspend(); saveMeta(); });
   window.addEventListener('beforeunload', saveMeta);
 }
 

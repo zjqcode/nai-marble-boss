@@ -14,7 +14,7 @@
    4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
 var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
-var STICK_TRAVEL = 0.32;  /* 推到底需要的位移 = 摇杆直径 × 该比例 */
+var STICK_TRAVEL = 0.26;  /* 推到底需要的位移 = 摇杆直径 × 该比例（越小越省力） */
 
 function bindStick(el, opts){
   if(!el) return;
@@ -22,6 +22,8 @@ function bindStick(el, opts){
   var knob = el.querySelector('.knob');
 
   function paint(dx, dy, mag){
+    /* 右摇杆的蓄力用一圈环形进度表示，手指不用离开也能看见蓄了多少 */
+    if(!opts.horizontal) el.style.setProperty('--p', Math.max(0, Math.min(1, mag)).toFixed(3));
     if(knob){
       /* 左摇杆纵向钉死，视觉上也只走横向，避免误导 */
       var ky = opts.horizontal ? 0 : dy;

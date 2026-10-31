@@ -348,10 +348,11 @@ function startPlatePlacement(){
   state.aim.active = false;
   state.aim.power = 0;
   var p = clampPlatePos(view.cx, arenaY(0.66));
-  state.placingPlate = { x:p.x, y:p.y, ang:PLATE_TILT, dragging:false };
+  /* dragId / rotId：第一根手指定位，第二根手指调角度（360° 任意） */
+  state.placingPlate = { x:p.x, y:p.y, ang:PLATE_TILT, dragging:false, dragId:null, rotId:null };
   document.body.classList.add('placing');
   refreshPlateBtn();
-  toast('拖动到场地空处，松手放下（可存在 8 秒）');
+  toast('拖动定位 · 第二根手指旋转角度 · 松手放下');
   Sound.ui();
   try{ if(navigator.vibrate) navigator.vibrate(6); }catch(e){}
 }
@@ -362,6 +363,26 @@ function movePlateTo(clientX, clientY){
   var p = clampPlatePos(clientX, clientY);
   pl.x = p.x;
   pl.y = p.y;
+}
+
+/* 第二根手指相对板心的方向 => 板的朝向。
+   长轴与「板心->手指」垂直，也就是手指指向哪边，球就被往那边弹。吸附到 5° 便于微调。 */
+var PLATE_ANG_STEP = Math.PI / 36;
+function rotatePlateTo(clientX, clientY){
+  var pl = state.placingPlate;
+  if(!pl) return;
+  var dx = clientX - pl.x, dy = clientY - pl.y;
+  if(Math.hypot(dx, dy) < 14) return;          /* 离板心太近不判角度，防抖 */
+  var a = Math.atan2(dy, dx) + Math.PI / 2;
+  pl.ang = Math.round(a / PLATE_ANG_STEP) * PLATE_ANG_STEP;
+}
+
+/* 键盘 Q / E 微调角度（桌面端） */
+function nudgePlateAngle(dir){
+  var pl = state.placingPlate;
+  if(!pl) return false;
+  pl.ang += dir * (Math.PI / 12);
+  return true;
 }
 
 function cancelPlatePlacement(silent){

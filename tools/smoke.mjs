@@ -611,9 +611,11 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           /* dock 不能在底部（原来压在弹弓附近，容易误触） */
           dock, plate,
           dockInBottomHalf: dock.y > innerHeight / 2,
-          arenaTop: Math.round(v.arenaTop),\n          dockCoversPlayArea: dock.bottom > v.arenaTop && dock.x < v.right,
-          /* 反弹板要贴到最底部 */
+          arenaTop: Math.round(v.arenaTop),
+          dockCoversPlayArea: dock.bottom > v.arenaTop && dock.x < v.right,
+          /* 反弹板要贴到最底部、且靠左 */
           plateBottomGap: innerHeight - plate.bottom,
+          plateLeftGap: plate.x,
           plateOverlapsDock: ov(plate, dock),
         };
       })()`);
@@ -630,12 +632,13 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     /* 2) 六个功能键必须离开底部 */
     assert(!r.dockInBottomHalf, `dock 不应留在底部区域，实际 y=${r.dock.y}`);
     assert(!r.dockCoversPlayArea, `dock 不应压到可玩区（顶线 ${r.arenaTop}px）之下，实际 ${JSON.stringify(r.dock)}`);
-    /* 3) 反弹板贴底且不与 dock 打架 */
+    /* 3) 反弹板贴底且在左下角，不与 dock 打架 */
     assert(r.plateBottomGap <= 12, `反弹板应贴到最底部，距底 ${r.plateBottomGap}px`);
+    assert(r.plateLeftGap <= 20, `反弹板应在左下角，实际左边距 ${r.plateLeftGap}px`);
     assert(!r.plateOverlapsDock, '反弹板与 dock 不应重叠');
     assertNoErrors('横屏引导');
     return `HUD ${r.hudH}px(无黑框+阴影) / 场地 ${r.viewW}×${r.arenaH} / ` +
-      `dock 移到 y=${r.dock.y} / 反弹板距底 ${r.plateBottomGap}px`;
+      `dock y=${r.dock.y} / 反弹板左下角(左${r.plateLeftGap} 底${r.plateBottomGap})`;
   } finally {
     await session.send('Emulation.setDeviceMetricsOverride', orig);
     await sleep(300);
@@ -705,6 +708,119 @@ await check('暂停：按钮/P/Esc 都能切换，计时与 Boss 冻结，继续
   assert(r.pausedByEsc, 'Esc 在游戏中应能暂停');
   assert(r.escTogglesBack, 'Esc 再按应恢复');
   return `7 键 / 暂停冻结 ✓ / 继续恢复 ✓ / P 与 Esc 均可切换`;
+});
+
+// ---------- 8e. 反弹板 360° 旋转 ----------
+await check('反弹板：第二根手指可 360° 旋转，抬旋转指不误放，Q/E 微调', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state;
+      N.tick(170);
+      N.META.items.plate = 3; N.updateItemBar(); N.refreshPlateBtn();
+      N.startPlatePlacement();
+      const out = { hasPlacement: !!st.placingPlate, before: +st.placingPlate.ang.toFixed(2) };
+      const cv = document.getElementById('game');
+      const cx = st.placingPlate.x, cy = st.placingPlate.y;
+      const ev = (type, x, y, id) => cv.dispatchEvent(new PointerEvent(type, {
+        clientX: x, clientY: y, pointerId: id, bubbles: true, cancelable: true }));
+
+      ev('pointerdown', cx, cy, 41);                    /* 第一指：定位 */
+      ev('pointerdown', cx + 90, cy, 42);               /* 第二指：正右 */
+      out.angRight = +st.placingPlate.ang.toFixed(2);
+      ev('pointermove', cx, cy + 90, 42);               /* 第二指：正下 */
+      out.angDown = +st.placingPlate.ang.toFixed(2);
+      ev('pointermove', cx - 90, cy, 42);               /* 第二指：正左 */
+      out.angLeft = +st.placingPlate.ang.toFixed(2);
+      ev('pointerup', cx, cy, 42);                      /* 抬旋转指 */
+      out.stillPlacing = !!st.placingPlate;
+      const a0 = st.placingPlate.ang;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+      out.qeDelta = +(st.placingPlate.ang - a0).toFixed(3);
+      N.cancelPlatePlacement(true);
+      return out;
+    })()`);
+  const deg = (rad) => Math.round((((rad * 180 / Math.PI) % 360) + 360) % 360);
+  assert(r.hasPlacement, '应进入放置模式');
+  assert(deg(r.angRight) === 90 || deg(r.angRight) === 270, `手指在右侧应得到 ~90°，实际 ${deg(r.angRight)}°`);
+  assert(deg(r.angDown) === 180 || deg(r.angDown) === 0, `手指在下方应得到 ~180°，实际 ${deg(r.angDown)}°`);
+  assert(deg(r.angLeft) === 270 || deg(r.angLeft) === 90, `手指在左侧应得到 ~270°，实际 ${deg(r.angLeft)}°`);
+  assert(r.stillPlacing, '抬起旋转指不应确认放置');
+  assert(Math.abs(Math.abs(r.qeDelta) - Math.PI / 12) < 0.01, `Q/E 应旋转 15°，实际 ${r.qeDelta} rad`);
+  return `右${deg(r.angRight)}° / 下${deg(r.angDown)}° / 左${deg(r.angLeft)}° / 抬指不误放 / Q/E 15°`;
+});
+
+// ---------- 8f. 胜利面板横屏一屏放得下 ----------
+await check('胜利面板：横屏两栏，进入下一章与选择章节都在可视区，无需滚动', async () => {
+  await session.send('Emulation.setDeviceMetricsOverride', {
+    width: 844, height: 390, deviceScaleFactor: 2, mobile: true,
+  });
+  await sleep(400);
+  try {
+    await session.goto(`${fileUrl}?debug&level=1`);
+    await waitImages();
+    await session.evaluate(`(() => { const N = window.__NAI__; N.tick(170); N.win(); })()`);
+    let shown = false;
+    for (let i = 0; i < 40; i++) {
+      shown = await session.evaluate(`document.getElementById('win').classList.contains('show')`);
+      if (shown) break;
+      await session.evaluate(`window.__NAI__.tick(6)`);
+      await sleep(120);
+    }
+    assert(shown, '胜利面板应能弹出');
+    const r = await session.evaluate(`
+      (() => {
+        /* 强制显示解锁块：这才是玩家截图里的最坏情况（解锁信息把按钮挤下去）。
+           正常存档下这一块可能已解锁过而隐藏，所以不能只在自然状态下测。 */
+        const ub = document.getElementById('unlockBox');
+        ub.style.display = 'flex';
+        document.getElementById('unlockName').textContent = '【奶兔】';
+        const sheet = document.querySelector('#win .sheet');
+        const box = (id) => { const b = document.getElementById(id).getBoundingClientRect();
+                              return { top: Math.round(b.top), bottom: Math.round(b.bottom) }; };
+        return {
+          vh: innerHeight,
+          next: box('bNext'), levels: box('bWinLevels'),
+          scrollable: sheet.scrollHeight > sheet.clientHeight + 2,
+          unlockVisible: getComputedStyle(ub).display !== 'none',
+          cols: getComputedStyle(sheet).gridTemplateColumns,
+        };
+      })()`);
+    assert(r.unlockVisible, '解锁展示块应可见（已强制显示）');
+    assert(r.next.top >= 0 && r.next.bottom <= r.vh,
+      `「进入下一章」应在可视区内，实际 ${JSON.stringify(r.next)} / 视口高 ${r.vh}`);
+    assert(r.levels.bottom <= r.vh, `「选择章节」应在可视区内，实际 ${JSON.stringify(r.levels)}`);
+    assert(!r.scrollable, '胜利面板不应需要滚动才能看到按钮');
+    return `两栏 ${r.cols} / 下一章 ${r.next.top}~${r.next.bottom}px / 无需滚动`;
+  } finally {
+    await session.send('Emulation.setDeviceMetricsOverride', {
+      width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
+    });
+    await sleep(300);
+  }
+});
+
+// ---------- 8g. 切后台停止循环音效 ----------
+await check('切后台立即停掉循环的结算音效（不会在别的 App 上继续响）', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  await session.evaluate(`(() => { const N = window.__NAI__; N.tick(170); N.win(); })()`);
+  await sleep(800);
+  const r = await session.evaluate(`
+    (async () => {
+      const el = document.getElementById('bgm');
+      const playingBefore = !el.paused;
+      /* 模拟切到别的 App：hidden 置真并派发 visibilitychange */
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise(r => setTimeout(r, 150));
+      return { playingBefore, pausedAfter: el.paused };
+    })()`);
+  assert(r.playingBefore, '胜利音效应正在播放（否则测不到暂停）');
+  assert(r.pausedAfter, '切后台后循环音效应立即暂停');
+  return '播放中 → 切后台后已暂停';
 });
 
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------

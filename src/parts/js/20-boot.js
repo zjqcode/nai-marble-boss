@@ -11,11 +11,18 @@ function bindEvents(){
 
   c.addEventListener('pointerdown', function(e){
     Sound.init(); Sound.resume();
-    /* 反弹板放置优先：此时拖动是在摆放板子，不是拉弹弓 */
+    /* 反弹板放置优先：一根手指定位，第二根手指旋转 */
     if(state.placingPlate && state.mode === 'play' && !state.paused){
+      var pl = state.placingPlate;
       try{ c.setPointerCapture(e.pointerId); }catch(err){}
-      state.placingPlate.dragging = true;
-      movePlateTo(e.clientX, e.clientY);
+      if(pl.dragId == null){
+        pl.dragId = e.pointerId;
+        pl.dragging = true;
+        movePlateTo(e.clientX, e.clientY);
+      } else if(pl.rotId == null){
+        pl.rotId = e.pointerId;
+        rotatePlateTo(e.clientX, e.clientY);
+      }
       e.preventDefault();
       return;
     }
@@ -40,7 +47,9 @@ function bindEvents(){
 
   c.addEventListener('pointermove', function(e){
     if(state.placingPlate){
-      if(state.placingPlate.dragging) movePlateTo(e.clientX, e.clientY);
+      var pl = state.placingPlate;
+      if(e.pointerId === pl.rotId) rotatePlateTo(e.clientX, e.clientY);
+      else if(pl.dragging && e.pointerId === pl.dragId) movePlateTo(e.clientX, e.clientY);
       e.preventDefault();
       return;
     }
@@ -55,8 +64,16 @@ function bindEvents(){
   function endAim(e){
     /* 松手放下反弹板 */
     if(state.placingPlate){
-      if(state.placingPlate.dragging){
-        state.placingPlate.dragging = false;
+      var pl2 = state.placingPlate;
+      /* 抬起的若是旋转指，只结束旋转，不确认放置 */
+      if(e && e.pointerId === pl2.rotId){
+        pl2.rotId = null;
+        e.preventDefault();
+        return;
+      }
+      if(pl2.dragging && (!e || e.pointerId === pl2.dragId)){
+        pl2.dragging = false;
+        pl2.dragId = null;
         confirmPlatePlacement();
       }
       if(e) e.preventDefault();
@@ -279,6 +296,10 @@ function bindEvents(){
       openScreen('gallery'); buildGallery();
     } else if(k === 'l'){
       openLevels();
+    } else if((k === 'q' || k === 'e') && state.placingPlate){
+      /* 桌面端微调反弹板角度 */
+      e.preventDefault();
+      nudgePlateAngle(k === 'q' ? -1 : 1);
     } else if(k === 'p'){
       /* P 键暂停/继续 */
       e.preventDefault();
@@ -302,8 +323,18 @@ function bindEvents(){
     setTimeout(layout, 250);
   });
   document.addEventListener('visibilitychange', function(){
-    if(document.hidden) saveMeta();
+    if(document.hidden){
+      saveMeta();
+      /* 切后台/锁屏：立刻掐掉循环的结算音效，否则会在别的 App 上一直响 */
+      audioSuspend();
+      state.moveDir = 0;
+      state.stickX = 0;
+    } else {
+      audioResume();
+    }
   });
+  /* 关闭页面、从微信返回时同样要停 */
+  window.addEventListener('pagehide', function(){ audioSuspend(); saveMeta(); });
   window.addEventListener('beforeunload', saveMeta);
 }
 

@@ -717,6 +717,33 @@ function drawPlateGhost(){
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
+
+  /* 角度环 + 度数：第二根手指旋转时能直接看到变化 */
+  var ringR = Math.max(30, len*0.72);
+  var deg = Math.round(g.ang * 180 / Math.PI);
+  deg = ((deg % 360) + 360) % 360;
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.strokeStyle = 'rgba(170,255,228,.35)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(g.x, g.y, ringR, 0, TAU);
+  ctx.stroke();
+  /* 法线指示：球会被往这个方向弹回去 */
+  var nx = -Math.sin(g.ang), ny = Math.cos(g.ang);
+  ctx.strokeStyle = 'rgba(255,240,180,.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(g.x + nx*ringR*0.35, g.y + ny*ringR*0.35);
+  ctx.lineTo(g.x + nx*ringR*0.95, g.y + ny*ringR*0.95);
+  ctx.stroke();
+  ctx.globalAlpha = 0.95;
+  ctx.font = '700 ' + Math.round(12*view.s + 2) + 'px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(210,255,240,.92)';
+  ctx.fillText(deg + '°', g.x, g.y - ringR - 11);
+  ctx.restore();
 }
 
 function drawItems(){
