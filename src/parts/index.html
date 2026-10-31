@@ -7,13 +7,17 @@
 <meta name="description" content="奶系弹珠 · 弹射讨伐 —— 弹弓 × 合成 × 打 Boss，单文件离线可玩的弹珠游戏。">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PGNpcmNsZSBjeD0nMzInIGN5PSczMicgcj0nMzAnIGZpbGw9JyNiZDdkMjgnLz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPScyNicgZmlsbD0nI2Y5ZGQ5YicvPjxlbGxpcHNlIGN4PScyMi41JyBjeT0nMjAuNScgcng9JzEwJyByeT0nNi41JyBmaWxsPScjZmZmYmU5JyBvcGFjaXR5PScwLjkyJy8+PC9zdmc+">
 <title>奶系弹珠 · 弹射讨伐</title>
+<!-- 素材走 CDN：提前建连，省掉一次 DNS+TLS 往返 -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>/*__STYLE__*/</style>
 </head>
 <body>
 <noscript><div id="noscript">这个游戏需要开启 JavaScript 才能运行。<br>请在浏览器设置里允许 JavaScript 后刷新页面。</div></noscript>
 <canvas id="game" aria-label="弹射打 Boss 游戏区域"></canvas>
-<audio id="bgm" preload="auto"></audio>
-<audio id="loseSnd" preload="auto"></audio>
+<!-- 结算音效只在结束时播放，preload=auto 会在开局白下 411KB -->
+<audio id="bgm" preload="none"></audio>
+<audio id="loseSnd" preload="none"></audio>
 <div id="warnEdge"></div>
 <div id="startFlash"></div>
 <div id="boot"></div>
