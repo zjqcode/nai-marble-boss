@@ -114,5 +114,55 @@ function buildIntroOrbs(){
     html += '<div class="orb" style="animation-delay:' + (i*0.22) + 's"><img src="' + assetURL(names[i]) + '" alt=""></div>';
   }
   $id('orbRow').innerHTML = html;
+  var portrait = $id('heroPortrait');
+  if(portrait) portrait.innerHTML = '<img class="hero-main" src="' + assetURL('奶蛋') + '" alt=""><div class="hero-friend friend-a"><img src="' + assetURL('小奶蛙') + '" alt=""></div><div class="hero-friend friend-b"><img src="' + assetURL('奶猫') + '" alt=""></div>';
+
 }
 
+
+/* Presentation only: disclosure dismissal, modal focus, reduced-motion preference.
+   No game state, save data, input curve or gameplay timing is changed here. */
+(function(){
+  var menu = $id('utilityMenu');
+  if(menu){
+    menu.addEventListener('click', function(e){
+      if(e.target.closest('button')) menu.open = false;
+    });
+    document.addEventListener('pointerdown', function(e){
+      if(menu.open && !menu.contains(e.target)) menu.open = false;
+    });
+  }
+  var returnFocus = null;
+  var currentPanel = null;
+  var observer = new MutationObserver(function(){
+    var panel = document.querySelector('.screen.show');
+    document.body.classList.toggle('panel-open', !!panel);
+    if(panel === currentPanel) return;
+    if(panel){
+      if(!currentPanel) returnFocus = menu && menu.contains(document.activeElement) ? menu.querySelector('summary') : document.activeElement;
+      if(menu) menu.open = false;
+      var focus = panel.querySelector('[data-close], .start-btn, button');
+      if(focus) focus.focus({preventScroll:true});
+    } else if(returnFocus && returnFocus.isConnected){
+      returnFocus.focus({preventScroll:true});
+      returnFocus = null;
+    }
+    currentPanel = panel;
+  });
+  document.querySelectorAll('.screen').forEach(function(el){
+    observer.observe(el, {attributes:true, attributeFilter:['class']});
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && menu && menu.open){ menu.open = false; e.stopPropagation(); return; }
+    if(e.key !== 'Tab') return;
+    var panel = document.querySelector('.screen.show');
+    if(!panel) return;
+    var all = Array.from(panel.querySelectorAll('button, [tabindex="0"]')).filter(function(el){
+      return !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+    });
+    if(!all.length) return;
+    var first = all[0], last = all[all.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
+})();

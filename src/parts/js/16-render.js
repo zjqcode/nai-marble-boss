@@ -340,21 +340,96 @@ function drawBoss(){
   ctx.restore();
 }
 
+/* Presentation only: never write game state or consume random numbers. */
+function characterInk(){
+  var name = state.boss ? state.boss.char : '';
+  return ({'奶狗':'255,204,97','奶兔':'167,236,177','豆奶':'255,214,155',
+    '奶屎':'153,229,104','奶粉':'255,154,188','奶猫':'194,159,255',
+    '奶鸡':'255,200,100','奶蛙':'112,219,255'})[name] || '255,215,150';
+}
+function vfxSpark(x,y,r,color,alpha){
+  ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*.3,y-r*.3);
+  ctx.lineTo(x+r,y);ctx.lineTo(x+r*.3,y+r*.3);ctx.lineTo(x,y+r);
+  ctx.lineTo(x-r*.3,y+r*.3);ctx.lineTo(x-r,y);ctx.lineTo(x-r*.3,y-r*.3);
+  ctx.closePath();ctx.fill();
+}
+function drawCharacterSignature(){
+  var b=state.boss; if(!b || b.dead) return;
+  var tg=state.telegraph, hop=b.hopT>0;
+  if(!tg && !hop) return;
+  var ink=characterInk(), p=tg ? clamp(1-tg.t/tg.total,0,1) : 1-b.hopT/.7;
+  var radius=b.h*.62;
+  ctx.save();ctx.beginPath();ctx.rect(view.left,view.ceil,view.w,view.bottom-view.ceil);ctx.clip();
+  ctx.strokeStyle='rgba('+ink+',.65)';ctx.lineWidth=1.6;
+  if(tg){
+    /* Close orbital arcs are decoration; existing red bounds indicate danger. */
+    for(var i=0;i<2;i++){
+      var a=T*(i ? -1.4 : 1.1)+i*Math.PI;
+      ctx.beginPath();ctx.ellipse(b.x,b.y,radius*(1+i*.14),radius*.66,a*.3,a,a+Math.PI*1.4);ctx.stroke();
+    }
+    for(var j=0;j<7;j++){
+      var a2=j*TAU/7+T*.9, rr=radius*(1.08+.08*Math.sin(T*3+j));
+      vfxSpark(b.x+Math.cos(a2)*rr,b.y+Math.sin(a2)*rr*.75,2.2+p*2,'rgb('+ink+')',.3+p*.5);
+    }
+    ctx.globalAlpha=1;
+    if(b.char==='奶猫'){
+      for(var claw=-1;claw<=1;claw++){
+        ctx.beginPath();ctx.moveTo(b.x+claw*10-b.w*.55,b.y-b.h*.36);
+        ctx.quadraticCurveTo(b.x+claw*10,b.y-b.h*.56,b.x+claw*10+b.w*.5,b.y-b.h*.12);ctx.stroke();
+      }
+    }else if(b.char==='奶蛙'){
+      for(var ray=0;ray<6;ray++){
+        var a3=ray*TAU/6+T*.4, rx=b.x+Math.cos(a3)*radius, ry=b.y+Math.sin(a3)*radius*.7;
+        ctx.beginPath();ctx.moveTo(rx,ry-8);ctx.lineTo(rx-4,ry);ctx.lineTo(rx+3,ry);ctx.lineTo(rx-2,ry+8);ctx.stroke();
+      }
+    }else if(b.char==='奶鸡'){
+      for(var e=0;e<3;e++){
+        var ex=b.x+(e-1)*b.w*.65,ey=b.y-b.h*.37+Math.sin(T*3+e)*5;
+        ctx.beginPath();ctx.ellipse(ex,ey,5,7,(e-1)*.25,0,TAU);
+        ctx.fillStyle='rgba(255,239,189,.8)';ctx.fill();ctx.stroke();
+      }
+    }
+  }
+  if(hop){
+    var floor=b.baseY+b.h*.44, spread=b.w*(.5+p*1.2);
+    ctx.globalAlpha=Math.sin(Math.PI*p)*.85;
+    for(var ring=0;ring<3;ring++){
+      ctx.beginPath();ctx.ellipse(b.x,floor,spread*(1-ring*.17),8+ring*5,0,0,TAU);
+      ctx.lineWidth=3-ring*.7;ctx.stroke();
+    }
+    for(var k=-2;k<=2;k++){
+      var xx=b.x+k*b.w*.26,yy=b.y+b.h*.2;
+      ctx.beginPath();ctx.moveTo(xx,yy);
+      if(b.char==='奶兔'){
+        for(var n=1;n<=7;n++)ctx.lineTo(xx+(n%2 ? 5 : -5),yy+n*4);
+      }else{
+        ctx.lineTo(xx+k*5,yy+24);ctx.lineTo(xx+k*8,yy+35);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
 function drawSuck(){
-  if(!state.suck) return;
-  var boss = state.boss;
-  var p = state.suck.t/state.suck.total;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for(var i=0;i<7;i++){
-    var a = i/7*TAU + T*0.8;
-    var r0 = view.w*0.34;
-    var rr = r0 * (0.25 + 0.75*p);
+  if(!state.suck || !state.boss) return;
+  var b=state.boss, p=state.suck.t/state.suck.total;
+  var outer=Math.min(view.w*.28,view.h*.35);
+  ctx.save();ctx.beginPath();ctx.rect(view.left,view.ceil,view.w,view.bottom-view.ceil);ctx.clip();
+  for(var arm=0;arm<4;arm++){
     ctx.beginPath();
-    ctx.arc(boss.x, boss.y, rr, a, a + 1.1);
-    ctx.strokeStyle = 'rgba(255,80,90,' + (0.05 + 0.08*p) + ')';
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
+    for(var k=0;k<=32;k++){
+      var f=k/32, r=8+outer*f, a=arm*TAU/4+f*5.8+T*2.8;
+      var x=b.x+Math.cos(a)*r,y=b.y+Math.sin(a)*r*.65;
+      if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=arm%2 ? 'rgba(179,237,228,.48)' : 'rgba(255,218,169,.58)';
+    ctx.lineWidth=1.6+p;ctx.stroke();
+    for(var n=0;n<3;n++){
+      var f2=1-((T*.8+n/3+arm*.11)%1),a2=arm*TAU/4+f2*5.8+T*2.8;
+      vfxSpark(b.x+Math.cos(a2)*(8+outer*f2),b.y+Math.sin(a2)*(8+outer*f2)*.65,2+f2*2,arm%2 ? '#b4f8ee' : '#ffe0a8',.3+.5*f2);
+    }
+    ctx.globalAlpha=1;
   }
   ctx.restore();
 }
@@ -556,15 +631,22 @@ function drawRocks(){
     ctx.translate(rk.x, rk.y);
     ctx.rotate(rk.rot);
     var g = ctx.createRadialGradient(-rk.r*.35,-rk.r*.4,rk.r*.1, 0,0,rk.r*1.1);
-    g.addColorStop(0,'#9aa2ad');
-    g.addColorStop(.55,'#5b626c');
-    g.addColorStop(1,'#2b3038');
+    var eggSkin=state.boss && state.boss.char==='奶鸡';
+    g.addColorStop(0,eggSkin ? '#fff8d8' : '#9aa2ad');
+    g.addColorStop(.55,eggSkin ? '#e8ca86' : '#5b626c');
+    g.addColorStop(1,eggSkin ? '#ae763c' : '#2b3038');
     ctx.beginPath(); ctx.arc(0,0,rk.r,0,TAU);
     ctx.fillStyle = g; ctx.fill();
     ctx.strokeStyle = 'rgba(20,24,30,.8)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(20,26,34,.55)';
+    if(eggSkin){
+      ctx.fillStyle='rgba(151,89,34,.55)';
+      for(var spot=0;spot<4;spot++){
+        var sa=spot*2.4;ctx.beginPath();ctx.ellipse(Math.cos(sa)*rk.r*.53,Math.sin(sa)*rk.r*.53,rk.r*.13,rk.r*.09,sa,0,TAU);ctx.fill();
+      }
+    }
+    ctx.strokeStyle = eggSkin ? 'rgba(174,115,51,.3)' : 'rgba(20,26,34,.55)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(-rk.r*.5, -rk.r*.1); ctx.lineTo(-rk.r*.05, -rk.r*.35); ctx.lineTo(rk.r*.4, -rk.r*.05);
@@ -793,8 +875,13 @@ function drawAtkAnim(){
       ctx.beginPath();
       ctx.arc(boss.x, boss.y - boss.h*.12, rr, 0, TAU);
       ctx.strokeStyle = 'rgba(255,210,120,' + al + ')';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
+      for(var note=0;note<5;note++){
+        var na=note*TAU/5+p*1.8+i*.7;
+        vfxSpark(boss.x+Math.cos(na)*rr,boss.y-boss.h*.12+Math.sin(na)*rr,3.4,'#ffe9a9',al);
+      }
+      ctx.globalAlpha=1;
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(255,235,185,' + (0.95*(1-p)) + ')';
@@ -823,7 +910,16 @@ function drawAtkAnim(){
     ctx.fillStyle = 'rgba(190,235,130,' + (0.85*(1-p*0.6)) + ')';
     ctx.font = '900 ' + (boss.h*0.2) + 'px ' + FONT;
     ctx.textAlign = 'center';
-    ctx.fillText('噗——', boss.x, gy + 20 + p*40);
+    for(var bubble=0;bubble<12;bubble++){
+      var phase=(bubble*.137+p*.65)%1;
+      var bx=boss.x+Math.sin(bubble*2.4+p*2)*boss.w*(.3+p*.55);
+      var by=gy+24+phase*boss.h*.65;
+      var br=3+(bubble%4)*2;
+      ctx.beginPath();ctx.arc(bx,by,br,0,TAU);
+      ctx.strokeStyle='rgba(191,247,123,'+((1-p)*.7)+')';ctx.lineWidth=1.2;ctx.stroke();
+      ctx.beginPath();ctx.arc(bx-br*.25,by-br*.25,br*.2,0,TAU);
+      ctx.fillStyle='rgba(231,255,177,'+((1-p)*.7)+')';ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -1131,13 +1227,26 @@ function drawEffects(){
     var bm = state.beam;
     var a2 = bm.t/bm.total;
     var bg = ctx.createLinearGradient(bm.x-bm.w/2, 0, bm.x+bm.w/2, 0);
-    bg.addColorStop(0,'rgba(255,60,50,0)');
-    bg.addColorStop(.5,'rgba(255,230,220,' + (a2*.85) + ')');
-    bg.addColorStop(1,'rgba(255,60,50,0)');
+    var beamInk=characterInk();
+    bg.addColorStop(0,'rgba('+beamInk+',0)');
+    bg.addColorStop(.5,'rgba('+beamInk+','+(a2*.85)+')');
+    bg.addColorStop(1,'rgba('+beamInk+',0)');
     ctx.fillStyle = bg;
     ctx.fillRect(bm.x-bm.w/2, view.top, bm.w, view.bottom-view.top);
     ctx.fillStyle = 'rgba(255,255,255,' + (a2*.6) + ')';
     ctx.fillRect(bm.x-3, view.top, 6, view.bottom-view.top);
+    ctx.save();ctx.beginPath();ctx.rect(bm.x-bm.w/2,view.top,bm.w,view.h);ctx.clip();
+    ctx.strokeStyle='rgba('+beamInk+','+(a2*.9)+')';ctx.lineWidth=1.6;
+    for(var strand=0;strand<3;strand++){
+      ctx.beginPath();
+      for(var seg=0;seg<=20;seg++){
+        var yy=view.top+view.h*seg/20;
+        var xx=bm.x+Math.sin(seg*(state.boss.char==='奶猫' ? .55 : 2.3)+T*15+strand*2.1)*bm.w*.36;
+        if(seg===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   for(i=0;i<state.springFx.length;i++){
@@ -1244,6 +1353,7 @@ function draw(){
   drawBumpers();
   drawPlates();
   drawPlateGhost();
+  drawCharacterSignature();
   drawBoss();
   if(state.fireT > 0 && state.boss){
     var fb = state.boss;

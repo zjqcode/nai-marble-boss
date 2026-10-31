@@ -135,11 +135,11 @@ function paintOrb(g, r, img){
   g.beginPath(); g.arc(0,0,r*1.55,0,TAU); g.fill();
 
   var grad = g.createRadialGradient(-r*.36,-r*.42,r*.06, 0,0,r*1.05);
-  grad.addColorStop(0,'#fffbe9');
-  grad.addColorStop(.38,'#f9dd9b');
-  grad.addColorStop(.72,'#e5b055');
-  grad.addColorStop(.92,'#bd7d28');
-  grad.addColorStop(1,'#8f5612');
+  grad.addColorStop(0,'#d7eee0');
+  grad.addColorStop(.38,'#92ba9d');
+  grad.addColorStop(.72,'#547b64');
+  grad.addColorStop(.92,'#294c3e');
+  grad.addColorStop(1,'#142d26');
   g.beginPath(); g.arc(0,0,r,0,TAU); g.fillStyle = grad; g.fill();
 
   if(img && img.complete && img.naturalWidth){
@@ -150,7 +150,7 @@ function paintOrb(g, r, img){
     g.drawImage(img, -iw/2, -ih/2 + r*.055, iw, ih);
     var sh = g.createLinearGradient(0,r*.18,0,r);
     sh.addColorStop(0,'rgba(70,35,0,0)');
-    sh.addColorStop(1,'rgba(58,27,0,.38)');
+    sh.addColorStop(1,'rgba(20,40,30,.12)');
     g.fillStyle = sh; g.fillRect(-r,-r,2*r,2*r);
     g.restore();
   }
@@ -160,8 +160,8 @@ function paintOrb(g, r, img){
   g.save();
   g.beginPath(); g.arc(0,0,r,0,TAU); g.clip();
   var hl = g.createRadialGradient(-r*.38,-r*.46,0, -r*.38,-r*.46,r*.72);
-  hl.addColorStop(0,'rgba(255,255,255,.50)');
-  hl.addColorStop(.42,'rgba(255,255,255,.10)');
+  hl.addColorStop(0,'rgba(255,255,255,.16)');
+  hl.addColorStop(.42,'rgba(255,255,255,.03)');
   hl.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle = hl; g.fillRect(-r,-r,2*r,2*r);
   var rb = g.createRadialGradient(r*.16,r*.56,r*.04, r*.16,r*.56,r*.72);
@@ -171,7 +171,7 @@ function paintOrb(g, r, img){
   g.restore();
 
   g.beginPath(); g.ellipse(-r*.36,-r*.44,r*.17,r*.095,-.65,0,TAU);
-  g.fillStyle = 'rgba(255,255,255,.82)'; g.fill();
+  g.fillStyle = 'rgba(255,255,255,.32)'; g.fill();
 }
 
 function buildOrbTextures(){
@@ -220,9 +220,9 @@ function buildBossTexture(force){
   g.drawImage(img, 0, 0, w, h);
   g.globalCompositeOperation = 'source-atop';
   var tint = g.createRadialGradient(w*.5, h*.42, h*.12, w*.5, h*.55, h*.75);
-  tint.addColorStop(0,'rgba(120,0,30,.04)');
-  tint.addColorStop(.65,'rgba(90,0,26,.16)');
-  tint.addColorStop(1,'rgba(35,0,12,.5)');
+  tint.addColorStop(0,'rgba(120,0,30,0)');
+  tint.addColorStop(.65,'rgba(90,0,26,.04)');
+  tint.addColorStop(1,'rgba(35,0,12,.14)');
   g.fillStyle = tint;
   g.fillRect(0,0,w,h);
   g.globalCompositeOperation = 'source-over';
@@ -355,35 +355,35 @@ function drawBgDots(){
 
 function buildGradients(){
   var x = view.left, y = view.top, w = view.w, h = view.h;  G.bgTint = ctx.createLinearGradient(0,0,0,H);
-  G.bgTint.addColorStop(0,'rgba(4,10,18,.42)');
-  G.bgTint.addColorStop(.30,'rgba(4,10,18,.20)');
-  G.bgTint.addColorStop(.62,'rgba(4,10,18,.32)');
-  G.bgTint.addColorStop(1,'rgba(2,6,12,.86)');
+  G.bgTint.addColorStop(0,'rgba(7,27,24,.42)');
+  G.bgTint.addColorStop(.30,'rgba(7,27,24,.20)');
+  G.bgTint.addColorStop(.62,'rgba(7,27,24,.32)');
+  G.bgTint.addColorStop(1,'rgba(3,17,15,.86)');
 
   /* 动态背景的底色：顶部偏暖（Boss 在上），底部沉到近黑，给弹弓区留对比 */
   G.bgDeep = ctx.createLinearGradient(0,0,0,H);
-  G.bgDeep.addColorStop(0,'#0b1422');
-  G.bgDeep.addColorStop(.34,'#08111d');
-  G.bgDeep.addColorStop(.72,'#060c15');
-  G.bgDeep.addColorStop(1,'#03060c');
+  G.bgDeep.addColorStop(0,'#163b34');
+  G.bgDeep.addColorStop(.34,'#112f2a');
+  G.bgDeep.addColorStop(.72,'#0d2522');
+  G.bgDeep.addColorStop(1,'#071a18');
 
   G.bgRad = ctx.createRadialGradient(W*.5,H*.42,Math.min(W,H)*.16, W*.5,H*.46,Math.max(W,H)*.72);
-  G.bgRad.addColorStop(0,'rgba(70,110,160,.10)');
+  G.bgRad.addColorStop(0,'rgba(133,170,119,.10)');
   G.bgRad.addColorStop(.55,'rgba(0,0,0,0)');
   G.bgRad.addColorStop(1,'rgba(0,0,0,.55)');
 
   G.fallback = ctx.createLinearGradient(0,0,0,H);
-  G.fallback.addColorStop(0,'#101a28'); G.fallback.addColorStop(.5,'#1d2a3c'); G.fallback.addColorStop(1,'#050a12');
+  G.fallback.addColorStop(0,'#1c443a'); G.fallback.addColorStop(.5,'#23483c'); G.fallback.addColorStop(1,'#0b211e');
 
   /* 场地：略透光，让动态背景能透进来；太透会影响奶球与文字的对比度 */
   G.field = ctx.createLinearGradient(0,y,0,y+h);
-  G.field.addColorStop(0,'rgba(8,13,22,.80)');
-  G.field.addColorStop(.5,'rgba(6,10,17,.77)');
-  G.field.addColorStop(1,'rgba(3,6,11,.90)');
+  G.field.addColorStop(0,'rgba(11,32,28,.80)');
+  G.field.addColorStop(.5,'rgba(9,28,25,.77)');
+  G.field.addColorStop(1,'rgba(5,21,19,.90)');
 
   G.fieldTop = ctx.createLinearGradient(0,y,0,y+h*.35);
-  G.fieldTop.addColorStop(0,'rgba(150,195,255,.07)');
-  G.fieldTop.addColorStop(1,'rgba(150,195,255,0)');
+  G.fieldTop.addColorStop(0,'rgba(185,216,161,.07)');
+  G.fieldTop.addColorStop(1,'rgba(185,216,161,0)');
 
   G.fieldBottom = ctx.createLinearGradient(0,y+h*.6,0,y+h);
   G.fieldBottom.addColorStop(0,'rgba(0,0,0,0)');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#050a12">
+<meta name="theme-color" content="#102b2a">
 <meta name="description" content="奶系弹珠 · 弹射讨伐 —— 弹弓 × 合成 × 打 Boss，单文件离线可玩的弹珠游戏。">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PGNpcmNsZSBjeD0nMzInIGN5PSczMicgcj0nMzAnIGZpbGw9JyNiZDdkMjgnLz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPScyNicgZmlsbD0nI2Y5ZGQ5YicvPjxlbGxpcHNlIGN4PScyMi41JyBjeT0nMjAuNScgcng9JzEwJyByeT0nNi41JyBmaWxsPScjZmZmYmU5JyBvcGFjaXR5PScwLjkyJy8+PC9zdmc+">
 <title>奶系弹珠 · 弹射讨伐</title>
@@ -67,6 +67,9 @@
     <svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.4" height="14" rx="1.1"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.1"/></svg>
     <span class="tx">暂停</span>
   </button>
+  <details class="utility-menu" id="utilityMenu">
+    <summary aria-label="更多游戏功能"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></summary>
+    <div class="utility-pop"><p>游戏功能 <span>GAME MENU</span></p><div class="utility-grid">
   <button class="dock-btn" id="bRestart" aria-label="重开">
     <svg viewBox="0 0 24 24"><path d="M20.4 12.6A8.4 8.4 0 1 1 18 6.2"/><path d="M20 3.6v5.6h-5.6"/></svg>
     <span class="tx">重开</span>
@@ -80,7 +83,6 @@
     <svg viewBox="0 0 24 24"><path d="M4 9V4.6h4.4"/><path d="M20 9V4.6h-4.4"/><path d="M4 15v4.4h4.4"/><path d="M20 15v4.4h-4.4"/></svg>
     <span class="tx">全屏</span>
   </button>
-  <span class="dock-sep"></span>
   <button class="dock-btn sm" id="bLevels" aria-label="章节">
     <svg viewBox="0 0 24 24"><path d="M6 21V3"/><path d="M6 4h11l-2.2 4.2L17 13H6"/></svg>
     <span class="tx">章节</span>
@@ -93,6 +95,8 @@
     <svg viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-1.4 11.2H5.6z"/><path d="M8.4 8.5a3.6 3.6 0 0 1 7.2 0"/></svg>
     <span class="tx">商店</span>
   </button>
+    </div></div>
+  </details>
 </nav>
 
 <!-- 道具栏分左右两栏：买再多也放得下（左栏满了往右栏排） -->
@@ -121,29 +125,38 @@
 <section id="intro" class="intro">
   <div class="intro-flash"></div>
   <div class="intro-flash b"></div>
+  <div class="intro-brand"><span class="brand-symbol">奶</span><span>奶系弹珠<small>THE MILKY UNIVERSE</small></span></div>
   <div class="intro-inner">
-    <p class="kicker">NAI · SLINGSHOT · BOSS</p>
+    <p class="kicker">一场软乎乎的弹射冒险</p>
     <h1 class="title" aria-label="奶系弹珠"><span style="--d:.10s">奶</span><span style="--d:.20s">系</span><span style="--d:.30s">弹</span><span style="--d:.40s">珠</span></h1>
-    <p class="subtitle"><i></i>弹射讨伐<i></i></p>
-    <div class="orb-row" id="orbRow"></div>
-    <button id="bStart" class="start-btn"><span>开 始 讨 伐</span></button>
+    <p class="subtitle">小小奶球，<span>大闹 BOSS。</span></p>
+    <p class="intro-desc">拉满勇气，弹出奇迹。<br>和奶娃们一起，开启这场讨伐之旅。</p>
+    <button id="bStart" class="start-btn"><span>开始讨伐</span><i aria-hidden="true">↗</i></button>
     <div class="intro-links">
       <button id="bIntroLevels">选择章节</button>
       <button id="bIntroGallery">角色图鉴</button><button id="bIntroShop">奶瓶商店</button>
     </div>
-    <p class="tip">按住屏幕向下拉，松手发射奶球<br>每颗奶球都能伤到 BOSS；反弹越多，暴击越狠</p>
+    <p class="tip"><span>↔</span> 左手移动 <i>·</i> <span>↓</span> 右手下拉蓄力，松手发射</p>
+  </div>
+  <div class="intro-art" aria-hidden="true">
+    <div class="orbit-line orbit-one"></div><div class="orbit-line orbit-two"></div>
+    <span class="art-star star-one">✦</span><span class="art-star star-two">✧</span><span class="art-star star-three">✦</span>
+    <span class="art-caption">MEET YOUR LITTLE HEROES</span>
+    <div id="heroPortrait" class="hero-portrait"></div>
+    <div class="hero-tag"><span class="live-dot"></span> 奶系小队，集结！</div>
+    <div class="orb-row" id="orbRow"></div>
   </div>
   <button class="intro-snd snd-btn on" id="bIntroSound" aria-label="音效开关" aria-pressed="true">
     <svg class="ico-on" viewBox="0 0 24 24"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M15.6 9.1a4.2 4.2 0 0 1 0 5.8"/><path d="M18.2 6.4a8 8 0 0 1 0 11.2"/></svg>
     <svg class="ico-off" viewBox="0 0 24 24" style="display:none"><path d="M4.5 9.4v5.2h3.3l4.1 3.2V6.2L7.8 9.4z"/><path d="M16.2 9.6l5 5M21.2 9.6l-5 5"/></svg>
   </button>
-  <p class="intro-foot">暖光之下 · 奶球觉醒</p>
+  <p class="intro-foot">弹射 × 合成 × BOSS 讨伐 <span>横屏体验更尽兴</span></p>
 </section>
 
 <section id="levels" class="screen" aria-hidden="true">
   <div class="sheet" role="dialog" aria-modal="true" aria-label="章节选择">
     <div class="sheet-head">
-      <div><h2>讨伐章节</h2><p>击败 BOSS，解锁新奶娃与下一章</p></div>
+      <div><span class="panel-eyebrow">THE ADVENTURE</span><h2>讨伐章节</h2><p>击败 BOSS，解锁新奶娃与下一章</p></div>
       <button class="x" data-close aria-label="关闭">✕</button>
     </div>
     <p class="hintline">每个 BOSS 都会掉落对应奶娃；已解锁角色的技能会在所有关卡生效。</p>
@@ -155,14 +168,18 @@
 <section id="gallery" class="screen" aria-hidden="true">
   <div class="sheet" role="dialog" aria-modal="true" aria-label="奶娃图鉴">
     <div class="sheet-head">
-      <div><h2>奶娃图鉴</h2><p>升级角色，强化全队的被动技能</p></div>
+      <div><span class="panel-eyebrow">MEET THE CREW</span><h2>奶娃图鉴</h2><p>升级角色，强化全队的被动技能</p></div>
       <div class="milk-chip"><span class="bottle"></span><b id="galMilk">0</b></div>
       <button class="x" data-close aria-label="关闭">✕</button>
     </div>
-    <div class="hero-bonus" id="heroBonus"></div>
-    <p class="hintline">所有已解锁角色的技能都会叠加生效；奶瓶可通过命中 BOSS、击碎石球和通关获得。</p>
-    <div id="charDetail" class="char-detail"></div>
-    <div id="charGrid" class="char-grid"></div>
+    <div class="gallery-summary">
+      <div class="hero-bonus" id="heroBonus"></div>
+      <details class="gallery-rules"><summary>技能说明 ⓘ</summary><p class="hintline">所有已解锁角色的技能都会叠加生效；奶瓶可通过命中 BOSS、击碎石球和通关获得。</p></details>
+    </div>
+    <div class="gallery-layout">
+      <div id="charDetail" class="char-detail"></div>
+      <div class="gallery-collection"><div class="collection-head"><span>奶娃收藏</span><small>点击查看角色与技能</small></div><div id="charGrid" class="char-grid"></div></div>
+    </div>
     <button class="ghost-btn" data-close>关闭图鉴</button>
   </div>
 </section>
@@ -170,18 +187,18 @@
 <section id="shop" class="screen" aria-hidden="true">
   <div class="sheet" role="dialog" aria-modal="true" aria-label="奶瓶商店">
     <div class="sheet-head">
-      <div><h2>奶瓶商店</h2><p>消耗品 · 购买后在局内点击使用</p></div>
+      <div><span class="panel-eyebrow">LITTLE SUPPLY STATION</span><h2>奶瓶商店</h2><p>消耗品 · 购买后在局内点击使用</p></div>
       <div class="milk-chip"><span class="bottle"></span><b id="shopMilk">0</b></div>
       <button class="x" data-close aria-label="关闭">✕</button>
     </div>
-    <div id="shopList" class="shop-grid"></div>
+    <div class="shop-note"><span>✦</span> 出发前，补充一点小小的底气。<small>购买后可在战斗中使用</small></div><div id="shopList" class="shop-grid"></div>
     <button class="ghost-btn" data-close>关闭商店</button>
   </div>
 </section>
 
 <section id="win" class="screen" aria-hidden="true">
   <div class="sheet result-sheet" role="dialog" aria-modal="true" aria-label="胜利">
-    <p class="result-kicker">BOSS DEFEATED</p>
+    <p class="result-kicker"><span aria-hidden="true">✦</span> BOSS DEFEATED <span aria-hidden="true">✦</span></p>
     <h2 class="win-title" id="winTitle">暴食奶狗 击破</h2>
     <div class="unlock-box" id="unlockBox">
       <div class="orb xl" id="unlockOrb"><img alt=""></div>
@@ -201,7 +218,7 @@
 
 <section id="lose" class="screen" aria-hidden="true">
   <div class="sheet result-sheet" role="dialog" aria-modal="true" aria-label="失败">
-    <p class="result-kicker" style="color:rgba(255,140,120,.75)">TIME UP</p>
+    <p class="result-kicker">KEEP YOUR SPARK</p>
     <h2 class="lose-title" id="loseTitle">时间耗尽，Boss 还在暴走…</h2>
     <p class="lose-sub" id="loseSub">再试一次，优先合体出 3 级以上的奶球</p>
     <div class="win-stats">
@@ -229,7 +246,7 @@
 
 <div id="rotate">
   <div class="rot-phone"></div>
-  <h2>请横屏游玩</h2>
+  <p class="panel-eyebrow">READY TO ROLL?</p><h2>横过来，尽情弹。</h2>
   <p>横屏才有两只摇杆的位置<br>左手控移动 · 右手下拉蓄力发射</p>
   <button class="ghost-btn rot-go" id="bRotateGo">进入横屏</button>
   <button class="ghost-btn rot-skip" id="bRotateOk">仍要竖屏游玩</button>

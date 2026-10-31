@@ -70,7 +70,7 @@ function buildGallery(){
   var ch = chapterOfChar(c.n);
   var detail = $id('charDetail');
 
-  var dh = '<div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n) + '" alt=""></div>';
+  var dh = '<div class="cd-scroll"><div class="orb lg ' + (unlocked ? '' : 'locked') + '"><img src="' + assetURL(c.n) + '" alt=""></div>';
   dh += '<div class="cd-body"><div class="cd-name"><b>' + c.n + '</b><span>' + (unlocked ? 'Lv.' + lv : '未解锁') + '</span></div>';
   if(unlocked){
     dh += '<p class="cd-skill">' + c.sname + '：' + skillText(c, lv) + '</p>';
@@ -83,7 +83,7 @@ function buildGallery(){
     dh += '<p class="cd-skill">击败「' + (ch ? ch.chap + ' · ' + ch.title : '对应 BOSS') + '」解锁</p>';
     dh += '<p class="cd-next">解锁后技能立即在所有关卡生效</p>';
   }
-  dh += '</div>';
+  dh += '</div></div>';
   if(unlocked){
     if(lv >= 5){
       dh += '<div class="up-btn max">已满级</div>';
