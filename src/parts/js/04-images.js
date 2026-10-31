@@ -38,6 +38,12 @@ function loadImages(){
       loaded++;
       if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
     };
+    /* 单个素材失败也要计数，否则 loaded 永远到不了 CHARS.length，贴图再也不会重建 */
+    im.onerror = function(){
+      loaded++;
+      try { console.warn('素材加载失败: ' + assetURL(c.n)); } catch(e) {}
+      if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); }
+    };
     im.src = assetURL(c.n);
     IMG[c.n] = im;
   });

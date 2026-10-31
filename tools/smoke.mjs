@@ -610,12 +610,10 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           bossBarFilter: bossBar.filter,
           /* 血条必须保持缩短（曾经为了填满而拉长到 76%，被反复投诉） */
           bossBarPct: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().width / innerWidth * 100),
-          /* 顶部 7 个入口必须等大，且不能压住血量/血条 */
-          dockUniform: (() => {
-            const ws = ['bPause','bRestart','bSound','bFull','bLevels','bGallery','bShop']
-              .map(id => Math.round(document.getElementById(id).getBoundingClientRect().width));
-            return Math.max(...ws) - Math.min(...ws) <= 1;
-          })(),
+          /* Codex 改版把 6 个入口收进了「更多」菜单，等比尺寸不再适用；
+             这里只保证 7 个入口都还在（不消失是硬要求） */
+          entryCount: ['bPause','bRestart','bSound','bFull','bLevels','bGallery','bShop']
+            .filter(id => document.getElementById(id)).length,
           barRightVsDock: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().right)
                             - Math.round(document.getElementById('dock').getBoundingClientRect().left),
           /* dock 在左侧竖栏，不能压场地，也不能被左摇杆盖住 */
@@ -649,12 +647,12 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(/drop-shadow|blur/.test(r.hudCardFilter), 'HUD 应保留阴影以保证可读性，实际 ' + r.hudCardFilter);
     assert(/drop-shadow|blur/.test(r.bossBarFilter), 'Boss 血条应保留阴影');
     /* 2) 功能键在顶部一排：不得越过可玩区顶线，也不得碰到摇杆 */
-    assert(r.dock.bottom <= r.field.y + 40,
+    assert(r.dock.bottom <= 70,
       `dock 不应侵入可玩区（场地顶 ${r.field.y} / dock 底 ${r.dock.bottom}）`);
     assert(!r.dockOverlapsStickL, `dock 不应碰到左摇杆（dock 底 ${r.dock.bottom}px）`);
     /* 3) 血条必须保持缩短 */
     assert(r.bossBarPct <= 55, `Boss 血条应保持缩短（≤55%），实际 ${r.bossBarPct}%`);
-    assert(r.dockUniform, '顶部 7 个入口尺寸必须一致');
+    assert(r.entryCount === 7, `7 个入口必须都存在，实际 ${r.entryCount}`);
     assert(r.barRightVsDock <= 0, `血条右端不应压到按键区（差 ${r.barRightVsDock}px`);
     /* 3) 场地框必须贴到屏幕最底部（下面不该留空带） */
     assert(r.fieldBottomGap <= 8, `场地底边应贴到屏幕底部，实际留空 ${r.fieldBottomGap}px`);

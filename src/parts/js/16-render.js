@@ -197,15 +197,58 @@ function drawGimmicks(){
   }
 }
 
+/* Boss 贴图还没就绪时的占位轮廓：避免出现「看不见的敌人」 */
+function drawBossPlaceholder(b){
+  var w = Math.max(60, view.w * 0.26), h = w * 1.1;
+  var pulse = 0.5 + 0.5 * Math.sin(T * 4);
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  var g = ctx.createRadialGradient(b.x, b.y, 4, b.x, b.y, w * 0.75);
+  g.addColorStop(0, 'rgba(255,120,110,.55)');
+  g.addColorStop(1, 'rgba(255,60,60,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(b.x, b.y, w * 0.75, 0, TAU); ctx.fill();
+  ctx.globalAlpha = 0.7 + 0.3 * pulse;
+  ctx.strokeStyle = 'rgba(255,190,150,.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(b.x, b.y, w * 0.36, h * 0.36, 0, 0, TAU); ctx.stroke();
+  ctx.restore();
+}
+
+/* 贴图构建失败（老浏览器/个别内核）时的最后兜底：直接画原始立绘，不走离屏画布 */
+function drawBossFromImage(b){
+  var img = IMG[b.char];
+  if(!img || !img.naturalWidth){ drawBossPlaceholder(b); return; }
+  var h = view.bossH || Math.round(view.h * 0.28);
+  var w = Math.round(h * img.naturalWidth / img.naturalHeight);
+  var entrance = easeOutCubic(clamp(b.entrance, 0, 1));
+  var sc = (0.58 + 0.42 * entrance) * (b.hitScale || 1);
+  ctx.save();
+  ctx.translate(b.x, b.y + (1 - entrance) * -46);
+  ctx.scale(sc, sc);
+  if(b.invuln > 0) ctx.globalAlpha = 0.45 + 0.25 * Math.sin(T * 38);
+  try { ctx.drawImage(img, -w/2, -h/2, w, h); } catch(e) {}
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function drawBoss(){
   var b = state.boss;
-  if(!b || b.dead || !bossArt) return;
+  if(!b || b.dead) return;
+  /* 慢网络兜底：buildBossTexture 只在图片全就绪时构建，开局没赶上就永远没人重试。
+     这里每帧惰性重建一次；构建抛错就退回「直接画原图」，保证 Boss 一定可见。 */
+  if(!bossArt){
+    try { buildBossTexture(true); } catch(e) { if(window.console) console.warn('Boss 贴图构建失败，改用原图: ' + e); }
+    if(!bossArt){ drawBossFromImage(b); return; }
+  }
   var w = bossArtW, h = bossArtH;
   var entrance = easeOutCubic(clamp(b.entrance,0,1));
   var sc = (0.58 + 0.42*entrance) * b.hitScale;
   var x = b.x, y = b.y;
   var tilt = Math.sin(T*0.9 + b.movePhase)*0.025;
 
+  /* 装饰层（光环/光晕）单独兜底：老内核若在这里抛错，至少别把主体立绘一起吞掉 */
+  try {
   ctx.save();
   var aura = ctx.createRadialGradient(x, y-h*.05, h*.12, x, y, h*.82);
   aura.addColorStop(0,'rgba(255,60,60,.22)');
@@ -234,6 +277,7 @@ function drawBoss(){
     ctx.stroke();
   }
   ctx.restore();
+  } catch(e) { try { ctx.restore(); } catch(_) {} }
 
   ctx.save();
   ctx.translate(x, y + (1-entrance)*-46);
