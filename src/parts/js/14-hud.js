@@ -145,6 +145,8 @@ function stopBgm(){
 var resultAudioActive = null;
 
 function audioSuspend(){
+  /* 先挂起 Web Audio（BGM）——这才是切后台后还在响的源头 */
+  try{ if(typeof Sound !== 'undefined' && Sound.suspendAll) Sound.suspendAll(); }catch(e){}
   var which = ['win', 'lose'];
   for(var i=0;i<which.length;i++){
     var el = audioElFor(which[i]);
@@ -155,6 +157,7 @@ function audioSuspend(){
 }
 
 function audioResume(){
+  try{ if(typeof Sound !== 'undefined' && Sound.resumeAll) Sound.resumeAll(); }catch(e){}
   var w = resultAudioActive;
   resultAudioActive = null;
   if(!w) return;

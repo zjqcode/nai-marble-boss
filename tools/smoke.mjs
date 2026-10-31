@@ -608,15 +608,23 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           hudCardFilter: hudCard.filter,
           bossBarBg: bossBar.backgroundImage,
           bossBarFilter: bossBar.filter,
-          /* dock 不能在底部（原来压在弹弓附近，容易误触） */
-          dock, plate,
-          dockInBottomHalf: dock.y > innerHeight / 2,
-          arenaTop: Math.round(v.arenaTop),
-          dockCoversPlayArea: dock.bottom > v.arenaTop && dock.x < v.right,
-          /* 反弹板要贴到最底部、且靠左 */
-          plateBottomGap: innerHeight - plate.bottom,
-          plateLeftGap: plate.x,
-          plateOverlapsDock: ov(plate, dock),
+          /* dock 在左侧竖栏，不能压场地；反弹板在右侧栏、右摇杆上方 */
+          dock,
+          field: { x: Math.round(v.left), y: Math.round(v.top), right: Math.round(v.right), bottom: Math.round(v.bottom) },
+          dockOverlapsField: ov(dock, { x: v.left, y: v.top, right: v.right, bottom: v.bottom }),
+          fieldBottomGap: innerHeight - Math.round(v.bottom),
+          ready: (() => {
+            N.META.items.plate = 1;
+            N.refreshPlateBtn();
+            return true;
+          })(),
+          plate: (() => { const b = document.getElementById('bPlate').getBoundingClientRect();
+                          return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width),
+                                   h: Math.round(b.height), bottom: Math.round(b.bottom), right: Math.round(b.right) }; })(),
+          plateOverlapsField: ov(document.getElementById('bPlate').getBoundingClientRect(),
+                                 { x: v.left, y: v.top, right: v.right, bottom: v.bottom }),
+          plateRightOfField: document.getElementById('bPlate').getBoundingClientRect().x >= v.right,
+          plateOverlapsStickR: ov(document.getElementById('bPlate').getBoundingClientRect(), box('stickR')),
         };
       })()`);
     assert(r.viewport[0] > r.viewport[1], '应处于横屏视口');
@@ -629,16 +637,18 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(r.bossBarBg === 'none', `Boss 血条背景应去掉，实际 ${r.bossBarBg}`);
     assert(/drop-shadow|blur/.test(r.hudCardFilter), 'HUD 应保留阴影以保证可读性，实际 ' + r.hudCardFilter);
     assert(/drop-shadow|blur/.test(r.bossBarFilter), 'Boss 血条应保留阴影');
-    /* 2) 六个功能键必须离开底部 */
-    assert(!r.dockInBottomHalf, `dock 不应留在底部区域，实际 y=${r.dock.y}`);
-    assert(!r.dockCoversPlayArea, `dock 不应压到可玩区（顶线 ${r.arenaTop}px）之下，实际 ${JSON.stringify(r.dock)}`);
-    /* 3) 反弹板贴底且在左下角，不与 dock 打架 */
-    assert(r.plateBottomGap <= 12, `反弹板应贴到最底部，距底 ${r.plateBottomGap}px`);
-    assert(r.plateLeftGap <= 20, `反弹板应在左下角，实际左边距 ${r.plateLeftGap}px`);
-    assert(!r.plateOverlapsDock, '反弹板与 dock 不应重叠');
+    /* 2) 功能键在左侧竖栏，不能压场地 */
+    assert(!r.dockOverlapsField, `dock 不应与场地重叠，实际 ${JSON.stringify(r.dock)}`);
+    /* 3) 场地框必须贴到屏幕最底部（下面不该留空带） */
+    assert(r.fieldBottomGap <= 8, `场地底边应贴到屏幕底部，实际留空 ${r.fieldBottomGap}px`);
+    assert(r.arenaH >= 260, `场地贴底后可玩带应 ≥260px，实际 ${r.arenaH}px`);
+    /* 4) 反弹板按钮在右侧栏、不压场地、不压摇杆 */
+    assert(r.plateRightOfField, `反弹板应在场地右侧栏，实际 x=${r.plate.x} / 场地右边界 ${r.field.right}`);
+    assert(!r.plateOverlapsField, '反弹板不应压场地');
+    assert(!r.plateOverlapsStickR, '反弹板不应压右摇杆');
     assertNoErrors('横屏引导');
-    return `HUD ${r.hudH}px(无黑框+阴影) / 场地 ${r.viewW}×${r.arenaH} / ` +
-      `dock y=${r.dock.y} / 反弹板左下角(左${r.plateLeftGap} 底${r.plateBottomGap})`;
+    return `HUD ${r.hudH}px / 场地 ${r.viewW}×${r.arenaH} 贴底(留${r.fieldBottomGap}) / ` +
+      `dock 左栏 x=${r.dock.x} / 反弹板右侧 x=${r.plate.x}`;
   } finally {
     await session.send('Emulation.setDeviceMetricsOverride', orig);
     await sleep(300);
@@ -810,17 +820,22 @@ await check('切后台立即停掉循环的结算音效（不会在别的 App �
   const r = await session.evaluate(`
     (async () => {
       const el = document.getElementById('bgm');
+      const N = window.__NAI__;
       const playingBefore = !el.paused;
+      const ctxBefore = N.audioState().ctx;
       /* 模拟切到别的 App：hidden 置真并派发 visibilitychange */
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
       await new Promise(r => setTimeout(r, 150));
-      return { playingBefore, pausedAfter: el.paused };
+      return { playingBefore, pausedAfter: el.paused, ctxBefore,
+               ctxAfter: N.audioState().ctx, bgmAfter: N.audioState().bgm };
     })()`);
   assert(r.playingBefore, '胜利音效应正在播放（否则测不到暂停）');
   assert(r.pausedAfter, '切后台后循环音效应立即暂停');
-  return '播放中 → 切后台后已暂停';
+  assert(r.ctxAfter === 'suspended', '切后台后 Web Audio 应被挂起（BGM 靠它静音），实际 ' + r.ctxAfter);
+  assert(!r.bgmAfter, '切后台后 BGM 调度器应停止');
+  return `播放中 → 切后台后 paused / AudioContext ${r.ctxBefore}→${r.ctxAfter} / BGM 已停`;
 });
 
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------

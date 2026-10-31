@@ -70,9 +70,9 @@ function layout(){
 
   view.top = 4;
   if(W > H){
-    /* 横屏下 dock 已搬到右上角，不能再拿它的 top 当场地底边（否则场地会被压成几十像素）。
-       底部固定留出「反弹板」按钮的高度。 */
-    view.bottom = Math.round(H - SAFE_B - 58);
+    /* 横屏：dock 已搬到左侧竖栏，场地不再受它约束。
+       直接贴到屏幕底部（只留 4px 描边余量），把最下面那条空带还给场地。 */
+    view.bottom = Math.round(H - SAFE_B - 4);
   } else {
     view.bottom = Math.round(dockTop - 2);
   }

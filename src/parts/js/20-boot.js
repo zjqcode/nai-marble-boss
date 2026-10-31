@@ -402,6 +402,10 @@ function boot(){
       refreshPlateBtn: refreshPlateBtn,
       startPlatePlacement: startPlatePlacement,
       confirmPlatePlacement: confirmPlatePlacement,
+      /* 音频状态：切后台是否真的静音，靠这个断言 */
+      audioState: function(){ return { ctx: Sound.ctxState(), bgm: Sound.bgmPlaying(), on: Sound.isOn() }; },
+      audioSuspend: audioSuspend,
+      audioResume: audioResume,
       cancelPlatePlacement: cancelPlatePlacement,
       plateLen: plateLen,
       /* 手动推进 n 帧逻辑，供无头测试使用 */

@@ -534,6 +534,9 @@ body.playing .stick{opacity:1;pointer-events:auto}
 }
 .stick:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
+/* 反弹板按钮：没有存货时整个不显示（由 refreshPlateBtn 打 .empty） */
+#bPlate.empty{display:none !important}
+
 /* ---------- 破防条 ---------- */
 .brk-row{display:flex;align-items:center;gap:6px;margin-top:5px}
 .brk-lbl{flex:0 0 auto;font-size:8.5px;letter-spacing:.18em;color:rgba(170,235,255,.65);font-weight:700}
@@ -645,10 +648,10 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
-  /* 右侧留出 258px 给顶部那一排功能键，Boss 血条因此变短、不再横贯全屏 */
+  /* 功能键已挪到左侧竖栏，HUD 恢复通栏，不再让右边空一大块 */
   #hud{
-    left:0;right:258px;transform:none;width:auto;
-    top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
+    left:0;right:0;transform:none;width:auto;
+    top:calc(var(--sat) + 2px);padding:0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
   .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
@@ -684,23 +687,22 @@ body.playing #bPlate.arm{
 
   /* ---- 6 个功能键搬到右上角竖排（原来压在底部中央，紧挨弹弓、容易误触） ----
      竖排会挡住右摇杆，所以排成 2 列 × 3 行。 */
-  /* 一排 7 个功能键贴右上角，和 HUD 同高，不占场地也不挡 Boss */
+  /* 7 个功能键改成左侧竖栏（2 列 × 4 行），把左栏那块空白填掉 */
   #dock{
-    left:auto;right:8px;bottom:auto;transform:none;
-    top:calc(var(--sat) + 2px);
-    width:auto;padding:2px;gap:2px;border-radius:13px;
-    flex-direction:row;flex-wrap:nowrap;
+    left:12px;right:auto;bottom:auto;transform:none;
+    top:calc(var(--sat) + 54px);
+    width:auto;padding:3px;gap:3px;border-radius:14px;
+    flex-direction:column;flex-wrap:wrap;max-height:178px;
     background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
-  /* 高度必须压在场地顶线（arenaTop≈43px）之上，否则会盖住可玩区 */
   .dock-btn{
-    flex:0 0 auto;width:33px;height:33px;
-    padding:2px 0 1px;border-radius:9px;gap:0;
-    background:rgba(255,255,255,.03);border:none;
+    flex:0 0 auto;width:40px;height:40px;
+    padding:4px 0 3px;border-radius:11px;gap:1px;
+    background:rgba(255,255,255,.035);border:none;
   }
-  .dock-btn svg{width:15px;height:15px}
-  .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.1}
+  .dock-btn svg{width:16px;height:16px}
+  .dock-btn .tx{font-size:7.5px;letter-spacing:0;line-height:1.1}
 
   /* ---- 摇杆 ---- */
   .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
@@ -710,14 +712,15 @@ body.playing #bPlate.arm{
   #stickL{left:14px}
   #stickR{right:14px}
 
-  #itemBar{bottom:calc(var(--sab) + 180px);left:14px;gap:5px}
+  /* 道具栏挪到右栏，和左边的功能键对称，两边都不空 */
+  #itemBar{top:calc(var(--sat) + 54px);bottom:auto;left:auto;right:12px;gap:6px}
 
-  /* ---- 反弹板按钮贴左下角底部 ----
-     不和摇杆抢位置，也不像原来那样悬在正中挡视线。 */
+  /* ---- 反弹板按钮：右侧栏、右摇杆上方 ----
+     不占地、不挡框；没有存货时整个隐藏（见 refreshPlateBtn 的 .empty）。 */
   #bPlate{
-    left:14px;right:auto;margin-left:0;
-    bottom:calc(var(--sab) + 4px);
-    width:46px;height:46px;border-radius:15px;
+    left:auto;right:14px;margin-left:0;
+    top:auto;bottom:calc(var(--sab) + 60px + 118px + 12px);
+    width:48px;height:48px;border-radius:16px;
   }
   #bPlate .ico{font-size:13px}
   #bPlate .tx{font-size:7.5px}
@@ -1230,6 +1233,7 @@ var Sound = (function(){
   var lastPlate = 0, lastPortal = 0, lastMove = 0;
   /* BGM 调度器状态 */
   var bgmTimer = null, bgmGain = null, bgmSend = null, bgmStep = 0, bgmNext = 0, bgmLevel = 0;
+var wasBgmOn = false;   /* 切后台前 BGM 是否在放，用于回来时恢复 */
   var BGM_VOL = [0.17, 0.24, 0.30];
   var BGM_SPB = [0.30, 0.255, 0.225];   /* 每步秒数：越紧张越快 */
   var BASS = [0, 0, 7, 0, 5, 0, 3, 7];  /* 半音偏移，根音 A1 */
@@ -1585,8 +1589,7 @@ var Sound = (function(){
        三层：低音 8 步循环 / pad 和声 / hat。
        intensity 0 平静 · 1 狂暴 · 2 蓄力告警 —— 改变音量、滤波与鼓点密度。 */
     bgmStart: function(){
-      if(!ac || !on || bgmTimer) return;
-      /* 静音期间 setOn 只清了 timer，bgmGain 还活着，直接复用避免泄漏节点 */
+      if(!ac || !on || bgmTimer) return;      /* 静音期间 setOn 只清了 timer，bgmGain 还活着，直接复用避免泄漏节点 */
       if(!bgmGain){
         bgmGain = ac.createGain();
         bgmGain.gain.value = 0;
@@ -1618,7 +1621,31 @@ var Sound = (function(){
       bgmLevel = n;
       if(bgmGain && ac) bgmGain.gain.setTargetAtTime(BGM_VOL[n], ac.currentTime, 0.5);
     },
-    bgmPlaying: function(){ return !!bgmTimer; }
+    bgmPlaying: function(){ return !!bgmTimer; },
+
+    /* ---------- 切后台静音 ----------
+       只暂停 <audio> 是不够的：BGM 是 Web Audio 实时合成的，
+       页面被隐藏后 AudioContext 未必自动挂起，声音会跟着到别的 App 上。
+       这里把调度器停掉并直接 suspend AudioContext（已排队的音也会立刻静音）。 */
+    suspendAll: function(){
+      wasBgmOn = !!bgmTimer;
+      if(bgmTimer){ clearInterval(bgmTimer); bgmTimer = null; }
+      if(ac && ac.state === 'running'){
+        try{ ac.suspend(); }catch(e){}
+      }
+    },
+    /* 测试用：查看 AudioContext 是否真的被挂起 */
+    ctxState: function(){ return ac ? ac.state : 'none'; },
+    resumeAll: function(){
+      if(ac && ac.state === 'suspended'){
+        try{ ac.resume(); }catch(e){}
+      }
+      if(wasBgmOn && on){
+        wasBgmOn = false;
+        this.bgmStart();
+      }
+      wasBgmOn = false;
+    }
   };
 })();
 
@@ -1694,9 +1721,9 @@ function layout(){
 
   view.top = 4;
   if(W > H){
-    /* 横屏下 dock 已搬到右上角，不能再拿它的 top 当场地底边（否则场地会被压成几十像素）。
-       底部固定留出「反弹板」按钮的高度。 */
-    view.bottom = Math.round(H - SAFE_B - 58);
+    /* 横屏：dock 已搬到左侧竖栏，场地不再受它约束。
+       直接贴到屏幕底部（只留 4px 描边余量），把最下面那条空带还给场地。 */
+    view.bottom = Math.round(H - SAFE_B - 4);
   } else {
     view.bottom = Math.round(dockTop - 2);
   }
@@ -3681,6 +3708,9 @@ function refreshPlateBtn(){
   var cnt = $id('plateCount');
   if(cnt) cnt.textContent = n;
   var placing = !!state.placingPlate;
+  /* 没有存货就整个按钮都不出现——一个「0」的空按钮既占地方又难看 */
+  var empty = n <= 0 && !placing;
+  if(btn._empty !== empty){ btn._empty = empty; btn.classList.toggle('empty', empty); }
   var off = !placing && (n <= 0 || state.mode !== 'play' || state.paused || state.cineT > 0);
   if(btn._off !== off){ btn._off = off; btn.classList.toggle('off', off); }
   if(btn._arm !== placing){ btn._arm = placing; btn.classList.toggle('arm', placing); }
@@ -4161,6 +4191,8 @@ function stopBgm(){
 var resultAudioActive = null;
 
 function audioSuspend(){
+  /* 先挂起 Web Audio（BGM）——这才是切后台后还在响的源头 */
+  try{ if(typeof Sound !== 'undefined' && Sound.suspendAll) Sound.suspendAll(); }catch(e){}
   var which = ['win', 'lose'];
   for(var i=0;i<which.length;i++){
     var el = audioElFor(which[i]);
@@ -4171,6 +4203,7 @@ function audioSuspend(){
 }
 
 function audioResume(){
+  try{ if(typeof Sound !== 'undefined' && Sound.resumeAll) Sound.resumeAll(); }catch(e){}
   var w = resultAudioActive;
   resultAudioActive = null;
   if(!w) return;
@@ -6314,6 +6347,10 @@ function boot(){
       refreshPlateBtn: refreshPlateBtn,
       startPlatePlacement: startPlatePlacement,
       confirmPlatePlacement: confirmPlatePlacement,
+      /* 音频状态：切后台是否真的静音，靠这个断言 */
+      audioState: function(){ return { ctx: Sound.ctxState(), bgm: Sound.bgmPlaying(), on: Sound.isOn() }; },
+      audioSuspend: audioSuspend,
+      audioResume: audioResume,
       cancelPlatePlacement: cancelPlatePlacement,
       plateLen: plateLen,
       /* 手动推进 n 帧逻辑，供无头测试使用 */

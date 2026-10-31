@@ -173,6 +173,9 @@ function refreshPlateBtn(){
   var cnt = $id('plateCount');
   if(cnt) cnt.textContent = n;
   var placing = !!state.placingPlate;
+  /* 没有存货就整个按钮都不出现——一个「0」的空按钮既占地方又难看 */
+  var empty = n <= 0 && !placing;
+  if(btn._empty !== empty){ btn._empty = empty; btn.classList.toggle('empty', empty); }
   var off = !placing && (n <= 0 || state.mode !== 'play' || state.paused || state.cineT > 0);
   if(btn._off !== off){ btn._off = off; btn.classList.toggle('off', off); }
   if(btn._arm !== placing){ btn._arm = placing; btn.classList.toggle('arm', placing); }

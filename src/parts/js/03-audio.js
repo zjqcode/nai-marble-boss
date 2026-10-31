@@ -7,6 +7,7 @@ var Sound = (function(){
   var lastPlate = 0, lastPortal = 0, lastMove = 0;
   /* BGM 调度器状态 */
   var bgmTimer = null, bgmGain = null, bgmSend = null, bgmStep = 0, bgmNext = 0, bgmLevel = 0;
+var wasBgmOn = false;   /* 切后台前 BGM 是否在放，用于回来时恢复 */
   var BGM_VOL = [0.17, 0.24, 0.30];
   var BGM_SPB = [0.30, 0.255, 0.225];   /* 每步秒数：越紧张越快 */
   var BASS = [0, 0, 7, 0, 5, 0, 3, 7];  /* 半音偏移，根音 A1 */
@@ -362,8 +363,7 @@ var Sound = (function(){
        三层：低音 8 步循环 / pad 和声 / hat。
        intensity 0 平静 · 1 狂暴 · 2 蓄力告警 —— 改变音量、滤波与鼓点密度。 */
     bgmStart: function(){
-      if(!ac || !on || bgmTimer) return;
-      /* 静音期间 setOn 只清了 timer，bgmGain 还活着，直接复用避免泄漏节点 */
+      if(!ac || !on || bgmTimer) return;      /* 静音期间 setOn 只清了 timer，bgmGain 还活着，直接复用避免泄漏节点 */
       if(!bgmGain){
         bgmGain = ac.createGain();
         bgmGain.gain.value = 0;
@@ -395,7 +395,31 @@ var Sound = (function(){
       bgmLevel = n;
       if(bgmGain && ac) bgmGain.gain.setTargetAtTime(BGM_VOL[n], ac.currentTime, 0.5);
     },
-    bgmPlaying: function(){ return !!bgmTimer; }
+    bgmPlaying: function(){ return !!bgmTimer; },
+
+    /* ---------- 切后台静音 ----------
+       只暂停 <audio> 是不够的：BGM 是 Web Audio 实时合成的，
+       页面被隐藏后 AudioContext 未必自动挂起，声音会跟着到别的 App 上。
+       这里把调度器停掉并直接 suspend AudioContext（已排队的音也会立刻静音）。 */
+    suspendAll: function(){
+      wasBgmOn = !!bgmTimer;
+      if(bgmTimer){ clearInterval(bgmTimer); bgmTimer = null; }
+      if(ac && ac.state === 'running'){
+        try{ ac.suspend(); }catch(e){}
+      }
+    },
+    /* 测试用：查看 AudioContext 是否真的被挂起 */
+    ctxState: function(){ return ac ? ac.state : 'none'; },
+    resumeAll: function(){
+      if(ac && ac.state === 'suspended'){
+        try{ ac.resume(); }catch(e){}
+      }
+      if(wasBgmOn && on){
+        wasBgmOn = false;
+        this.bgmStart();
+      }
+      wasBgmOn = false;
+    }
   };
 })();
 
