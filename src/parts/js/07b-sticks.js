@@ -1,30 +1,39 @@
 /* =========================================================
    7b. 双摇杆
    =========================================================
-   左：只认横向位移，控制炮台左右移动；上下拖动完全忽略（不是"移动变慢"，是无效）。
-   右：推杆方向 = 发射方向，推杆距离 = 蓄力，松手发射。
-       和原来的"按住下拉"相反——摇杆的直觉是往哪推就往哪打。
-   两个摇杆互不干扰：各自 setPointerCapture，可以同时操作（边移动边瞄准）。
+   左：只认横向位移，控制炮台左右移动；上下拖动完全忽略。
+   右：往下拉 = 往上打（方向与拉动方向相反），拉的距离 = 蓄力，松手发射。
+   两个摇杆各自 setPointerCapture，可以同时操作（边移动边瞄准）。
+
+   手感要点（都是实测调出来的）：
+   1) 以「按下那一点」为原点，而不是摇杆圆心。
+      用圆心当原点时，手指按在摇杆边缘会瞬间产生大偏移——一按就满蓄力、方向乱跳，
+      这就是之前"迟钝/不跟手"的根源。
+   2) 死区小（0.07）：一开始推就给反馈，不用先推掉一大段空行程。
+   3) 蓄力曲线略微前移（×1.1）：拉满更容易，不用把手指顶到边。
+   4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
-var STICK_DEAD = 0.14;   /* 死区：手指微抖不算输入 */
+var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
+var STICK_TRAVEL = 0.32;  /* 推到底需要的位移 = 摇杆直径 × 该比例 */
 
 function bindStick(el, opts){
   if(!el) return;
-  var pid = null, cx = 0, cy = 0, maxR = 1;
+  var pid = null, ax = 0, ay = 0, maxR = 1;
   var knob = el.querySelector('.knob');
 
-  function paint(nx, ny, mag){
+  function paint(dx, dy, mag){
     if(knob){
-      /* 左摇杆的纵向位移被钉死，视觉上也只走横向，避免误导 */
-      var ky = opts.horizontal ? 0 : ny;
-      knob.style.transform = 'translate(' + (nx*maxR).toFixed(1) + 'px,' + (ky*maxR).toFixed(1) + 'px)';
+      /* 左摇杆纵向钉死，视觉上也只走横向，避免误导 */
+      var ky = opts.horizontal ? 0 : dy;
+      knob.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ky.toFixed(1) + 'px)';
     }
     el.classList.toggle('hot', mag >= 0.92);
   }
 
   function handle(e){
-    var dx = e.clientX - cx;
-    var dy = opts.horizontal ? 0 : e.clientY - cy;
+    var dx = e.clientX - ax;
+    var dy = e.clientY - ay;
+    if(opts.horizontal) dy = 0;
     var len = Math.hypot(dx, dy);
     if(len > maxR){
       dx = dx / len * maxR;
@@ -32,7 +41,7 @@ function bindStick(el, opts){
       len = maxR;
     }
     var mag = maxR > 0 ? len / maxR : 0;
-    paint(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
+    paint(dx, dy, mag);
     opts.onMove(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
   }
 
@@ -41,9 +50,10 @@ function bindStick(el, opts){
     if(state.mode !== 'play' || state.paused) return;
     var r = el.getBoundingClientRect();
     if(!r.width) return;
-    cx = r.left + r.width / 2;
-    cy = r.top + r.height / 2;
-    maxR = r.width * 0.30;          /* 推到底时摇杆头刚好贴住外圈内沿 */
+    /* 关键：锚点 = 按下位置，不是圆心 */
+    ax = e.clientX;
+    ay = e.clientY;
+    maxR = r.width * STICK_TRAVEL;
     pid = e.pointerId;
     el.classList.add('active');
     try{ el.setPointerCapture(pid); }catch(err){}
@@ -84,19 +94,18 @@ function bindSticks(){
     onEnd: function(){ state.stickX = 0; }
   });
 
-  /* ---- 右摇杆：下拉蓄力，松手发射 ----
-     方向与拉动方向**相反**：下拉 -> 往上打，左拉 -> 往右打。
-     和场地里的弹弓拖动一致（都是往反方向拉），手感也顺：拇指自然停在底部，
-     往下拉最省力，想往上打不用把手够到屏幕顶上。 */
+  /* ---- 右摇杆：下拉蓄力，松手发射 ---- */
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
       if(state.mode !== 'play' || state.paused) return;
       var a = state.aim;
-      var maxPull = Math.min(168, view.w*0.44);
+      /* 玩家重新开始拉杆：之前排队的那一发作废，避免补发出手方向对不上 */
+      if(mag > STICK_DEAD) state.pendingShot = null;
       a.active = mag > STICK_DEAD;
-      a.power = mag <= STICK_DEAD ? 0 : clamp(mag, 0, 1);
-      a.pull = mag * maxPull;
+      /* 蓄力略微前移，拉满更省力 */
+      a.power = mag <= STICK_DEAD ? 0 : clamp(mag * 1.1, 0, 1);
+      a.pull = Math.min(168, view.w*0.44) * a.power;
       if(mag > STICK_DEAD){
         var l = Math.hypot(nx, ny);
         if(l > 0.001){ a.dx = -nx/l; a.dy = -ny/l; }   /* 取反：往哪边拉，奶球就往反方向飞 */
@@ -106,9 +115,15 @@ function bindSticks(){
     onEnd: function(){
       var a = state.aim;
       if(!a.active) return;
-      /* 装填中松手不算发射，但要清掉瞄准态，否则预测线会一直挂着 */
-      if(a.power >= 0.12 && state.reloadT <= 0.02){
-        fireBall();
+      if(a.power >= 0.12){
+        if(state.reloadT <= 0.02){
+          fireBall();
+        } else {
+          /* 装填中松手：记下来，装填结束立刻补发，不让这一次输入白费 */
+          state.pendingShot = { dx: a.dx, dy: a.dy, power: a.power };
+          a.active = false;
+          a.power = 0;
+        }
       } else {
         a.active = false;
         a.power = 0;

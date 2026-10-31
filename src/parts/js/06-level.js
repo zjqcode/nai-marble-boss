@@ -93,6 +93,8 @@ function startLevel(idx){
   state.aim.active = false;
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;
+  state.pendingShot = null;
+  state.stickX = 0;
   state.boss = {
     char: ch.char, title: ch.title, chap: ch.chap,
     hp: ch.hp, maxHp: ch.hp,

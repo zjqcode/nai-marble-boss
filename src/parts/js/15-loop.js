@@ -101,6 +101,19 @@ function update(dt){
     stepPhysics(dt);
     updateRocks(dt);
     if(state.reloadT > 0) state.reloadT = Math.max(0, state.reloadT - dt);
+    /* 装填期间玩家已经松手的那一发：装填一结束立刻补发，不让输入白费 */
+    if(state.pendingShot && state.reloadT <= 0.02){
+      var ps = state.pendingShot;
+      state.pendingShot = null;
+      if(state.mode === 'play' && !state.paused){
+        state.aim.dx = ps.dx;
+        state.aim.dy = ps.dy;
+        state.aim.power = ps.power;
+        state.aim.pull = Math.min(168, view.w*0.44) * ps.power;
+        state.aim.active = true;
+        fireBall();
+      }
+    }
     if(state.superT > 0){
       state.superT = Math.max(0, state.superT - dt);
       if(state.superT === 0) refreshLoadLevel();

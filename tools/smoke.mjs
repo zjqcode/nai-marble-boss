@@ -460,9 +460,18 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
         const b = document.getElementById(id).getBoundingClientRect();
         return { x: b.left + b.width/2, y: b.top + b.height/2 };
       };
-      const down = (id, dx, dy) => {
+      /* 摇杆的交互模型是"按下定点 + 拖动产生位移"，
+         所以按下固定从圆心开始，位移一律由 pointermove 产生。 */
+      const c0 = {};
+      const down = (id) => {
         const c = center(id);
+        c0[id] = c;
         document.getElementById(id).dispatchEvent(new PointerEvent('pointerdown', {
+          clientX: c.x, clientY: c.y, pointerId: 11, bubbles: true, cancelable: true }));
+      };
+      const drag = (id, dx, dy) => {
+        const c = c0[id] || center(id);
+        document.getElementById(id).dispatchEvent(new PointerEvent('pointermove', {
           clientX: c.x + dx, clientY: c.y + dy, pointerId: 11, bubbles: true, cancelable: true }));
       };
       const up = (id) => document.getElementById(id).dispatchEvent(new PointerEvent('pointerup', {
@@ -472,7 +481,7 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
 
       /* 左摇杆：横推 -> 移动；纵推 -> 完全不动 */
       const x0 = st.cannonX;
-      down('stickL', 40, 0);
+      down('stickL'); drag('stickL', 40, 0);
       out.stickXRight = +st.stickX.toFixed(2);
       N.step(20);
       out.movedRight = Math.round(st.cannonX - x0);
@@ -480,7 +489,7 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
       out.stickXReleased = st.stickX;
 
       const x1 = st.cannonX;
-      down('stickL', 0, -45);
+      down('stickL'); drag('stickL', 0, -45);
       out.stickXVertical = +st.stickX.toFixed(2);
       N.step(20);
       out.movedWhenVertical = Math.round(st.cannonX - x1);
@@ -488,7 +497,7 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
 
       /* 右摇杆：方向与拉动方向相反——下拉 -> 向上发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', 0, 45);                 /* 正下拉 */
+      down('stickR'); drag('stickR', 0, 45);   /* 正下拉 */
       out.aim = { dx: +st.aim.dx.toFixed(2), dy: +st.aim.dy.toFixed(2),
                   power: +st.aim.power.toFixed(2), active: st.aim.active };
       up('stickR');
@@ -498,7 +507,7 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
 
       /* 左下位拉 -> 朝右上发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', -35, 35);
+      down('stickR'); drag('stickR', -35, 35);
       up('stickR');
       N.step(2);
       const b2 = st.balls[st.balls.length - 1];
@@ -506,7 +515,7 @@ await check('双摇杆：左摇杆只横移（纵向无效）、右摇杆控方�
 
       /* 死区内的小推不应发射 */
       st.balls.length = 0; st.reloadT = 0;
-      down('stickR', 2, 2);
+      down('stickR'); drag('stickR', 1, 1);   /* 死区 0.07，1px 位移约 0.04，仍在死区内 */
       out.deadzonePower = +st.aim.power.toFixed(2);
       out.deadzoneActive = st.aim.active;
       up('stickR');
@@ -602,7 +611,7 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
           /* dock 不能在底部（原来压在弹弓附近，容易误触） */
           dock, plate,
           dockInBottomHalf: dock.y > innerHeight / 2,
-          dockOverlapsField: ov(dock, { x: v.left, y: v.top, right: v.right, bottom: v.bottom }),
+          arenaTop: Math.round(v.arenaTop),\n          dockCoversPlayArea: dock.bottom > v.arenaTop && dock.x < v.right,
           /* 反弹板要贴到最底部 */
           plateBottomGap: innerHeight - plate.bottom,
           plateOverlapsDock: ov(plate, dock),
@@ -620,7 +629,7 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(/drop-shadow|blur/.test(r.bossBarFilter), 'Boss 血条应保留阴影');
     /* 2) 六个功能键必须离开底部 */
     assert(!r.dockInBottomHalf, `dock 不应留在底部区域，实际 y=${r.dock.y}`);
-    assert(!r.dockOverlapsField, `dock 不应压在场地范围内，实际 ${JSON.stringify(r.dock)}`);
+    assert(!r.dockCoversPlayArea, `dock 不应压到可玩区（顶线 ${r.arenaTop}px）之下，实际 ${JSON.stringify(r.dock)}`);
     /* 3) 反弹板贴底且不与 dock 打架 */
     assert(r.plateBottomGap <= 12, `反弹板应贴到最底部，距底 ${r.plateBottomGap}px`);
     assert(!r.plateOverlapsDock, '反弹板与 dock 不应重叠');
@@ -631,6 +640,71 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     await session.send('Emulation.setDeviceMetricsOverride', orig);
     await sleep(300);
   }
+});
+
+// ---------- 8d. 暂停 ----------
+await check('暂停：按钮/P/Esc 都能切换，计时与 Boss 冻结，继续后恢复', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state, out = {};
+      N.tick(170);                                  /* 跳过开场 */
+      out.hasPauseBtn = !!document.getElementById('bPause');
+      out.dockButtons = document.querySelectorAll('#dock .dock-btn').length;
+
+      /* 点暂停 */
+      document.getElementById('bPause').click();
+      out.paused = st.paused;
+      out.screenShown = document.getElementById('pause').classList.contains('show');
+
+      /* 暂停中推进：计时、Boss 血量、球都不能动 */
+      const t0 = st.timer, hp0 = st.boss.hp, b0 = st.balls.length;
+      const bx0 = st.boss.x;
+      N.tick(60);
+      out.frozen = Math.abs(st.timer - t0) < 1e-6 && Math.abs(st.boss.hp - hp0) < 1e-6 &&
+        st.balls.length === b0 && Math.abs(st.boss.x - bx0) < 1e-6;
+
+      /* 暂停中摇杆不应响应 */
+      const stick = document.getElementById('stickR');
+      const bb = stick.getBoundingClientRect();
+      stick.dispatchEvent(new PointerEvent('pointerdown', {
+        clientX: bb.left + bb.width/2, clientY: bb.top + bb.height/2,
+        pointerId: 31, bubbles: true, cancelable: true }));
+      out.aimOnPause = st.aim.active;
+      stick.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, bubbles: true, cancelable: true }));
+
+      /* 继续 */
+      document.getElementById('bResume').click();
+      out.pausedAfterResume = st.paused;
+      out.hiddenAfterResume = !document.getElementById('pause').classList.contains('show');
+      const t1 = st.timer;
+      N.tick(30);
+      out.resumed = st.timer < t1;
+
+      /* 快捷键：P 与 Esc 都是切换 */
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }));
+      out.pausedByKeyP = st.paused;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      out.unpausedByEsc = !st.paused;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      out.pausedByEsc = st.paused;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      out.escTogglesBack = !st.paused;
+      return out;
+    })()`);
+  assert(r.hasPauseBtn, '应有暂停按钮');
+  assert(r.dockButtons === 7, `dock 应有 7 个按钮（含暂停），实际 ${r.dockButtons}`);
+  assert(r.paused && r.screenShown, '点暂停后应暂停并显示面板');
+  assert(r.frozen, '暂停期间计时/Boss/球都应冻结');
+  assert(!r.aimOnPause, '暂停时摇杆不应产生瞄准');
+  assert(!r.pausedAfterResume && r.hiddenAfterResume, '继续后应解除暂停并收起面板');
+  assert(r.resumed, '继续后计时应恢复');
+  assert(r.pausedByKeyP, 'P 键应能暂停');
+  assert(r.unpausedByEsc, 'Esc 应能继续');
+  assert(r.pausedByEsc, 'Esc 在游戏中应能暂停');
+  assert(r.escTogglesBack, 'Esc 再按应恢复');
+  return `7 键 / 暂停冻结 ✓ / 继续恢复 ✓ / P 与 Esc 均可切换`;
 });
 
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------

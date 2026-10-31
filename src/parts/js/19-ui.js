@@ -41,6 +41,23 @@ function enterLandscape(){
     .then(function(){ return isPortraitNow(); });
 }
 
+/* ---------- 暂停 ----------
+   暂停走的是现成的 screen 机制（openScreen 会把 state.paused 置 true，
+   update() 因此整帧跳过：计时、Boss、物理、冷却全部冻结）。
+   切换逻辑集中在这里，按钮和快捷键都调它，避免两处写法不一致。 */
+function togglePause(){
+  if(state.mode !== 'play') return false;
+  var open = document.querySelector('.screen.show');
+  if(open){ closeScreen(open.id); return true; }
+  /* 暂停时把进行中的瞄准/放置取消掉，回来不会留着一半的状态 */
+  state.aim.active = false;
+  state.aim.power = 0;
+  if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+  openScreen('pause');
+  Sound.ui();
+  return true;
+}
+
 function hideIntro(){
   var el = $id('intro');
   if(!el || el.classList.contains('hide')) return;

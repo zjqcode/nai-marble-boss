@@ -30,7 +30,7 @@ var state = {
   atkIndex: 0,
   aim: {active:false, sx:0, sy:0, px:0, py:0, dx:0, dy:-1, power:0, pull:0},
   loadLv: 0,
-  reloadT: 0,
+  reloadT: 0, pendingShot: null,
   reloadMax: 0.42,
   eff: null,
   shake: 0,

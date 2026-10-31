@@ -331,6 +331,9 @@ body.playing #dock{opacity:1;pointer-events:auto}
 
 /* ---------- win / lose ---------- */
 .result-sheet{text-align:center;padding:24px 20px 20px}
+/* 暂停面板：沿用结算面板的结构与按钮，只换颜色，保证风格统一 */
+.pause-sheet{text-align:center;padding:24px 20px 20px}
+.pause-title{margin:2px 0 6px;font-size:21px;font-weight:900;letter-spacing:.06em;color:#ffe8b8}
 .result-kicker{margin:0 0 5px;font-size:9px;letter-spacing:.5em;color:rgba(255,206,120,.7);font-weight:700}
 .win-title{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em;color:#fff2d8}
 .win-title em{font-style:normal;color:#ffd477}
@@ -621,10 +624,11 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
+  /* 右侧留出 258px 给顶部那一排功能键，Boss 血条因此变短、不再横贯全屏 */
   #hud{
-    left:0;right:0;transform:none;width:auto;
-    top:calc(var(--sat) + 2px);padding:0 10px;
-    flex-direction:row;align-items:flex-start;gap:8px;
+    left:0;right:258px;transform:none;width:auto;
+    top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
+    flex-direction:row;align-items:flex-start;gap:7px;
   }
   .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
 
@@ -659,21 +663,23 @@ body.playing #bPlate.arm{
 
   /* ---- 6 个功能键搬到右上角竖排（原来压在底部中央，紧挨弹弓、容易误触） ----
      竖排会挡住右摇杆，所以排成 2 列 × 3 行。 */
+  /* 一排 7 个功能键贴右上角，和 HUD 同高，不占场地也不挡 Boss */
   #dock{
-    left:auto;right:10px;bottom:auto;transform:none;
-    top:calc(var(--sat) + 56px);
-    width:auto;padding:4px;gap:4px;border-radius:14px;
-    flex-direction:column;flex-wrap:wrap;max-height:158px;
-    background:rgba(8,14,24,.42);border-color:rgba(255,255,255,.06);
+    left:auto;right:8px;bottom:auto;transform:none;
+    top:calc(var(--sat) + 2px);
+    width:auto;padding:2px;gap:2px;border-radius:13px;
+    flex-direction:row;flex-wrap:nowrap;
+    background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
+  /* 高度必须压在场地顶线（arenaTop≈43px）之上，否则会盖住可玩区 */
   .dock-btn{
-    flex:0 0 auto;width:40px;height:46px;
-    padding:4px 0 3px;border-radius:10px;gap:1px;
-    background:rgba(255,255,255,.035);border:none;
+    flex:0 0 auto;width:33px;height:33px;
+    padding:2px 0 1px;border-radius:9px;gap:0;
+    background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:16px;height:16px}
-  .dock-btn .tx{font-size:7.5px;letter-spacing:0}
+  .dock-btn svg{width:15px;height:15px}
+  .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.1}
 
   /* ---- 摇杆 ---- */
   .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}

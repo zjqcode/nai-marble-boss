@@ -340,6 +340,9 @@ body.playing #dock{opacity:1;pointer-events:auto}
 
 /* ---------- win / lose ---------- */
 .result-sheet{text-align:center;padding:24px 20px 20px}
+/* 暂停面板：沿用结算面板的结构与按钮，只换颜色，保证风格统一 */
+.pause-sheet{text-align:center;padding:24px 20px 20px}
+.pause-title{margin:2px 0 6px;font-size:21px;font-weight:900;letter-spacing:.06em;color:#ffe8b8}
 .result-kicker{margin:0 0 5px;font-size:9px;letter-spacing:.5em;color:rgba(255,206,120,.7);font-weight:700}
 .win-title{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em;color:#fff2d8}
 .win-title em{font-style:normal;color:#ffd477}
@@ -630,10 +633,11 @@ body.playing #bPlate.arm{
    所以横屏把 HUD 压成"一条横带"：左=得分/奶瓶，中=Boss 血条+破防，右=章节/生命。
    ========================================================= */
 @media (orientation:landscape){
+  /* 右侧留出 258px 给顶部那一排功能键，Boss 血条因此变短、不再横贯全屏 */
   #hud{
-    left:0;right:0;transform:none;width:auto;
-    top:calc(var(--sat) + 2px);padding:0 10px;
-    flex-direction:row;align-items:flex-start;gap:8px;
+    left:0;right:258px;transform:none;width:auto;
+    top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
+    flex-direction:row;align-items:flex-start;gap:7px;
   }
   .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
 
@@ -668,21 +672,23 @@ body.playing #bPlate.arm{
 
   /* ---- 6 个功能键搬到右上角竖排（原来压在底部中央，紧挨弹弓、容易误触） ----
      竖排会挡住右摇杆，所以排成 2 列 × 3 行。 */
+  /* 一排 7 个功能键贴右上角，和 HUD 同高，不占场地也不挡 Boss */
   #dock{
-    left:auto;right:10px;bottom:auto;transform:none;
-    top:calc(var(--sat) + 56px);
-    width:auto;padding:4px;gap:4px;border-radius:14px;
-    flex-direction:column;flex-wrap:wrap;max-height:158px;
-    background:rgba(8,14,24,.42);border-color:rgba(255,255,255,.06);
+    left:auto;right:8px;bottom:auto;transform:none;
+    top:calc(var(--sat) + 2px);
+    width:auto;padding:2px;gap:2px;border-radius:13px;
+    flex-direction:row;flex-wrap:nowrap;
+    background:rgba(8,14,24,.34);border-color:rgba(255,255,255,.055);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
+  /* 高度必须压在场地顶线（arenaTop≈43px）之上，否则会盖住可玩区 */
   .dock-btn{
-    flex:0 0 auto;width:40px;height:46px;
-    padding:4px 0 3px;border-radius:10px;gap:1px;
-    background:rgba(255,255,255,.035);border:none;
+    flex:0 0 auto;width:33px;height:33px;
+    padding:2px 0 1px;border-radius:9px;gap:0;
+    background:rgba(255,255,255,.03);border:none;
   }
-  .dock-btn svg{width:16px;height:16px}
-  .dock-btn .tx{font-size:7.5px;letter-spacing:0}
+  .dock-btn svg{width:15px;height:15px}
+  .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.1}
 
   /* ---- 摇杆 ---- */
   .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}
@@ -763,6 +769,10 @@ body.playing #bPlate.arm{
   <span class="stick-tx">下拉发射</span>
 </div>
 <nav id="dock" aria-label="游戏控制">
+  <button class="dock-btn" id="bPause" aria-label="暂停">
+    <svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.4" height="14" rx="1.1"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.1"/></svg>
+    <span class="tx">暂停</span>
+  </button>
   <button class="dock-btn" id="bRestart" aria-label="重开">
     <svg viewBox="0 0 24 24"><path d="M20.4 12.6A8.4 8.4 0 1 1 18 6.2"/><path d="M20 3.6v5.6h-5.6"/></svg>
     <span class="tx">重开</span>
@@ -902,6 +912,17 @@ body.playing #bPlate.arm{
     </div>
     <button id="bRetry" class="start-btn small"><span>再 来 一 次</span></button>
     <button class="ghost-btn" id="bLoseLevels">选择章节</button>
+  </div>
+</section>
+
+<section id="pause" class="screen" aria-hidden="true">
+  <div class="sheet pause-sheet" role="dialog" aria-modal="true" aria-label="暂停">
+    <p class="result-kicker">PAUSED</p>
+    <h2 class="pause-title">已暂停</h2>
+    <p class="lose-sub">喝口水，回来接着打</p>
+    <button id="bResume" class="start-btn small"><span>继 续 游 戏</span></button>
+    <button class="ghost-btn" id="bPauseRestart">重开本关</button>
+    <button class="ghost-btn" id="bPauseLevels">选择章节</button>
   </div>
 </section>
 
@@ -1982,7 +2003,7 @@ var state = {
   atkIndex: 0,
   aim: {active:false, sx:0, sy:0, px:0, py:0, dx:0, dy:-1, power:0, pull:0},
   loadLv: 0,
-  reloadT: 0,
+  reloadT: 0, pendingShot: null,
   reloadMax: 0.42,
   eff: null,
   shake: 0,
@@ -2170,6 +2191,8 @@ function startLevel(idx){
   state.aim.active = false;
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;
+  state.pendingShot = null;
+  state.stickX = 0;
   state.boss = {
     char: ch.char, title: ch.title, chap: ch.chap,
     hp: ch.hp, maxHp: ch.hp,
@@ -2295,30 +2318,39 @@ function fireBall(){
 /* =========================================================
    7b. 双摇杆
    =========================================================
-   左：只认横向位移，控制炮台左右移动；上下拖动完全忽略（不是"移动变慢"，是无效）。
-   右：推杆方向 = 发射方向，推杆距离 = 蓄力，松手发射。
-       和原来的"按住下拉"相反——摇杆的直觉是往哪推就往哪打。
-   两个摇杆互不干扰：各自 setPointerCapture，可以同时操作（边移动边瞄准）。
+   左：只认横向位移，控制炮台左右移动；上下拖动完全忽略。
+   右：往下拉 = 往上打（方向与拉动方向相反），拉的距离 = 蓄力，松手发射。
+   两个摇杆各自 setPointerCapture，可以同时操作（边移动边瞄准）。
+
+   手感要点（都是实测调出来的）：
+   1) 以「按下那一点」为原点，而不是摇杆圆心。
+      用圆心当原点时，手指按在摇杆边缘会瞬间产生大偏移——一按就满蓄力、方向乱跳，
+      这就是之前"迟钝/不跟手"的根源。
+   2) 死区小（0.07）：一开始推就给反馈，不用先推掉一大段空行程。
+   3) 蓄力曲线略微前移（×1.1）：拉满更容易，不用把手指顶到边。
+   4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
-var STICK_DEAD = 0.14;   /* 死区：手指微抖不算输入 */
+var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
+var STICK_TRAVEL = 0.32;  /* 推到底需要的位移 = 摇杆直径 × 该比例 */
 
 function bindStick(el, opts){
   if(!el) return;
-  var pid = null, cx = 0, cy = 0, maxR = 1;
+  var pid = null, ax = 0, ay = 0, maxR = 1;
   var knob = el.querySelector('.knob');
 
-  function paint(nx, ny, mag){
+  function paint(dx, dy, mag){
     if(knob){
-      /* 左摇杆的纵向位移被钉死，视觉上也只走横向，避免误导 */
-      var ky = opts.horizontal ? 0 : ny;
-      knob.style.transform = 'translate(' + (nx*maxR).toFixed(1) + 'px,' + (ky*maxR).toFixed(1) + 'px)';
+      /* 左摇杆纵向钉死，视觉上也只走横向，避免误导 */
+      var ky = opts.horizontal ? 0 : dy;
+      knob.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ky.toFixed(1) + 'px)';
     }
     el.classList.toggle('hot', mag >= 0.92);
   }
 
   function handle(e){
-    var dx = e.clientX - cx;
-    var dy = opts.horizontal ? 0 : e.clientY - cy;
+    var dx = e.clientX - ax;
+    var dy = e.clientY - ay;
+    if(opts.horizontal) dy = 0;
     var len = Math.hypot(dx, dy);
     if(len > maxR){
       dx = dx / len * maxR;
@@ -2326,7 +2358,7 @@ function bindStick(el, opts){
       len = maxR;
     }
     var mag = maxR > 0 ? len / maxR : 0;
-    paint(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
+    paint(dx, dy, mag);
     opts.onMove(maxR > 0 ? dx / maxR : 0, maxR > 0 ? dy / maxR : 0, mag);
   }
 
@@ -2335,9 +2367,10 @@ function bindStick(el, opts){
     if(state.mode !== 'play' || state.paused) return;
     var r = el.getBoundingClientRect();
     if(!r.width) return;
-    cx = r.left + r.width / 2;
-    cy = r.top + r.height / 2;
-    maxR = r.width * 0.30;          /* 推到底时摇杆头刚好贴住外圈内沿 */
+    /* 关键：锚点 = 按下位置，不是圆心 */
+    ax = e.clientX;
+    ay = e.clientY;
+    maxR = r.width * STICK_TRAVEL;
     pid = e.pointerId;
     el.classList.add('active');
     try{ el.setPointerCapture(pid); }catch(err){}
@@ -2378,19 +2411,18 @@ function bindSticks(){
     onEnd: function(){ state.stickX = 0; }
   });
 
-  /* ---- 右摇杆：下拉蓄力，松手发射 ----
-     方向与拉动方向**相反**：下拉 -> 往上打，左拉 -> 往右打。
-     和场地里的弹弓拖动一致（都是往反方向拉），手感也顺：拇指自然停在底部，
-     往下拉最省力，想往上打不用把手够到屏幕顶上。 */
+  /* ---- 右摇杆：下拉蓄力，松手发射 ---- */
   bindStick($id('stickR'), {
     horizontal: false,
     onMove: function(nx, ny, mag){
       if(state.mode !== 'play' || state.paused) return;
       var a = state.aim;
-      var maxPull = Math.min(168, view.w*0.44);
+      /* 玩家重新开始拉杆：之前排队的那一发作废，避免补发出手方向对不上 */
+      if(mag > STICK_DEAD) state.pendingShot = null;
       a.active = mag > STICK_DEAD;
-      a.power = mag <= STICK_DEAD ? 0 : clamp(mag, 0, 1);
-      a.pull = mag * maxPull;
+      /* 蓄力略微前移，拉满更省力 */
+      a.power = mag <= STICK_DEAD ? 0 : clamp(mag * 1.1, 0, 1);
+      a.pull = Math.min(168, view.w*0.44) * a.power;
       if(mag > STICK_DEAD){
         var l = Math.hypot(nx, ny);
         if(l > 0.001){ a.dx = -nx/l; a.dy = -ny/l; }   /* 取反：往哪边拉，奶球就往反方向飞 */
@@ -2400,9 +2432,15 @@ function bindSticks(){
     onEnd: function(){
       var a = state.aim;
       if(!a.active) return;
-      /* 装填中松手不算发射，但要清掉瞄准态，否则预测线会一直挂着 */
-      if(a.power >= 0.12 && state.reloadT <= 0.02){
-        fireBall();
+      if(a.power >= 0.12){
+        if(state.reloadT <= 0.02){
+          fireBall();
+        } else {
+          /* 装填中松手：记下来，装填结束立刻补发，不让这一次输入白费 */
+          state.pendingShot = { dx: a.dx, dy: a.dy, power: a.power };
+          a.active = false;
+          a.power = 0;
+        }
       } else {
         a.active = false;
         a.power = 0;
@@ -4149,6 +4187,19 @@ function update(dt){
     stepPhysics(dt);
     updateRocks(dt);
     if(state.reloadT > 0) state.reloadT = Math.max(0, state.reloadT - dt);
+    /* 装填期间玩家已经松手的那一发：装填一结束立刻补发，不让输入白费 */
+    if(state.pendingShot && state.reloadT <= 0.02){
+      var ps = state.pendingShot;
+      state.pendingShot = null;
+      if(state.mode === 'play' && !state.paused){
+        state.aim.dx = ps.dx;
+        state.aim.dy = ps.dy;
+        state.aim.power = ps.power;
+        state.aim.pull = Math.min(168, view.w*0.44) * ps.power;
+        state.aim.active = true;
+        fireBall();
+      }
+    }
     if(state.superT > 0){
       state.superT = Math.max(0, state.superT - dt);
       if(state.superT === 0) refreshLoadLevel();
@@ -5664,6 +5715,23 @@ function enterLandscape(){
     .then(function(){ return isPortraitNow(); });
 }
 
+/* ---------- 暂停 ----------
+   暂停走的是现成的 screen 机制（openScreen 会把 state.paused 置 true，
+   update() 因此整帧跳过：计时、Boss、物理、冷却全部冻结）。
+   切换逻辑集中在这里，按钮和快捷键都调它，避免两处写法不一致。 */
+function togglePause(){
+  if(state.mode !== 'play') return false;
+  var open = document.querySelector('.screen.show');
+  if(open){ closeScreen(open.id); return true; }
+  /* 暂停时把进行中的瞄准/放置取消掉，回来不会留着一半的状态 */
+  state.aim.active = false;
+  state.aim.power = 0;
+  if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+  openScreen('pause');
+  Sound.ui();
+  return true;
+}
+
 function hideIntro(){
   var el = $id('intro');
   if(!el || el.classList.contains('hide')) return;
@@ -5880,6 +5948,19 @@ function bindEvents(){
     });
   });
 
+  /* 暂停：按钮 + 面板里的三个选项 */
+  $id('bPause').addEventListener('click', function(){ togglePause(); });
+  $id('bResume').addEventListener('click', function(){
+    Sound.ui();
+    closeScreen('pause');
+  });
+  $id('bPauseRestart').addEventListener('click', function(){
+    Sound.ui();
+    closeAllScreens();
+    startLevel(state.chapterIndex);
+  });
+  $id('bPauseLevels').addEventListener('click', function(){ openLevels(); });
+
   $id('bNext').addEventListener('click', function(){
     Sound.ui();
     var res = state.result;
@@ -5990,8 +6071,14 @@ function bindEvents(){
       openScreen('gallery'); buildGallery();
     } else if(k === 'l'){
       openLevels();
+    } else if(k === 'p'){
+      /* P 键暂停/继续 */
+      e.preventDefault();
+      togglePause();
     } else if(k === 'escape'){
-      closeAllScreens();
+      /* 游戏中按 Esc = 暂停；没有面板打开时不再是无意义的 closeAllScreens */
+      if(state.mode === 'play' && !document.querySelector('.screen.show')) togglePause();
+      else closeAllScreens();
     }
   });
 

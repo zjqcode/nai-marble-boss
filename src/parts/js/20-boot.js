@@ -156,6 +156,19 @@ function bindEvents(){
     });
   });
 
+  /* 暂停：按钮 + 面板里的三个选项 */
+  $id('bPause').addEventListener('click', function(){ togglePause(); });
+  $id('bResume').addEventListener('click', function(){
+    Sound.ui();
+    closeScreen('pause');
+  });
+  $id('bPauseRestart').addEventListener('click', function(){
+    Sound.ui();
+    closeAllScreens();
+    startLevel(state.chapterIndex);
+  });
+  $id('bPauseLevels').addEventListener('click', function(){ openLevels(); });
+
   $id('bNext').addEventListener('click', function(){
     Sound.ui();
     var res = state.result;
@@ -266,8 +279,14 @@ function bindEvents(){
       openScreen('gallery'); buildGallery();
     } else if(k === 'l'){
       openLevels();
+    } else if(k === 'p'){
+      /* P 键暂停/继续 */
+      e.preventDefault();
+      togglePause();
     } else if(k === 'escape'){
-      closeAllScreens();
+      /* 游戏中按 Esc = 暂停；没有面板打开时不再是无意义的 closeAllScreens */
+      if(state.mode === 'play' && !document.querySelector('.screen.show')) togglePause();
+      else closeAllScreens();
     }
   });
 
