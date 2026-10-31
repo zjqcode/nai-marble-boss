@@ -20,12 +20,16 @@ const BOT = `
   st.dodgeStreak = 0;
 
   var frames = 0, limit = Math.ceil((st.timer + 8) * 60);
+  /* 人类特征：看到红区后要 0.25s 才反应；5% 概率手滑往错方向 */
+  var REACT = 15, sawAt = -1, slipDir = 0, slipAt = -1;
   var canonX = function(){ return st.cannonX; };
 
   while (frames < limit) {
     /* 1) 躲红区：向"能躲出去且更近"的那一侧移动（贴墙时不能往墙里钻） */
     if (st.telegraph) {
       var tg = st.telegraph;
+      if (sawAt < 0) { sawAt = frames; slipDir = Math.random() < 0.05 ? -1 : 0; }
+      if (frames - sawAt < REACT) { st.stickX = 0; N.step(1); frames++; continue; }
       var need = tg.dodgeW + 14;
       var minX = v.left + 34, maxX = v.right - 34;
       var target = null;
@@ -42,7 +46,9 @@ const BOT = `
       st.moveDir = 0;
       var gap = target - st.cannonX;
       st.stickX = Math.abs(gap) < 6 ? 0 : (gap > 0 ? 1 : -1);
+      if (slipDir) st.stickX = -st.stickX * 0.6;   /* 手滑：往错方向推 */
     } else {
+      sawAt = -1; slipDir = 0;
       st.stickX = 0;
       /* 空闲时往中间靠，避免贴边死角 */
       if (st.cannonX < v.cx - 40) st.stickX = 0.5;
