@@ -578,17 +578,34 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
         const N = window.__NAI__, v = N.view;
         N.tick(60);
         const box = (id) => { const e = document.getElementById(id); const b = e.getBoundingClientRect();
-                              return { y: Math.round(b.y), h: Math.round(b.height), w: Math.round(b.width) }; };
+                              return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width),
+                                       h: Math.round(b.height), bottom: Math.round(b.bottom),
+                                       right: Math.round(b.right) }; };
         const st = (id) => getComputedStyle(document.getElementById(id));
+        const ov = (a, b) => a && b && a.x < b.right && b.x < a.right && a.y < b.bottom && b.y < a.bottom;
+        const hudCard = getComputedStyle(document.querySelector('.hud-card'));
+        const bossBar = getComputedStyle(document.querySelector('.boss-bar'));
+        const dock = box('dock'), plate = box('bPlate');
         return {
           viewport: [innerWidth, innerHeight],
           hudH: box('hud').h,
           arenaH: Math.round(v.arenaH),
           viewW: Math.round(v.w),
           rotate: st('rotate').display,
-          stickVisible: st('stickL').opacity,
           fieldLeft: Math.round(v.left), fieldRight: Math.round(v.right),
           stickRightEdge: Math.round(box('stickL').w + 14),
+          /* HUD 去框：背景必须是 none，且要有阴影兜底 */
+          hudCardBg: hudCard.backgroundImage,
+          hudCardFilter: hudCard.filter,
+          bossBarBg: bossBar.backgroundImage,
+          bossBarFilter: bossBar.filter,
+          /* dock 不能在底部（原来压在弹弓附近，容易误触） */
+          dock, plate,
+          dockInBottomHalf: dock.y > innerHeight / 2,
+          dockOverlapsField: ov(dock, { x: v.left, y: v.top, right: v.right, bottom: v.bottom }),
+          /* 反弹板要贴到最底部 */
+          plateBottomGap: innerHeight - plate.bottom,
+          plateOverlapsDock: ov(plate, dock),
         };
       })()`);
     assert(r.viewport[0] > r.viewport[1], '应处于横屏视口');
@@ -596,8 +613,20 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     assert(r.arenaH >= 200, `横屏可玩带应 ≥200px，实际 ${r.arenaH}px`);
     assert(r.rotate === 'none', '横屏不应再弹"请横屏"提示');
     assert(r.stickRightEdge <= r.fieldLeft, `左摇杆(${r.stickRightEdge}px)不应压住场地(${r.fieldLeft}px 起)`);
+    /* 1) HUD 不能有黑框 */
+    assert(r.hudCardBg === 'none', `HUD 卡片背景应去掉，实际 ${r.hudCardBg}`);
+    assert(r.bossBarBg === 'none', `Boss 血条背景应去掉，实际 ${r.bossBarBg}`);
+    assert(/drop-shadow|blur/.test(r.hudCardFilter), 'HUD 应保留阴影以保证可读性，实际 ' + r.hudCardFilter);
+    assert(/drop-shadow|blur/.test(r.bossBarFilter), 'Boss 血条应保留阴影');
+    /* 2) 六个功能键必须离开底部 */
+    assert(!r.dockInBottomHalf, `dock 不应留在底部区域，实际 y=${r.dock.y}`);
+    assert(!r.dockOverlapsField, `dock 不应压在场地范围内，实际 ${JSON.stringify(r.dock)}`);
+    /* 3) 反弹板贴底且不与 dock 打架 */
+    assert(r.plateBottomGap <= 12, `反弹板应贴到最底部，距底 ${r.plateBottomGap}px`);
+    assert(!r.plateOverlapsDock, '反弹板与 dock 不应重叠');
     assertNoErrors('横屏引导');
-    return `HUD ${r.hudH}px / 场地 ${r.viewW}×${r.arenaH} / 摇杆在场地外 / 竖屏提示可点击`;
+    return `HUD ${r.hudH}px(无黑框+阴影) / 场地 ${r.viewW}×${r.arenaH} / ` +
+      `dock 移到 y=${r.dock.y} / 反弹板距底 ${r.plateBottomGap}px`;
   } finally {
     await session.send('Emulation.setDeviceMetricsOverride', orig);
     await sleep(300);

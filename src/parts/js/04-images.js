@@ -69,7 +69,13 @@ function layout(){
   var dockTop = dock ? dock.getBoundingClientRect().top : (H - SAFE_B - 82);
 
   view.top = 4;
-  view.bottom = Math.round(dockTop - 2);
+  if(W > H){
+    /* 横屏下 dock 已搬到右上角，不能再拿它的 top 当场地底边（否则场地会被压成几十像素）。
+       底部固定留出「反弹板」按钮的高度。 */
+    view.bottom = Math.round(H - SAFE_B - 58);
+  } else {
+    view.bottom = Math.round(dockTop - 2);
+  }
   view.h = view.bottom - view.top;
   /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽。
      横屏时两侧要留给摇杆（各约 120~140px），中间尽量放宽——场地越宽，左右闪避越有意义。 */

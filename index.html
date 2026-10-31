@@ -632,47 +632,75 @@ body.playing #bPlate.arm{
 @media (orientation:landscape){
   #hud{
     left:0;right:0;transform:none;width:auto;
-    top:calc(var(--sat) + 4px);padding:0 10px;
+    top:calc(var(--sat) + 2px);padding:0 10px;
     flex-direction:row;align-items:flex-start;gap:8px;
   }
   .hud-row{flex:0 0 auto;gap:6px;align-items:stretch}
-  .hud-card{padding:3px 9px 4px;border-radius:11px}
-  .score-card{min-width:84px}
+
+  /* ---- HUD 去框：只留文字 + 阴影 ----
+     横屏只有 390 高，场地顶边就在 HUD 下方，带底色的卡片会把 Boss 盖住。
+     改成无背景、纯投影：靠 drop-shadow 保证在动态背景上依然读得清。 */
+  .hud-card,.boss-bar{
+    background:none;border:none;border-radius:0;padding:0 2px;
+    backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,.95)) drop-shadow(0 0 6px rgba(0,0,0,.75));
+  }
+  .hud-card{padding:1px 4px 0}
+  .boss-bar{flex:1 1 auto;min-width:0;padding:0 4px}
+  .score-card{min-width:74px}
   .score-card strong{font-size:19px;line-height:1.02}
   .lbl,.best{font-size:8px}
-  /* 中间：Boss 血条撑满剩余宽度 */
-  .boss-bar{
-    flex:1 1 auto;min-width:0;
-    background:linear-gradient(180deg,rgba(13,22,36,.80),rgba(8,14,24,.62));
-    border:1px solid var(--line);border-radius:11px;padding:3px 9px 4px;
-    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  }
-  .bb-top{font-size:9px}
+  #bossName{font-size:12.5px;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+  #bossHpText{font-size:9px}
+  #levelName{font-size:12.5px;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+  #chapLabel,#timerLabel{text-shadow:0 1px 3px rgba(0,0,0,.9)}
+  .hearts i{filter:drop-shadow(0 1px 3px rgba(0,0,0,.95))}
+  .bb-top{font-size:9px;margin-bottom:3px}
+  /* 血条本体保留（那是玩法信息，不是装饰框），只加深描边让它从背景里浮起来 */
+  .bb-track{box-shadow:0 1px 4px rgba(0,0,0,.75),inset 0 0 0 1px rgba(0,0,0,.35)}
   .brk-row{margin-top:2px;gap:5px}
-  .brk-lbl,.brk-pct{font-size:8px}
+  .brk-lbl,.brk-pct{font-size:8px;text-shadow:0 1px 3px rgba(0,0,0,.9)}
   /* 这行提示横屏太占高度，而且属于上手一次就够的信息 */
   .bb-foot{display:none}
-  #buffs{flex:0 0 auto;max-width:22vw;flex-wrap:wrap;justify-content:flex-end}
-  .buff-chip{font-size:8px;padding:1px 5px}
+  #buffs{flex:0 0 auto;max-width:20vw;flex-wrap:wrap;justify-content:flex-end;gap:3px;
+         filter:drop-shadow(0 1px 3px rgba(0,0,0,.9))}
+  .buff-chip{font-size:8px;padding:1px 5px;background:rgba(10,16,26,.42);border-color:rgba(255,255,255,.10)}
 
-  /* dock 压矮，把高度让给场地 */
+  /* ---- 6 个功能键搬到右上角竖排（原来压在底部中央，紧挨弹弓、容易误触） ----
+     竖排会挡住右摇杆，所以排成 2 列 × 3 行。 */
   #dock{
-    width:auto;left:50%;right:auto;
-    padding:4px;gap:3px;border-radius:16px;
-    bottom:calc(var(--sab) + 5px);
+    left:auto;right:10px;bottom:auto;transform:none;
+    top:calc(var(--sat) + 56px);
+    width:auto;padding:4px;gap:4px;border-radius:14px;
+    flex-direction:column;flex-wrap:wrap;max-height:158px;
+    background:rgba(8,14,24,.42);border-color:rgba(255,255,255,.06);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
-  .dock-btn{padding:4px 9px 3px;border-radius:11px;gap:1px}
-  .dock-btn svg{width:17px;height:17px}
-  .dock-btn .tx{font-size:8px}
+  .dock-btn{
+    flex:0 0 auto;width:40px;height:46px;
+    padding:4px 0 3px;border-radius:10px;gap:1px;
+    background:rgba(255,255,255,.035);border:none;
+  }
+  .dock-btn svg{width:16px;height:16px}
+  .dock-btn .tx{font-size:7.5px;letter-spacing:0}
 
-  /* 摇杆：横屏两侧空间充裕，放在 dock 上方 */
+  /* ---- 摇杆 ---- */
   .stick{width:104px;height:104px;bottom:calc(var(--sab) + 62px)}
   .stick .knob{width:42px;height:42px;margin:-21px 0 0 -21px}
   #stickL{left:14px}
   #stickR{right:14px}
 
   #itemBar{bottom:calc(var(--sab) + 180px);left:14px;gap:5px}
-  #bPlate{bottom:calc(var(--sab) + 180px);right:14px;width:50px;height:50px}
+
+  /* ---- 反弹板按钮挪到最底部正中（原来在右侧，和摇杆抢位置） ----
+     用 margin-left 居中而不是 transform，避免和 :active/.arm 的 scale 相互覆盖。 */
+  #bPlate{
+    left:50%;right:auto;margin-left:-23px;
+    bottom:calc(var(--sab) + 4px);
+    width:46px;height:46px;border-radius:15px;
+  }
+  #bPlate .ico{font-size:13px}
+  #bPlate .tx{font-size:7.5px}
 }
 
 /* 竖屏时提示转横屏（原来反过来：横屏提示转竖屏） */
@@ -1597,7 +1625,13 @@ function layout(){
   var dockTop = dock ? dock.getBoundingClientRect().top : (H - SAFE_B - 82);
 
   view.top = 4;
-  view.bottom = Math.round(dockTop - 2);
+  if(W > H){
+    /* 横屏下 dock 已搬到右上角，不能再拿它的 top 当场地底边（否则场地会被压成几十像素）。
+       底部固定留出「反弹板」按钮的高度。 */
+    view.bottom = Math.round(H - SAFE_B - 58);
+  } else {
+    view.bottom = Math.round(dockTop - 2);
+  }
   view.h = view.bottom - view.top;
   /* 宽屏不再死卡 760：宽度跟随高度放开，横屏/桌面场地更宽。
      横屏时两侧要留给摇杆（各约 120~140px），中间尽量放宽——场地越宽，左右闪避越有意义。 */
