@@ -76,6 +76,14 @@ function update(dt){
     }
     updateLevelHUD();
     /* 眩晕 / 无敌帧 / 眩晕冷却 —— 眩晕期间锁住移动与发射，但道具仍可用（自救通道） */
+    /* 极限闪避用：记录"距上次还站在危险区里"过了多久 */
+    if(state.telegraph){
+      var tg0 = state.telegraph;
+      if(Math.abs(state.cannonX - tg0.aimX) <= tg0.dodgeW) state.dangerT = 0;
+      else state.dangerT += dt;
+    } else {
+      state.dangerT = 99;
+    }
     if(state.stunCd > 0) state.stunCd = Math.max(0, state.stunCd - dt);
     if(state.invulnT > 0) state.invulnT = Math.max(0, state.invulnT - dt);
     if(state.stunT > 0){

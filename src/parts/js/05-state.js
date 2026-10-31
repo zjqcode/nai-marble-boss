@@ -55,6 +55,8 @@ var state = {
   shield: 0,
   /* 眩晕：stunT 剩余时长 / stunCd 触发冷却 / invulnT 无敌帧 */
   stunT: 0, stunCd: 0, invulnT: 0,
+  /* 狂暴阶梯 / 极限闪避：rageLv 层数、dangerT 距上次处于危险区的时间 */
+  rageLv: 0, atkBase: 0, dangerT: 99,
   superT: 0,
   frenzyT: 0,
   items: [],

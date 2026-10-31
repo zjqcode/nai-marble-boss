@@ -1046,6 +1046,70 @@ await check('眩晕：被命中触发、锁输入、有无敌帧与冷却、护�
   return `第1章 ${r.stun}s / 无敌 ${r.invuln}s / 冷却 ${r.cd}s / 护盾免疫 ✓`;
 });
 
+// ---------- 8k. 难度阶梯：装填分档 + 狂暴 ----------
+await check('难度阶梯：前两章装填更慢，Boss 随血量狂暴且攻击间隔单调变短', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state, out = {};
+      N.tick(170);
+
+      /* 1) 装填分档：1 章应明显慢于 6 章 */
+      N.startLevel(0); const early = st.reloadMax;
+      N.startLevel(5); const late = st.reloadMax;
+      out.early = +early.toFixed(3);
+      out.late = +late.toFixed(3);
+      out.tierRatio = +(early / late).toFixed(2);
+
+      /* 2) 狂暴阶梯：血量越低，攻击间隔只能更短 */
+      N.startLevel(3); st.cineT = 0;
+      const b = st.boss, seq = [];
+      for (const p of [0.9, 0.6, 0.45, 0.35, 0.2, 0.1]) {
+        b.hp = b.maxHp * p;
+        for (let f = 0; f < 4; f++) N.step(1);
+        seq.push({ hp: Math.round(p * 100), lv: st.rageLv, every: +st.atkEvery.toFixed(2) });
+      }
+      out.seq = seq;
+      out.monotonic = seq.every((s2, i) => i === 0 || s2.every <= seq[i - 1].every + 1e-6);
+      out.rageReached = Math.max(...seq.map(s => s.lv));
+      out.minEvery = Math.min(...seq.map(s => s.every));
+      return out;
+    })()`);
+  assert(r.tierRatio >= 1.15, `第 1 章装填应比第 6 章慢 15% 以上，实际 ${r.tierRatio}×`);
+  assert(r.rageReached === 3, `低血量应叠到 3 层狂暴，实际 ${r.rageReached}`);
+  assert(r.monotonic, '攻击间隔必须单调不增，实际 ' + JSON.stringify(r.seq));
+  assert(r.minEvery >= 3.0, `攻击间隔不得低于 3.0s，实际 ${r.minEvery}`);
+  return `装填 ${r.early}s→${r.late}s(${r.tierRatio}×) / 狂暴到 ×${r.rageReached} / 最短间隔 ${r.minEvery}s 且单调`;
+});
+
+// ---------- 8l. 极限闪避 ----------
+await check('极限闪避：贴着一刻走开给 3 倍得分 + 奶瓶 + 子弹时间，普通闪避不给', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__, st = N.state, out = {};
+      N.tick(170);
+
+      N.startLevel(0); st.cineT = 0; st.dodgeStreak = 0; st.dangerT = 0.1;
+      const s0 = st.score, m0 = N.META.milk;
+      N.dodgeSuccess();
+      out.perfect = { score: st.score - s0, milk: N.META.milk - m0, slowmo: +st.slowmo.toFixed(2) };
+
+      N.startLevel(0); st.cineT = 0; st.dodgeStreak = 0; st.dangerT = 5;
+      const s1 = st.score, m1 = N.META.milk;
+      N.dodgeSuccess();
+      out.normal = { score: st.score - s1, milk: N.META.milk - m1, slowmo: +st.slowmo.toFixed(2) };
+      return out;
+    })()`);
+  assert(r.perfect.score >= r.normal.score * 3, `极限闪避得分应为普通 3 倍（${r.perfect.score} vs ${r.normal.score}）`);
+  assert(r.perfect.milk > r.normal.milk, '极限闪避应额外给奶瓶');
+  assert(r.perfect.slowmo > 0.2, `极限闪避应触发短暂子弹时间，实际 ${r.perfect.slowmo}`);
+  assert(r.normal.slowmo === 0, '普通闪避不应给子弹时间');
+  return `极限 +${r.perfect.score}分/+${r.perfect.milk}奶瓶/慢放${r.perfect.slowmo}s vs 普通 +${r.normal.score}分`;
+});
+
 // ---------- 8. 动态背景：确实在动，且不再依赖静态图 ----------
 await check('动态背景：画面随时间变化（不再是一张静态图）', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);

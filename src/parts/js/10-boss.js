@@ -214,18 +214,30 @@ function attackHit(tg, reason){
 
 function dodgeSuccess(){
   state.dodgeStreak++;
+  /* 极限闪避：在红区里站到最后一刻才走开（<0.22s）——奖励精准走位，不惩罚新手 */
+  var perfect = state.dangerT <= 0.22;
   var add = 60 + Math.min(240, state.dodgeStreak*40);
+  if(perfect) add *= 3;
   state.score += add;
   updateScore();
   updateBuffs();
+  if(perfect){
+    popText(state.cannonX, view.pouchY - 92, '极限闪避！', 19, '#ffe38a');
+    ring(state.cannonX, view.pouchY, 26, 130, '255,225,140', .6, 5);
+    addMilk(Math.max(1, Math.round(3 * state.eff.milk)));
+    state.slowmo = Math.max(state.slowmo, 0.35);   /* 0.35 秒子弹时间 */
+    state.flashHue = 'gold';
+    state.flash = Math.max(state.flash, .3);
+    try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
+  }
   popText(state.cannonX, view.pouchY - 74, '闪避成功 ×' + state.dodgeStreak, 16, '#bfe8ff');
-  popText(state.cannonX, view.pouchY - 52, '+' + add, 13, '#d6f0ff');
+  popText(state.cannonX, view.pouchY - 52, '+' + add, 13, perfect ? '#ffe9a8' : '#d6f0ff');
   ring(state.cannonX, view.pouchY, 18, 96, '140,210,255', .45, 3);
   ring(state.cannonX, view.pouchY, 10, 52, '255,255,255', .3, 2);
   /* 连续闪避给奶瓶奖励，鼓励玩家主动走位 */
   if(state.dodgeStreak % 3 === 0){
     addMilk(Math.max(1, Math.round(2 * state.eff.milk)));
-    popText(state.cannonX, view.pouchY - 96, '闪避连击奖励 奶瓶+', 13, '#ffe1a0');
+    popText(state.cannonX, view.pouchY - 116, '闪避连击奖励 奶瓶+', 13, '#ffe1a0');
   }
   Sound.dodge();
 }
@@ -285,9 +297,28 @@ function updateBoss(dt){
     }
   }
 
+  /* 狂暴阶梯：每掉 25% 血加一层，攻击间隔 -8%，最多 3 层。
+     有下限（不低于 3.0s），避免后期变成"刚躲完又来"。 */
+  if(!boss.dead){
+    var pct = boss.hp / boss.maxHp;
+    var lv = pct > 0.75 ? 0 : (pct > 0.5 ? 1 : (pct > 0.25 ? 2 : 3));
+    if(lv !== state.rageLv){
+      state.rageLv = lv;
+      state.atkEvery = Math.max(3.0, state.atkBase * Math.pow(0.92, lv));
+      state.atkTimer = Math.min(state.atkTimer, state.atkEvery);
+      if(lv > 0){
+        popText(boss.x, boss.y - boss.h*0.62, '狂暴 ×' + lv, 17, '#ff9a6a');
+        ring(boss.x, boss.y, boss.w*0.3, boss.w*1.4, '255,140,80', .5, 4);
+        state.shake = Math.max(state.shake, 8);
+        Sound.warn();
+      }
+      updateBuffs();
+    }
+  }
   if(!boss.enraged && boss.hp < boss.maxHp*(state.chapter.enragePct || 0.5) && !boss.dead){
     boss.enraged = true;
     state.atkEvery *= 0.8;
+    state.atkBase *= 0.8;      /* 基准一起降，否则下一层狂暴会把 enrage 的加速覆盖掉 */
     state.atkTimer = Math.min(state.atkTimer, state.atkEvery);
     state.flash = Math.max(state.flash, .4);
     state.shake = Math.max(state.shake, 10);

@@ -410,6 +410,9 @@ function boot(){
       confirmPlatePlacement: confirmPlatePlacement,
       /* 音频状态：切后台是否真的静音，靠这个断言 */
       audioState: function(){ return { ctx: Sound.ctxState(), bgm: Sound.bgmPlaying(), on: Sound.isOn() }; },
+      /* 难度相关，供测试直接驱动 */
+      dodgeSuccess: function(){ dodgeSuccess(); },
+      attackHit: attackHit,
       audioSuspend: audioSuspend,
       audioResume: audioResume,
       cancelPlatePlacement: cancelPlatePlacement,

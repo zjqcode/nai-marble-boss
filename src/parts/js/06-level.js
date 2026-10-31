@@ -58,6 +58,8 @@ function startLevel(idx){
   state.timer = ch.time;
   state.timeMax = ch.time;
   state.atkEvery = ch.every * state.eff.attackDelay;
+  state.atkBase = state.atkEvery;      /* 狂暴阶梯的基准，改 atkEvery 时按它推算 */
+  state.rageLv = 0;
   state.atkTimer = state.atkEvery;
   state.atkDmg = [1,1,1,2,2,2,2,3][ch.id - 1];
   state.cannonX = view.cx;
@@ -89,7 +91,9 @@ function startLevel(idx){
   state.cineT = 1.7;
   state.deadReason = '';
   state.reloadT = 0.5;
-  state.reloadMax = 0.42 / state.eff.reload;
+  /* 装填按章节分档：前两章慢一点，逼玩家认真对待每一发；后期维持原速 */
+  var loadTier = ch.id <= 2 ? 1.24 : (ch.id <= 5 ? 1.12 : 1);
+  state.reloadMax = 0.42 * loadTier / state.eff.reload;
   state.aim.active = false;
   state.aim.power = 0;
   state.aim.dx = 0; state.aim.dy = -1;

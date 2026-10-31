@@ -98,6 +98,7 @@ function updateBuffs(){
     html += '<span class="buff-chip plate">反弹板 ' + Math.ceil(pleft) + 's</span>';
   }
   if(state.boss && state.boss.brkT > 0) html += '<span class="buff-chip brk">破防 ' + state.boss.brkT.toFixed(1) + 's</span>';
+  if(state.rageLv > 0) html += '<span class="buff-chip frenzy">Boss 狂暴 ×' + state.rageLv + '</span>';
   if(state.dodgeStreak > 0) html += '<span class="buff-chip dodge">闪避 ×' + state.dodgeStreak + '</span>';
   if(el.innerHTML !== html) el.innerHTML = html;
 }
