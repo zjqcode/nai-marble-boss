@@ -131,21 +131,28 @@ function openShop(){
   buildShop();
 }
 
+/* 道具分左右两栏渲染：先把左边排满 4 个（2 列 × 2 行），多出来的排右边。
+   这样买满 7 种也放得下，不会顶到反弹板或摇杆。 */
+var ITEM_SPLIT = 4;
+
 function updateItemBar(){
-  var bar = $id('itemBar');
-  if(!bar) return;
-  var html = '';
+  var barL = $id('itemBar'), barR = $id('itemBar2');
+  if(!barL) return;
+  var btns = [];
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
     /* 有自己专用按钮的道具不进通用道具栏，避免两个入口（由数据标记，不硬编码 key） */
     if(it.ownButton) continue;
     var n = itemCount(it.key);
     if(n > 0){
-      html += '<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
-        it.ico + '<b>' + n + '</b></button>';
+      btns.push('<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
+        it.ico + '<b>' + n + '</b></button>');
     }
   }
-  if(bar.innerHTML !== html) bar.innerHTML = html;
+  var leftHtml = btns.slice(0, ITEM_SPLIT).join('');
+  var rightHtml = btns.slice(ITEM_SPLIT).join('');
+  if(barL.innerHTML !== leftHtml) barL.innerHTML = leftHtml;
+  if(barR && barR.innerHTML !== rightHtml) barR.innerHTML = rightHtml;
   refreshItemBtnStates();
   refreshPlateBtn();
 }
@@ -156,9 +163,8 @@ function potionUsable(){
          state.heroHP < state.maxHP && state.potionCd <= 0;
 }
 function refreshItemBtnStates(){
-  var bar = $id('itemBar');
-  if(!bar) return;
-  var pb = bar.querySelector('[data-item="potion"]');
+  /* 道具分了两栏，血瓶可能在任何一栏 */
+  var pb = document.querySelector('#itemBar [data-item="potion"], #itemBar2 [data-item="potion"]');
   if(!pb) return;
   var off = !potionUsable();
   if(pb._off !== off){

@@ -80,23 +80,23 @@
     <svg viewBox="0 0 24 24"><path d="M4 9V4.6h4.4"/><path d="M20 9V4.6h-4.4"/><path d="M4 15v4.4h4.4"/><path d="M20 15v4.4h-4.4"/></svg>
     <span class="tx">全屏</span>
   </button>
-</nav>
-
-<!-- 章节 / 图鉴 / 商店：常驻在左侧竖栏，任何时候都能点，不用先进暂停 -->
-<nav id="sideDock" aria-label="菜单">
-  <button class="dock-btn" id="bLevels" aria-label="章节">
+  <span class="dock-sep"></span>
+  <button class="dock-btn sm" id="bLevels" aria-label="章节">
     <svg viewBox="0 0 24 24"><path d="M6 21V3"/><path d="M6 4h11l-2.2 4.2L17 13H6"/></svg>
     <span class="tx">章节</span>
   </button>
-  <button class="dock-btn" id="bGallery" aria-label="图鉴">
+  <button class="dock-btn sm" id="bGallery" aria-label="图鉴">
     <svg viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="3.6" y="13.3" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="13.3" width="7.1" height="7.1" rx="1.7"/></svg>
     <span class="tx">图鉴</span>
   </button>
-  <button class="dock-btn" id="bShop" aria-label="商店">
+  <button class="dock-btn sm" id="bShop" aria-label="商店">
     <svg viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-1.4 11.2H5.6z"/><path d="M8.4 8.5a3.6 3.6 0 0 1 7.2 0"/></svg>
     <span class="tx">商店</span>
   </button>
 </nav>
+
+<!-- 道具栏分左右两栏：买再多也放得下（左栏满了往右栏排） -->
+<div id="itemBar2" aria-label="道具栏（右）"></div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 

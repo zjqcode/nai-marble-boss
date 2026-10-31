@@ -136,11 +136,14 @@ function bindEvents(){
   $id('bLevels').addEventListener('click', openLevels);
   $id('bGallery').addEventListener('click', showGallery);
   $id('bShop').addEventListener('click', function(){ Sound.ui(); openShop(); });
-  $id('itemBar').addEventListener('click', function(e){
+  /* 道具分左右两栏，两边都要能点 */
+  function onItemClick(e){
     var btn = e.target.closest('[data-item]');
     if(!btn) return;
     useItem(btn.getAttribute('data-item'));
-  });
+  }
+  $id('itemBar').addEventListener('click', onItemClick);
+  if($id('itemBar2')) $id('itemBar2').addEventListener('click', onItemClick);
 
   /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
   bindSticks();

@@ -544,26 +544,24 @@ body.stunned .stick .knob{box-shadow:0 0 0 2px rgba(255,209,102,.45)}
 /* 反弹板按钮：没有存货时整个不显示（由 refreshPlateBtn 打 .empty） */
 #bPlate.empty{display:none !important}
 
-/* ---------- 左侧竖栏：章节 / 图鉴 / 商店 ----------
-   常驻显示在左栏，战斗中随时可点，不用先进暂停面板。 */
-#sideDock{
+/* ---------- 左右两栏道具 ----------
+   道具买多了单栏放不下，拆成左右两栏（左 4 / 右 4，共 8 格够用）。
+   章节 / 图鉴 / 商店 已经移到顶部工具条。 */
+#itemBar{
   position:fixed;z-index:14;left:12px;top:calc(var(--sat) + 54px);
-  display:flex;flex-direction:column;gap:6px;
+  display:grid;grid-template-columns:repeat(2,auto);gap:7px;
   opacity:0;pointer-events:none;transition:opacity .3s;
 }
-body.playing #sideDock{opacity:1;pointer-events:auto}
-#sideDock .dock-btn{
-  flex:0 0 auto;width:42px;height:42px;padding:4px 0 3px;border-radius:12px;gap:1px;
-  background:rgba(8,14,24,.42);border:1px solid rgba(255,255,255,.06);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+#itemBar2{
+  position:fixed;z-index:14;right:12px;top:calc(var(--sat) + 54px);
+  display:grid;grid-template-columns:repeat(2,auto);gap:7px;
+  opacity:0;pointer-events:none;transition:opacity .3s;
 }
-#sideDock .dock-btn svg{width:16px;height:16px}
-#sideDock .dock-btn .tx{font-size:7.5px}
+body.playing #itemBar,body.playing #itemBar2{opacity:1;pointer-events:auto}
 @media (orientation:portrait){
-  #sideDock{left:14px;top:calc(var(--sat) + 152px);gap:7px}
-  #sideDock .dock-btn{width:46px;height:46px}
+  #itemBar{left:16px;top:auto;bottom:calc(var(--sab) + 204px)}
+  #itemBar2{right:16px;top:auto;bottom:calc(var(--sab) + 204px)}
 }
-
 /* ---------- 破防条 ---------- */
 .brk-row{display:flex;align-items:center;gap:6px;margin-top:5px}
 .brk-lbl{flex:0 0 auto;font-size:8.5px;letter-spacing:.18em;color:rgba(170,235,255,.65);font-weight:700}
@@ -596,13 +594,7 @@ body.playing #sideDock{opacity:1;pointer-events:auto}
 .shop-buy.full{opacity:.55;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);
   color:rgba(255,236,200,.55);cursor:default;pointer-events:none}
 .shop-max{flex:0 0 auto;font-size:10px;color:var(--dim);border:1px solid rgba(255,255,255,.1);padding:6px 8px;border-radius:8px}
-/* 左侧竖排，位于左移按钮上方，不遮挡中间的弹弓 */
-#itemBar{
-  position:fixed;left:16px;bottom:calc(var(--sab) + 204px);z-index:14;
-  display:flex;flex-direction:column-reverse;gap:7px;
-  opacity:0;pointer-events:none;transition:opacity .25s;
-}
-body.playing #itemBar{opacity:1;pointer-events:auto}
+
 .item-btn{
   position:relative;width:44px;height:44px;border-radius:14px;
   border:1px solid rgba(255,220,160,.35);background:rgba(10,18,30,.74);
@@ -681,7 +673,7 @@ body.playing #bPlate.arm{
   /* 右侧留给顶部工具条。用 clamp 而不是写死 258px：
      小屏（如 568x320）上 258px 会吃掉近一半宽度，血条只剩 14%。 */
   #hud{
-    left:0;right:clamp(196px, 27%, 258px);transform:none;width:auto;
+    left:0;right:clamp(272px, 31%, 288px);transform:none;width:auto;
     top:calc(var(--sat) + 2px);padding:0 8px 0 10px;
     flex-direction:row;align-items:flex-start;gap:7px;
   }
@@ -738,6 +730,11 @@ body.playing #bPlate.arm{
   }
   .dock-btn svg{width:16px;height:16px}
   .dock-btn .tx{font-size:7px;letter-spacing:0;line-height:1.05}
+  /* 菜单键（章节/图鉴/商店）在顶部工具条里用小一号，给血条腾宽度 */
+  .dock-btn.sm{width:34px;height:32px;padding:2px 0 1px;border-radius:9px}
+  .dock-btn.sm svg{width:14px;height:14px}
+  .dock-btn.sm .tx{font-size:6.5px}
+  .dock-sep{width:1px;align-self:stretch;margin:4px 1px;background:rgba(255,255,255,.12)}
 
   /* ---- 摇杆 ---- */
   .stick{width:118px;height:118px;bottom:calc(var(--sab) + 60px)}
@@ -747,16 +744,10 @@ body.playing #bPlate.arm{
   #stickL{left:14px}
   #stickR{right:14px}
 
-  /* 道具栏放右上角横排：正好填住血条缩短后空出来的那一块 */
-  /* ---- 道具栏：右栏，2 列网格 ----
-     单列时拥有 5~6 种道具会一路顶到反弹板/摇杆上；2 列最多 3 行，
-     再配一个限高（超出的滚动），保证永远不压到下面的按钮。 */
-  #itemBar{
-    top:calc(var(--sat) + 54px);bottom:auto;left:auto;right:12px;
-    display:grid;grid-template-columns:repeat(2,auto);gap:7px;
-    max-height:max(82px, calc(100vh - 296px));
-    overflow-y:auto;overscroll-behavior:contain;
-  }
+  /* 两栏都贴顶：必须显式 bottom:auto，否则会被旧的 bottom 定位拉伸 */
+  #itemBar,#itemBar2{bottom:auto}
+  /* 右栏道具：最多两行（4 个），下面留给反弹板 */
+  #itemBar2{max-height:calc(2 * 38px + 7px)}
 
   /* ---- 反弹板按钮：右侧栏、右摇杆上方，留 20px 空隙 ----
      不占地、不挡框；没有存货时整个隐藏（见 refreshPlateBtn 的 .empty）。 */
@@ -817,21 +808,23 @@ body.playing #bPlate.arm{
 }
 
 /* =========================================================
-   矮屏横屏（≤400px 高，如 568x320 / 640x360）
-   竖排 3 个菜单键 + 118px 摇杆会撞上，这里整体收紧一档。
+   矮屏横屏（≤360px 高，如 568x320 / 640x360）
+   顶部 7 个键 + 118px 摇杆会撞上，这里整体收紧一档。
    ========================================================= */
 @media (orientation:landscape) and (max-height:360px){
   .stick{width:96px;height:96px;bottom:calc(var(--sab) + 8px)}
   .stick .knob{width:40px;height:40px;margin:-20px 0 0 -20px}
   .stick-tx{font-size:7px;bottom:4px}
 
-  #sideDock{top:calc(var(--sat) + 48px);gap:4px}
-  #sideDock .dock-btn{width:36px;height:36px;border-radius:10px}
-  #sideDock .dock-btn svg{width:14px;height:14px}
-  #sideDock .dock-btn .tx{font-size:6.5px}
+  /* 顶部 7 键在矮屏上更窄，HUD 右侧留白同步收小，别把血条挤没 */
+  #hud{right:236px}
+  .dock-btn{width:34px;height:32px}
+  .dock-btn.sm{width:28px;height:28px}
+  .dock-btn.sm .tx{display:none}
+  .dock-sep{height:18px;margin:0 2px}
 
-  #itemBar{top:calc(var(--sat) + 48px);gap:4px}
-  #itemBar .item-btn{width:34px;height:34px}
+  #itemBar,#itemBar2{top:calc(var(--sat) + 46px);bottom:auto;gap:4px}
+  .item-btn{width:32px;height:32px}
 
   #bPlate{
     width:40px;height:40px;border-radius:13px;
@@ -917,23 +910,23 @@ body.playing #bPlate.arm{
     <svg viewBox="0 0 24 24"><path d="M4 9V4.6h4.4"/><path d="M20 9V4.6h-4.4"/><path d="M4 15v4.4h4.4"/><path d="M20 15v4.4h-4.4"/></svg>
     <span class="tx">全屏</span>
   </button>
-</nav>
-
-<!-- 章节 / 图鉴 / 商店：常驻在左侧竖栏，任何时候都能点，不用先进暂停 -->
-<nav id="sideDock" aria-label="菜单">
-  <button class="dock-btn" id="bLevels" aria-label="章节">
+  <span class="dock-sep"></span>
+  <button class="dock-btn sm" id="bLevels" aria-label="章节">
     <svg viewBox="0 0 24 24"><path d="M6 21V3"/><path d="M6 4h11l-2.2 4.2L17 13H6"/></svg>
     <span class="tx">章节</span>
   </button>
-  <button class="dock-btn" id="bGallery" aria-label="图鉴">
+  <button class="dock-btn sm" id="bGallery" aria-label="图鉴">
     <svg viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="3.6" width="7.1" height="7.1" rx="1.7"/><rect x="3.6" y="13.3" width="7.1" height="7.1" rx="1.7"/><rect x="13.3" y="13.3" width="7.1" height="7.1" rx="1.7"/></svg>
     <span class="tx">图鉴</span>
   </button>
-  <button class="dock-btn" id="bShop" aria-label="商店">
+  <button class="dock-btn sm" id="bShop" aria-label="商店">
     <svg viewBox="0 0 24 24"><path d="M4.2 8.5h15.6l-1.4 11.2H5.6z"/><path d="M8.4 8.5a3.6 3.6 0 0 1 7.2 0"/></svg>
     <span class="tx">商店</span>
   </button>
 </nav>
+
+<!-- 道具栏分左右两栏：买再多也放得下（左栏满了往右栏排） -->
+<div id="itemBar2" aria-label="道具栏（右）"></div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -3834,21 +3827,28 @@ function openShop(){
   buildShop();
 }
 
+/* 道具分左右两栏渲染：先把左边排满 4 个（2 列 × 2 行），多出来的排右边。
+   这样买满 7 种也放得下，不会顶到反弹板或摇杆。 */
+var ITEM_SPLIT = 4;
+
 function updateItemBar(){
-  var bar = $id('itemBar');
-  if(!bar) return;
-  var html = '';
+  var barL = $id('itemBar'), barR = $id('itemBar2');
+  if(!barL) return;
+  var btns = [];
   for(var i=0;i<SHOP_ITEMS.length;i++){
     var it = SHOP_ITEMS[i];
     /* 有自己专用按钮的道具不进通用道具栏，避免两个入口（由数据标记，不硬编码 key） */
     if(it.ownButton) continue;
     var n = itemCount(it.key);
     if(n > 0){
-      html += '<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
-        it.ico + '<b>' + n + '</b></button>';
+      btns.push('<button class="item-btn" data-item="' + it.key + '" aria-label="' + it.n + ' ×' + n + '" title="' + it.n + ' ×' + n + '">' +
+        it.ico + '<b>' + n + '</b></button>');
     }
   }
-  if(bar.innerHTML !== html) bar.innerHTML = html;
+  var leftHtml = btns.slice(0, ITEM_SPLIT).join('');
+  var rightHtml = btns.slice(ITEM_SPLIT).join('');
+  if(barL.innerHTML !== leftHtml) barL.innerHTML = leftHtml;
+  if(barR && barR.innerHTML !== rightHtml) barR.innerHTML = rightHtml;
   refreshItemBtnStates();
   refreshPlateBtn();
 }
@@ -3859,9 +3859,8 @@ function potionUsable(){
          state.heroHP < state.maxHP && state.potionCd <= 0;
 }
 function refreshItemBtnStates(){
-  var bar = $id('itemBar');
-  if(!bar) return;
-  var pb = bar.querySelector('[data-item="potion"]');
+  /* 道具分了两栏，血瓶可能在任何一栏 */
+  var pb = document.querySelector('#itemBar [data-item="potion"], #itemBar2 [data-item="potion"]');
   if(!pb) return;
   var off = !potionUsable();
   if(pb._off !== off){
@@ -6331,11 +6330,14 @@ function bindEvents(){
   $id('bLevels').addEventListener('click', openLevels);
   $id('bGallery').addEventListener('click', showGallery);
   $id('bShop').addEventListener('click', function(){ Sound.ui(); openShop(); });
-  $id('itemBar').addEventListener('click', function(e){
+  /* 道具分左右两栏，两边都要能点 */
+  function onItemClick(e){
     var btn = e.target.closest('[data-item]');
     if(!btn) return;
     useItem(btn.getAttribute('data-item'));
-  });
+  }
+  $id('itemBar').addEventListener('click', onItemClick);
+  if($id('itemBar2')) $id('itemBar2').addEventListener('click', onItemClick);
 
   /* 双摇杆（左=移动，右=瞄准发射）。原来的 ◄ ► 按钮已移除 */
   bindSticks();
