@@ -118,6 +118,11 @@ function bindEvents(){
     startCampaign();
   });
   $id('bIntroLevels').addEventListener('click', openLevels);
+  $id('bIntroGuide').addEventListener('click', function(){
+    Sound.ui();
+    /* 指南是独立页面，放新标签页打开，手机端会跳到浏览器 */
+    window.open('https://naiwadanzhu.surge.sh/guide.html', '_blank', 'noopener');
+  });
   $id('bIntroGallery').addEventListener('click', showGallery);
   $id('bIntroShop').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#102b2a">
+<title>奶系弹珠 · 新手指南</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;padding:20px 16px 40px;
+    background:radial-gradient(120% 80% at 50% 0,#163b38,#0a1a19 60%,#071413);
+    color:#f3e7c9;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    max-width:560px;margin:0 auto;
+  }
+  header{text-align:center;margin-bottom:22px}
+  .brand{
+    width:46px;height:46px;border-radius:13px;margin:0 auto 10px;
+    display:grid;place-items:center;font-size:22px;font-weight:700;color:#2a1c0a;
+    background:linear-gradient(160deg,#ffe9b8,#e8bf72);box-shadow:0 8px 22px rgba(0,0,0,.35);
+  }
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:.02em}
+  .sub{font-size:12.5px;color:#9fbdb2;letter-spacing:.08em}
+  .lead{
+    margin:18px 0 26px;padding:14px 16px;border-radius:14px;
+    background:rgba(255,222,160,.08);border:1px solid rgba(255,222,160,.22);
+    font-size:14.5px;color:#ffe9bd;
+  }
+  .lead b{color:#ffd88c}
+  section{margin:0 0 22px}
+  h2{
+    font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px;
+    color:#ffe6b4;letter-spacing:.02em;
+  }
+  h2 i{
+    font-style:normal;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+    font-size:12px;background:rgba(255,222,160,.14);border:1px solid rgba(255,222,160,.28);color:#ffd88c;
+  }
+  p{margin:0 0 10px;color:#d9e6dd}
+  ul{margin:0;padding-left:20px;color:#d9e6dd}
+  li{margin:0 0 7px}
+  .card{
+    padding:13px 15px;border-radius:13px;background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.09);
+  }
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)}
+  th{color:#9fbdb2;font-weight:500;font-size:12px}
+  td:first-child{white-space:nowrap;color:#ffe6b4}
+  .good{color:#9ee6a8}
+  .bad{color:#ff9f93}
+  .chain{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;
+    color:#cfe3d8;margin:8px 0 0;
+  }
+  .chain span{padding:4px 9px;border-radius:9px;background:rgba(255,222,160,.1);border:1px solid rgba(255,222,160,.2)}
+  .arrow{color:#8fbfa5}
+  .tip{
+    display:flex;gap:10px;padding:11px 13px;border-radius:12px;margin-bottom:8px;
+    background:rgba(120,220,160,.07);border:1px solid rgba(120,220,160,.18);font-size:14px;
+  }
+  .tip b{flex:0 0 20px;color:#8fe0a6}
+  .warn{
+    padding:12px 14px;border-radius:12px;font-size:13.5px;
+    background:rgba(255,120,110,.08);border:1px solid rgba(255,120,110,.25);color:#ffd9d3;
+  }
+  .cta{
+    display:block;margin:30px 0 0;padding:15px;border-radius:14px;text-align:center;
+    text-decoration:none;font-weight:600;letter-spacing:.06em;color:#26382a;
+    background:linear-gradient(160deg,#ffe9b8,#e8bf72);box-shadow:0 10px 24px rgba(0,0,0,.32);
+  }
+  footer{margin-top:26px;text-align:center;font-size:11.5px;color:#6f8d80;letter-spacing:.06em}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">奶</div>
+  <h1>新手指南</h1>
+  <div class="sub">3 分钟知道该干什么</div>
+</header>
+
+<div class="lead">
+  你要做的事只有一件：<b>把 Boss 的血条打空，同时别让自己的心掉光。</b>
+  其他一切（合成、道具、破防）都是为这件事服务的。
+</div>
+
+<section>
+  <h2><i>1</i>两个摇杆</h2>
+  <div class="card">
+    <table>
+      <tr><th>摇杆</th><th>怎么用</th></tr>
+      <tr><td>左（左下）</td><td>左右拖动 → 奶娃左右跑。<b>上下推没用</b></td></tr>
+      <tr><td>右（右下）</td><td><b>往下拉</b>蓄力，<b>松手</b>发射；左右偏可调角度</td></tr>
+    </table>
+    <p style="margin:10px 0 0;font-size:13px;color:#9fbdb2">记住：下拉 = 蓄力，松手 = 发射。</p>
+  </div>
+</section>
+
+<section>
+  <h2><i>2</i>核心循环</h2>
+  <p>发射奶球 → 撞 Boss → 掉落奶球 → 同类同级相撞<b>合体升 1 级</b> → 等级越高伤害越高。</p>
+  <div class="chain">
+    <span>发射</span><span class="arrow">→</span>
+    <span>撞 Boss</span><span class="arrow">→</span>
+    <span>掉球</span><span class="arrow">→</span>
+    <span>合体升级</span><span class="arrow">→</span>
+    <span>更痛</span>
+  </div>
+  <p style="margin-top:10px">别一直用小奶球磨：<b>5 级球伤害是 1 级的 8 倍</b>。先让球在场上互相撞、合并，你才能真正打疼它。</p>
+</section>
+
+<section>
+  <h2><i>3</i>打哪里</h2>
+  <div class="card">
+    <table>
+      <tr><th>目标</th><th>效果</th></tr>
+      <tr><td class="good">弱点板（发光圆点）</td><td>伤害 <b>×1.5</b> ✅ 尽量都打这里</td></tr>
+      <tr><td class="bad">身体其他部位</td><td>只有 <b>×0.35</b>，但会积累「破防」</td></tr>
+    </table>
+    <p style="margin:10px 0 0;font-size:13px">破防条满了 → Boss 硬直几秒，<b>这时打哪都算弱点</b>。所以打身体也不算白打。</p>
+  </div>
+</section>
+
+<section>
+  <h2><i>4</i>怎么不被打死</h2>
+  <p>Boss 出招前地面会出现<b>红色危险区</b>：</p>
+  <ul>
+    <li>看到红区 → <b>立刻用左摇杆走出去</b></li>
+    <li>红区快满时才离开 = <b>极限闪避</b>（分数 ×3 + 额外奶瓶）</li>
+    <li>被命中 → 扣心 + <b>眩晕</b>（0.5~0.9 秒动不了）</li>
+  </ul>
+  <div class="warn" style="margin-top:10px">站着不动 = 必被砸。这是新手最常见的死因。</div>
+</section>
+
+<section>
+  <h2><i>5</i>别乱发球</h2>
+  <p>一整发球<b>没碰到 Boss 就掉出底部</b>，算「空放」：装填变慢 8%，连续空放最多慢 45%；打中 Boss 立刻恢复。</p>
+  <div class="warn">所以：瞄准了再发，乱按只会越打越慢。</div>
+</section>
+
+<section>
+  <h2><i>6</i>道具</h2>
+  <div class="card">
+    <table>
+      <tr><th>道具</th><th>作用</th></tr>
+      <tr><td>🍼 血瓶</td><td>回血，<b>必买</b></td></tr>
+      <tr><td>⚡ 多球</td><td>一次发 3 颗</td></tr>
+      <tr><td>▭ 反弹板</td><td>底部挡板，球不会掉</td></tr>
+      <tr><td>⏱ 加时奶糖</td><td>+10 秒（可叠 6 个）</td></tr>
+      <tr><td>🔥 火球 / 🌀 传送门</td><td>增伤 / 捷径</td></tr>
+      <tr><td>⚡ 雷击 / ✨ 变身</td><td>爆发，Boss 残血时用</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><i>7</i>新手 5 条</h2>
+  <div class="tip"><b>1</b><span>先只练一件事：把球打到<b>发光圆点</b></span></div>
+  <div class="tip"><b>2</b><span>别急着发力，先让球合到 <b>3~4 级</b>再连续射</span></div>
+  <div class="tip"><b>3</b><span><b>红区永远优先于输出</b>：先躲，再打</span></div>
+  <div class="tip"><b>4</b><span>血瓶留到 <b>2 颗心以下</b>再喝</span></div>
+  <div class="tip"><b>5</b><span>前两关很宽松（90 秒、攻击慢），拿它们练手感</span></div>
+</section>
+
+<section>
+  <h2><i>8</i>输赢规则</h2>
+  <ul>
+    <li><b>赢</b>：Boss 血条打空</li>
+    <li><b>输</b>：心掉光，或者时间到</li>
+    <li>限时：90 / 85 / 80 / 75 / 70 / 65 / 60 / 60 秒（第 1 → 8 关）</li>
+  </ul>
+</section>
+
+<a class="cta" href="https://naiwadanzhu.surge.sh">开始讨伐 ↗</a>
+<footer>奶系弹珠 · THE MILKY UNIVERSE</footer>
+
+</body>
+</html>
