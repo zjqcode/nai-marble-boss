@@ -63,7 +63,7 @@ function executeTelegraph(){
   var ch = state.chapter;
   if(tg.type === 'laugh'){
     state.atkAnim = {type:'laugh', t:1.1, total:1.1};
-    Sound.wave();
+    Sound.haha();   /* 哈哈哈声波攻击 */
     for(var i=0;i<3;i++) ring(boss.x, boss.y - boss.h*.1, boss.w*.3, boss.w*(1.1+i*.35), '255,215,140', .8, 4);
     burst(boss.x, boss.y - boss.h*.05, boss.w*.4, 16, 6, '#ffe6a8');
     attackHit(tg, '笑声');

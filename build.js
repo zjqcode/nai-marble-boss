@@ -226,10 +226,13 @@ if (bg) data.bg = b64(bg);
 const AUDIO_EXTS = ['.mp3', '.m4a', '.mp4'];
 const winAudio = pick('laugh', AUDIO_EXTS) || pick('bgm', AUDIO_EXTS);
 const loseAudio = pick('lose', AUDIO_EXTS);
+const hahaAudio = pick('haha', AUDIO_EXTS);   /* 第一章笑声攻击 */
 if (winAudio) data.audioWin = b64(winAudio);
 else console.warn('[warn] 没有胜利音效素材（assets/laugh.mp3）');
 if (loseAudio) data.audioLose = b64(loseAudio);
-else console.warn('[warn] 没有失败音效素材（assets/lose.mp3）');
+if (hahaAudio) data.audioHaha = b64(hahaAudio);
+else console.warn('[warn] 没有笑声素材（assets/haha.mp3）');
+if (!loseAudio) console.warn('[warn] 没有失败音效素材（assets/lose.mp3）');
 
 if (!html.includes(TOKEN)) throw new Error('源码里找不到素材占位符 ' + TOKEN);
 /* 用函数式替换：避免素材数据中出现 $& / $' 时被当成替换模式 */

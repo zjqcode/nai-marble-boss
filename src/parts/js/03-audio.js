@@ -7,6 +7,7 @@ var Sound = (function(){
   var lastPlate = 0, lastPortal = 0, lastMove = 0;
   /* BGM 调度器状态 */
   var bgmTimer = null, bgmGain = null, bgmSend = null, bgmStep = 0, bgmNext = 0, bgmLevel = 0;
+var hahaEl = null;   /* 第一章笑声录音 */
 var wasBgmOn = false;   /* 切后台前 BGM 是否在放，用于回来时恢复 */
   var BGM_VOL = [0.17, 0.24, 0.30];
   var BGM_SPB = [0.30, 0.255, 0.225];   /* 每步秒数：越紧张越快 */
@@ -265,7 +266,24 @@ var wasBgmOn = false;   /* 切后台前 BGM 是否在放，用于回来时恢复
         tone({f:540-i*45, to:390-i*35, dur:0.12, gain:0.055, type:'square', send:0.2, delay:i*0.14});
       }
     },
-    wave: function(){
+    /* 第一章「笑声」攻击：优先放真实录音（assets/haha.mp3），
+     元素还没就绪/被拦截时回落到原来的合成音，保证不会哑。 */
+  /* 由外部注入笑声元素（boot 里拿到 #hahaSnd 后调用） */
+  setHaha: function(el){ hahaEl = el; },
+  haha: function(){
+    var el = (typeof hahaEl !== 'undefined') ? hahaEl : null;
+    var played = false;
+    if(el && el.getAttribute('src')){
+      try{
+        el.currentTime = 0;
+        var p = el.play();
+        if(p && p.catch){ p.catch(function(){}); }
+        played = true;
+      }catch(e){ played = false; }
+    }
+    if(!played) Sound.wave();
+  },
+  wave: function(){
       if(!ac || !on) return;
       noise({dur:0.5, f:260, to:1200, q:0.8, gain:0.12, type:'bandpass', send:0.25});
       tone({f:110, to:65, dur:0.45, gain:0.10, type:'sine'});

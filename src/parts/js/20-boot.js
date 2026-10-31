@@ -393,7 +393,15 @@ function boot(){
     loseEl.src = (ASSET_DATA && ASSET_DATA.audioLose) ? ASSET_DATA.audioLose : AUDIO_BASE + 'lose.mp3';
     loseEl.volume = 0.62;
     loseEl.loop = true;
-    loseEl.pause();
+  loseEl.pause();
+  }
+  var hahaEl = $id('hahaSnd');
+  if(hahaEl){
+    hahaEl.src = (ASSET_DATA && ASSET_DATA.audioHaha) ? ASSET_DATA.audioHaha : AUDIO_BASE + 'haha.mp3';
+    hahaEl.volume = 0.55;
+    hahaEl.loop = false;
+    hahaEl.preload = 'auto';
+    if(Sound.setHaha) Sound.setHaha(hahaEl);
   }
 
   if(!ASSET_DATA) document.title = '奶系弹珠 · 弹射讨伐（源码调试）';
