@@ -71,9 +71,9 @@ var CHAPTERS = [
    breakPct:0.125, dodgeW:0.21, tele:1.22, dodgeRate:0.85, combo:2, enragePct:0.60, rageMul:0.55,  brkRageMul:0.55,
    desc:'会下炸弹蛋的奶鸡，满场都是爆炸。',
    intro:'蛋蛋会铺满场地，优先打断它的轰炸。'},
-  {id:8, chap:'第八章', title:'终焉奶蛙', char:'奶蛙', hp:2500, time:64, every:4.6, atk:'thunder', atkName:'雷霆万钧',
+  {id:8, chap:'第八章', title:'终焉奶蛙', char:'奶蛙', hp:2500, time:64, every:4.1, atk:'thunder', atkName:'雷霆万钧',
    springs:true, portal:true, move:true, dodge:1.3, range:0.22,
-   breakPct:0.13, dodgeW:0.17, tele:1.40, dodgeRate:0.88, combo:2, enragePct:0.62, rageMul:0.55, minAtk:2.4,  brkRageMul:0.5,
+   breakPct:0.13, dodgeW:0.17, tele:1.40, dodgeRate:0.88, combo:2, enragePct:0.62, rageMul:0.48, minAtk:1.9,  brkRageMul:0.5,
    desc:'雷霆缠身的最终 BOSS，会闪避、游走、降下雷柱。',
    intro:'最终决战：它会在雷光中闪避你的每一发高级球。'}
 ];
