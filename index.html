@@ -1342,6 +1342,23 @@ body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointe
 .char-detail{overflow:hidden}
 .char-detail .orb{overflow:hidden}
 .char-detail .orb img{max-width:100%;max-height:100%;object-fit:contain}
+
+/* ---------- 矮屏（手机横屏带浏览器栏）章节面板：保证列表可用 ---------- */
+@media (max-height:430px){
+  /* 把空间让给章节列表：隐藏说明文字、压缩无尽按钮与头部 */
+  #levels .sheet-head{margin-bottom:4px}
+  #levels .sheet-head h2{font-size:17px}
+  #levels .sheet-head p,
+  #levels .hintline{display:none}
+  #levels .endless-btn{padding:7px 10px;margin-bottom:6px}
+  #levels .endless-btn b{font-size:12px}
+  #levels .endless-btn span{font-size:9px}
+  #levels #levelList{min-height:96px}
+  #levels .level-item{min-height:92px;padding:9px}
+  #levels .sheet>.ghost-btn{margin-top:6px;min-height:38px}
+}
+/* 保证任何情况下列表至少能看到一行 */
+#levels #levelList{min-height:88px}
 </style>
 </head>
 <body>
