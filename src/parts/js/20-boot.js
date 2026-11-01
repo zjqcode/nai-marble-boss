@@ -442,6 +442,19 @@ function boot(){
   if(q.indexOf('debug') >= 0){
     window.__NAI__ = {
       state: state,
+    imgState: function(){
+      var out = {};
+      for(var i=0;i<CHARS.length;i++){ var im = IMG[CHARS[i].n]; out[CHARS[i].n] = !!(im && im.naturalWidth); }
+      return out;
+    },
+    bossTex: function(){
+      var b = state.boss;
+      var img = b ? IMG[b.char] : null;
+      return { char: b && b.char, art: !!bossArt, aw: bossArtW, ah: bossArtH,
+               key: bossTexKey, hasImg: !!(img && img.naturalWidth),
+               w: b && b.w, h: b && b.h, entrance: b && b.entrance,
+               hitScale: b && b.hitScale, dead: b && b.dead, imagesReady: imagesReady() };
+    },
       view: view,
       META: META,
       startLevel: startLevel,

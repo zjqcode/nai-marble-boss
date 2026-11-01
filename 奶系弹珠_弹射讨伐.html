@@ -2399,7 +2399,7 @@ function loadImages(){
   function tick(){
     loaded++;
     loadingTick(loaded);
-    if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); loadingDone(); }
+    if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); loadingDone(); setTimeout(retryFailedImages, 6000); }
   }
   CHARS.forEach(function(c){
     var im = new Image();
@@ -2421,6 +2421,36 @@ function loadImages(){
     IMG[c.n] = im;
   });
 }
+/* 立绘加载失败的自愈：每 6 秒重试一次，最多 6 轮。
+   手机弱网/单个节点抖动时很常见——不重试就会一直画占位光斑，看起来像「Boss 不见了」。 */
+var IMG_RETRY = 0;
+function retryFailedImages(){
+  if(ASSET_DATA) return;                    /* 单文件版是内联 data URI，不存在网络失败 */
+  if(IMG_RETRY >= 6) return;
+  var failed = [];
+  for(var i=0;i<CHARS.length;i++){
+    var im = IMG[CHARS[i].n];
+    if(!im || !im.complete || !im.naturalWidth) failed.push(CHARS[i].n);
+  }
+  if(!failed.length) return;
+  IMG_RETRY++;
+  failed.forEach(function(name){
+    var im = IMG[name] || new Image();
+    IMG[name] = im;
+    im.onload = function(){
+      try { buildOrbTextures(); buildBossTexture(true); } catch(e) {}
+    };
+    var url = assetURL(name);
+    /* 交替换镜像节点，并加时间戳绕开失败缓存 */
+    if(IMG_RETRY % 2 === 0 && url.indexOf('cdn.jsdelivr.net') >= 0){
+      url = url.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net');
+    }
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'r=' + IMG_RETRY;
+    im.src = url;
+  });
+  setTimeout(retryFailedImages, 6000);
+}
+
 function imagesReady(){
   for(var i=0;i<CHARS.length;i++){
     var im = IMG[CHARS[i].n];
@@ -3021,6 +3051,8 @@ function applyEndlessWave(){
 
   var label = $id('chapLabel');
   if(label) label.textContent = '无尽 ' + w + '/' + ENDLESS_WAVES;
+  /* 换 Boss 后必须刷新血条/名字，否则会一直显示上一个 Boss 的数据 */
+  if(typeof updateBossHUD === 'function') updateBossHUD();
   var name = $id('levelName');
   if(name) name.textContent = ch.title;
   updateLevelHUD && updateLevelHUD();
@@ -7983,6 +8015,19 @@ function boot(){
   if(q.indexOf('debug') >= 0){
     window.__NAI__ = {
       state: state,
+    imgState: function(){
+      var out = {};
+      for(var i=0;i<CHARS.length;i++){ var im = IMG[CHARS[i].n]; out[CHARS[i].n] = !!(im && im.naturalWidth); }
+      return out;
+    },
+    bossTex: function(){
+      var b = state.boss;
+      var img = b ? IMG[b.char] : null;
+      return { char: b && b.char, art: !!bossArt, aw: bossArtW, ah: bossArtH,
+               key: bossTexKey, hasImg: !!(img && img.naturalWidth),
+               w: b && b.w, h: b && b.h, entrance: b && b.entrance,
+               hitScale: b && b.hitScale, dead: b && b.dead, imagesReady: imagesReady() };
+    },
       view: view,
       META: META,
       startLevel: startLevel,

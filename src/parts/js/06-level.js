@@ -110,6 +110,8 @@ function applyEndlessWave(){
 
   var label = $id('chapLabel');
   if(label) label.textContent = '无尽 ' + w + '/' + ENDLESS_WAVES;
+  /* 换 Boss 后必须刷新血条/名字，否则会一直显示上一个 Boss 的数据 */
+  if(typeof updateBossHUD === 'function') updateBossHUD();
   var name = $id('levelName');
   if(name) name.textContent = ch.title;
   updateLevelHUD && updateLevelHUD();

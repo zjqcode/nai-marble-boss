@@ -73,7 +73,7 @@ function loadImages(){
   function tick(){
     loaded++;
     loadingTick(loaded);
-    if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); loadingDone(); }
+    if(loaded >= CHARS.length){ buildOrbTextures(); buildBossTexture(true); loadingDone(); setTimeout(retryFailedImages, 6000); }
   }
   CHARS.forEach(function(c){
     var im = new Image();
@@ -95,6 +95,36 @@ function loadImages(){
     IMG[c.n] = im;
   });
 }
+/* 立绘加载失败的自愈：每 6 秒重试一次，最多 6 轮。
+   手机弱网/单个节点抖动时很常见——不重试就会一直画占位光斑，看起来像「Boss 不见了」。 */
+var IMG_RETRY = 0;
+function retryFailedImages(){
+  if(ASSET_DATA) return;                    /* 单文件版是内联 data URI，不存在网络失败 */
+  if(IMG_RETRY >= 6) return;
+  var failed = [];
+  for(var i=0;i<CHARS.length;i++){
+    var im = IMG[CHARS[i].n];
+    if(!im || !im.complete || !im.naturalWidth) failed.push(CHARS[i].n);
+  }
+  if(!failed.length) return;
+  IMG_RETRY++;
+  failed.forEach(function(name){
+    var im = IMG[name] || new Image();
+    IMG[name] = im;
+    im.onload = function(){
+      try { buildOrbTextures(); buildBossTexture(true); } catch(e) {}
+    };
+    var url = assetURL(name);
+    /* 交替换镜像节点，并加时间戳绕开失败缓存 */
+    if(IMG_RETRY % 2 === 0 && url.indexOf('cdn.jsdelivr.net') >= 0){
+      url = url.replace('cdn.jsdelivr.net', 'gcore.jsdelivr.net');
+    }
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'r=' + IMG_RETRY;
+    im.src = url;
+  });
+  setTimeout(retryFailedImages, 6000);
+}
+
 function imagesReady(){
   for(var i=0;i<CHARS.length;i++){
     var im = IMG[CHARS[i].n];
