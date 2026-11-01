@@ -6,6 +6,20 @@
 
 ![新战场](preview/play.jpg)
 
+## 🎮 在线试玩
+
+| 入口 | 地址 | 说明 |
+|---|---|---|
+| **主站（推荐）** | https://naiwadanzhu.surge.sh | 国内直连，加载最快 |
+| 新手演习 | https://naiwadanzhu.surge.sh/?tutorial=1 | 直接进第一章，4 步引导 |
+| 新手指南 | https://naiwadanzhu.surge.sh/guide.html | 30 秒上手 / 8 个 Boss 打法 |
+| 备用（GitHub Pages） | https://zjqcode.github.io/nai-marble-boss/ | 单一文件版，国内可能需要代理 |
+| 仓库里的单文件 | `index.html` | 直接下载双击即玩 |
+
+> Gitee 仅作代码镜像：Gitee Pages 服务已对新用户关闭（接口返回 405），
+> 所以 Gitee 上没有可玩的网页，请用上面的主站或 GitHub Pages。
+
+
 ## 打开
 
 双击 `奶系弹珠_弹射讨伐.html`（Chrome / Edge / Safari / 微信）。单文件离线可玩，手机请横屏。
