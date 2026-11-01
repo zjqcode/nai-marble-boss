@@ -41,7 +41,10 @@ function startLevel(idx){
   Sound.init();
   Sound.setOn(state.soundOn);
   state.mode = 'play';
-  if(typeof tutStart === 'function') tutStart(idx);
+  state.settlePanelShown = false;
+  state.settleReopenT = 0;
+  /* ?tutorial=1 强制进入新手演习（忽略「已看过教程」的记录） */
+  if(typeof tutStart === 'function') tutStart(idx, /[?&]tutorial=1/.test(location.search));
   state.paused = false;
   state.balls.length = 0;
   state.rocks.length = 0;

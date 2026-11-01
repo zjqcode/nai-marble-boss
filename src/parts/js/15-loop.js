@@ -60,6 +60,18 @@ function stepPhysics(dt){
 
 function update(dt){
   if(typeof tutMoveTick === 'function') tutMoveTick();
+
+  /* 结算面板被误关（点空白/切后台回来）时自动重新弹出：
+     否则会卡在「Boss 已死、场地空、没有下一步」的死界面。 */
+  if((state.mode === 'victory' || state.mode === 'lose') && state.settlePanelShown && !state.paused){
+    state.settleReopenT = (state.settleReopenT || 0) + dt;
+    if(state.settleReopenT > 0.5){
+      state.settleReopenT = 0;
+      openScreen(state.mode === 'victory' ? 'win' : 'lose');
+    }
+  } else if(state.mode === 'play'){
+    state.settleReopenT = 0;
+  }
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);

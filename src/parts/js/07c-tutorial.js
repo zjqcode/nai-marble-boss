@@ -94,8 +94,9 @@ function tutSetStep(n){
   if(n === 0){ tutStartX = state.cannonX; tutMoved = 0; }
 }
 
-function tutStart(chapterIndex){
-  if(chapterIndex !== 0 || tutSeen()) return;
+function tutStart(chapterIndex, force){
+  if(chapterIndex !== 0) return;
+  if(!force && tutSeen()) return;
   tutOn = true;
   tutSetStep(0);
 }

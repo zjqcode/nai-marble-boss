@@ -81,7 +81,7 @@ function bossDie(){
     unlock: unlocked,
     hpLeft: boss.hp
   };
-  setTimeout(function(){ if(state.mode === 'victory') showWin(); }, 1450);
+  setTimeout(function(){ if(state.mode === 'victory'){ showWin(); state.settlePanelShown = true; } }, 1450);
 }
 
 /* 失败：时间耗尽（另一种是 10-boss.js 的 heroDown：血量归零） */
@@ -91,6 +91,6 @@ function failLevel(){
   state.shake = Math.max(state.shake, 10);
   state.result = loseResult({ reason: 'time' });
   saveMeta();
-  setTimeout(function(){ if(state.mode === 'lose') showLose(); }, 700);
+  setTimeout(function(){ if(state.mode === 'lose'){ showLose(); state.settlePanelShown = true; } }, 700);
 }
 

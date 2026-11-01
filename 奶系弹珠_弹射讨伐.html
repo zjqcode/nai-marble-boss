@@ -1514,6 +1514,7 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
     </div>
     <button id="bNext" class="start-btn small"><span>进入下一章</span></button>
     <button class="ghost-btn" id="bWinLevels">选择章节</button>
+    <button class="ghost-btn" id="bWinHome">返回主页</button>
   </div>
 </section>
 
@@ -1528,6 +1529,7 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
     </div>
     <button id="bRetry" class="start-btn small"><span>再 来 一 次</span></button>
     <button class="ghost-btn" id="bLoseLevels">选择章节</button>
+    <button class="ghost-btn" id="bLoseHome">返回主页</button>
   </div>
 </section>
 
@@ -2868,7 +2870,10 @@ function startLevel(idx){
   Sound.init();
   Sound.setOn(state.soundOn);
   state.mode = 'play';
-  if(typeof tutStart === 'function') tutStart(idx);
+  state.settlePanelShown = false;
+  state.settleReopenT = 0;
+  /* ?tutorial=1 强制进入新手演习（忽略「已看过教程」的记录） */
+  if(typeof tutStart === 'function') tutStart(idx, /[?&]tutorial=1/.test(location.search));
   state.paused = false;
   state.balls.length = 0;
   state.rocks.length = 0;
@@ -3297,8 +3302,9 @@ function tutSetStep(n){
   if(n === 0){ tutStartX = state.cannonX; tutMoved = 0; }
 }
 
-function tutStart(chapterIndex){
-  if(chapterIndex !== 0 || tutSeen()) return;
+function tutStart(chapterIndex, force){
+  if(chapterIndex !== 0) return;
+  if(!force && tutSeen()) return;
   tutOn = true;
   tutSetStep(0);
 }
@@ -4954,7 +4960,7 @@ function bossDie(){
     unlock: unlocked,
     hpLeft: boss.hp
   };
-  setTimeout(function(){ if(state.mode === 'victory') showWin(); }, 1450);
+  setTimeout(function(){ if(state.mode === 'victory'){ showWin(); state.settlePanelShown = true; } }, 1450);
 }
 
 /* 失败：时间耗尽（另一种是 10-boss.js 的 heroDown：血量归零） */
@@ -4964,7 +4970,7 @@ function failLevel(){
   state.shake = Math.max(state.shake, 10);
   state.result = loseResult({ reason: 'time' });
   saveMeta();
-  setTimeout(function(){ if(state.mode === 'lose') showLose(); }, 700);
+  setTimeout(function(){ if(state.mode === 'lose'){ showLose(); state.settlePanelShown = true; } }, 700);
 }
 
 /* =========================================================
@@ -5197,6 +5203,18 @@ function stepPhysics(dt){
 
 function update(dt){
   if(typeof tutMoveTick === 'function') tutMoveTick();
+
+  /* 结算面板被误关（点空白/切后台回来）时自动重新弹出：
+     否则会卡在「Boss 已死、场地空、没有下一步」的死界面。 */
+  if((state.mode === 'victory' || state.mode === 'lose') && state.settlePanelShown && !state.paused){
+    state.settleReopenT = (state.settleReopenT || 0) + dt;
+    if(state.settleReopenT > 0.5){
+      state.settleReopenT = 0;
+      openScreen(state.mode === 'victory' ? 'win' : 'lose');
+    }
+  } else if(state.mode === 'play'){
+    state.settleReopenT = 0;
+  }
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
@@ -7482,6 +7500,8 @@ function bindEvents(){
   });
   $id('bWinLevels').addEventListener('click', openLevels);
   $id('bLoseLevels').addEventListener('click', openLevels);
+  $id('bWinHome').addEventListener('click', function(){ goHome(); });
+  $id('bLoseHome').addEventListener('click', function(){ goHome(); });
   $id('bRetry').addEventListener('click', function(){
     Sound.ui();
     closeAllScreens();
@@ -7720,6 +7740,11 @@ function boot(){
   if(lm){
     hideIntro();
     startLevel(clamp(parseInt(lm[1],10)-1, 0, CHAPTERS.length-1));
+  }
+  /* ?tutorial=1：直接从首页进入第一章的新手演习（教程强制开启） */
+  if(!lm && /[?&]tutorial=1/.test(q)){
+    hideIntro();
+    startLevel(0);
   }
   if(q.indexOf('autoplay') >= 0){
     hideIntro();

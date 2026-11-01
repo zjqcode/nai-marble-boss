@@ -230,6 +230,8 @@ function bindEvents(){
   });
   $id('bWinLevels').addEventListener('click', openLevels);
   $id('bLoseLevels').addEventListener('click', openLevels);
+  $id('bWinHome').addEventListener('click', function(){ goHome(); });
+  $id('bLoseHome').addEventListener('click', function(){ goHome(); });
   $id('bRetry').addEventListener('click', function(){
     Sound.ui();
     closeAllScreens();
@@ -468,6 +470,11 @@ function boot(){
   if(lm){
     hideIntro();
     startLevel(clamp(parseInt(lm[1],10)-1, 0, CHAPTERS.length-1));
+  }
+  /* ?tutorial=1：直接从首页进入第一章的新手演习（教程强制开启） */
+  if(!lm && /[?&]tutorial=1/.test(q)){
+    hideIntro();
+    startLevel(0);
   }
   if(q.indexOf('autoplay') >= 0){
     hideIntro();
