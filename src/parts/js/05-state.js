@@ -59,6 +59,9 @@ var state = {
   rageLv: 0, atkBase: 0, dangerT: 99,
   /* 新手教程：tutHold 为真时 Boss 暂停计数，先让玩家学会操作 */
   tutHold: false,
+  /* 无尽模式 */
+  endless: false,
+  wave: 1,
   /* 空放惩罚：missStreak 连续空放次数、reloadBase 未受罚的装填基准 */
   missStreak: 0, reloadBase: 0,
   superT: 0,

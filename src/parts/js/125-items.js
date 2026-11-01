@@ -337,6 +337,8 @@ var ITEM_USE = {
 };
 
 function useItem(key){
+  /* 无尽模式不能使用道具 */
+  if(state.endless){ toast('无尽模式不能使用道具'); return; }
   /* 暂停 / 阵亡 / 过场中一律不可用 */
   if(state.mode !== 'play' || state.paused || state.cineT > 0) return;
   if(itemCount(key) <= 0) return;

@@ -248,6 +248,8 @@ function dodgeSuccess(){
 /* 失败：血量归零（另一种是 13-settle.js 的 failLevel：超时）。
    清场与结算音效由 settleLevel 统一负责，这里只管本路径特有的表现。 */
 function heroDown(reason){
+  /* 无尽模式：记录到状态上，失败面板会显示波次与最高纪录 */
+  if(state.endless) state.endlessDeadWave = state.wave;
   if(!settleLevel('lose')) return;
   state.deadReason = reason || '反击';
   Sound.lose();

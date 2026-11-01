@@ -44,6 +44,8 @@ function loseResult(extra){
 function bossDie(){
   var boss = state.boss;
   if(!boss || boss.dead) return;
+  /* 无尽模式：打完直接进下一波，不弹结算面板 */
+  if(state.endless){ endlessWaveClear(boss); return; }
   boss.dead = true;
   if(!settleLevel('win')) return;
   $id('bossAtk').classList.remove('hot');

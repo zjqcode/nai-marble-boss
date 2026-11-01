@@ -5,6 +5,7 @@ var META = {milk:0, progress:0, unlocked:{}, lv:{}, best:0};
 
 function loadMeta(){
   var raw = store('nai_boss_meta');
+  var hadSave = !!raw;
   if(raw){
     try{
       var o = JSON.parse(raw);
@@ -24,11 +25,23 @@ function loadMeta(){
   /* 首次运行或旧存档没有这两个字段时兜底，useItem 直接写 META.items 不会再抛 */
   if(!META.shop || typeof META.shop !== 'object') META.shop = {};
   if(!META.items || typeof META.items !== 'object') META.items = {};
+
+  /* 新玩家礼包：真·新存档（没有任何存档，或存档里一点进度都没有）才送 500 奶瓶。
+     老玩家（有进度/奶瓶/最高分/已解锁角色）不发。 */
+  /* 只有「完全没有存档」才算新玩家：存档损坏/老版本空存档都不白送 */
+  var isFresh = !hadSave && !META.starterGift && META.milk === 0;
+  if(isFresh){
+    META.milk += 500;
+    META.starterGift = 1;
+    saveMeta();
+    setTimeout(function(){ toast('新玩家礼包 +500 奶瓶 🍼'); }, 900);
+  }
 }
 function saveMeta(){
   try{
     store('nai_boss_meta', JSON.stringify({
       milk: META.milk, progress: META.progress, best: META.best,
+    starterGift: META.starterGift || 0, bestEndless: META.bestEndless || 0,
       unlocked: META.unlocked, lv: META.lv,
       shop: META.shop, items: META.items
     }));

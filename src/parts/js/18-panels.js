@@ -56,5 +56,16 @@ function showLose(){
     $id('loseSub').textContent = 'Boss 还剩 ' + (res.hpLeft ? Math.ceil(res.hpLeft) : 0) + ' 点血 · 反弹越多，暴击越狠';
   }
   openScreen('lose');
+  /* 无尽模式：显示最高波次并记录 */
+  if(state.endless){
+    var w = state.endlessDeadWave || state.wave;
+    var best = Math.max(META.bestEndless || 0, w);
+    META.bestEndless = best;
+    saveMeta();
+    var t = $id('loseTitle');
+    if(t) t.textContent = '无尽结束 · 第 ' + w + ' 波';
+    var sub = $id('loseSub');
+    if(sub) sub.textContent = '最高纪录 第 ' + best + ' 波 · 本局得分 ' + fmt(state.score);
+  }
 }
 

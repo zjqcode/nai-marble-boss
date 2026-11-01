@@ -131,6 +131,7 @@ function bindEvents(){
     startCampaign();
   });
   $id('bIntroLevels').addEventListener('click', openLevels);
+  $id('bEndless').addEventListener('click', function(){ Sound.ui(); openLevels(); startEndless(); });
   /* 从指南面板直接开演习：强制走教程流程 */
   $id('bGuideTrain').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();

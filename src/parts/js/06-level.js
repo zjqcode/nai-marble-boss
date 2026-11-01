@@ -32,6 +32,97 @@ function flashStart(){
   state.flash = Math.max(state.flash, .7);
 }
 
+/* 造一个 Boss 实例（普通关和无限波次共用） */
+function buildBoss(ch){
+  return {
+    char: ch.char, title: ch.title, chap: ch.chap,
+    hp: ch.hp, maxHp: ch.hp,
+    x: view.cx, y: view.bossY, baseY: view.bossY,
+    r: Math.round(view.bossH*0.34), w: Math.round(view.bossH*0.62), h: view.bossH,
+    flash: 0, hitScale: 1, entrance: 0, dead: false,
+    movePhase: rand(0,TAU), charge: 0, dir: 1, hopT: 0,
+    dodgeCd: 0.8, dashT: 0, dashX: view.cx, enraged: false, invuln: 0,
+    brk: 0, brkMax: Math.max(20, Math.round(ch.hp * (ch.breakPct || 0.09))), brkT: 0, brkCount: 0
+  };
+}
+
+
+/* =========================================================
+   无尽模式
+   - 不限章节：永久第 1 章的场地，波次递进（血量、攻击频率、伤害都在涨）
+   - 不能使用道具（道具栏隐藏，useItem 直接拒绝）
+   - 每波有独立倒计时，超时或血量归零即结束
+   ========================================================= */
+function endlessWaveCfg(w){
+  var base = CHAPTERS[0];
+  return {
+    hp: Math.round(base.hp * Math.pow(1.30, w - 1)),
+    every: Math.max(2.0, base.every * Math.pow(0.93, w - 1)),
+    dmg: Math.min(4, 1 + Math.floor((w - 1) / 3)),
+    time: Math.max(45, Math.round(base.time * Math.pow(0.97, w - 1)))
+  };
+}
+
+function applyEndlessWave(){
+  var w = state.wave;
+  var cfg = endlessWaveCfg(w);
+  var b = state.boss;
+  if(b){
+    b.maxHp = cfg.hp; b.hp = cfg.hp;
+    b.brkMax = Math.max(20, Math.round(cfg.hp * 0.09));
+    b.dead = false;
+  }
+  state.atkEvery = cfg.every * state.eff.attackDelay;
+  state.atkBase = state.atkEvery;
+  state.atkTimer = state.atkEvery;
+  state.atkDmg = cfg.dmg;
+  state.rageLv = 0;
+  state.timer = cfg.time;
+  state.timeMax = cfg.time;
+  var label = $id('chapLabel');
+  if(label) label.textContent = '无尽 · 第 ' + w + ' 波';
+  updateLevelHUD && updateLevelHUD();
+}
+
+function startEndless(){
+  startLevel(0);
+  state.endless = true;
+  state.wave = 1;
+  /* 无尽模式不弹新手教程（想学操作请走「新手演习」） */
+  if(typeof tutStop === 'function') tutStop(false);
+  document.body.classList.add('endless');
+  applyEndlessWave();
+  updateItemBar();
+  toast('无尽模式开始 · 本模式不能使用道具');
+}
+
+/* 一波打完：不结算，直接换更强的下一个 Boss */
+function endlessWaveClear(boss){
+  boss.dead = true;
+  state.flashHue = 'gold';
+  state.flash = 1;
+  state.slowmo = Math.max(state.slowmo, 0.55);
+  state.shake = Math.max(state.shake, 22);
+  cssShake('m');
+  Sound.win();
+  ring(boss.x, boss.y, boss.r*0.3, boss.r*4.0, '255,235,170', .9, 6);
+  burst(boss.x, boss.y, boss.r, 48, 11, '#ffe9b0');
+  state.score += 500 + state.wave*250;
+  state.runMilk += 10 + state.wave*3;
+  state.telegraph = null;
+  state.atkAnim = null;
+  var cleared = state.wave;
+  state.wave++;
+  toast('第 ' + cleared + ' 波击破！第 ' + state.wave + ' 波来了');
+  setTimeout(function(){
+    if(!state.endless || state.mode !== 'play') return;
+    state.boss = buildBoss(CHAPTERS[0]);
+    buildBossTexture(true);
+    applyEndlessWave();
+    state.cineT = Math.max(state.cineT, 0.8);
+  }, 950);
+}
+
 function startLevel(idx){
   idx = clamp(idx|0, 0, CHAPTERS.length-1);
   var ch = CHAPTERS[idx];
@@ -41,6 +132,9 @@ function startLevel(idx){
   Sound.init();
   Sound.setOn(state.soundOn);
   state.mode = 'play';
+  state.endless = false;
+  state.wave = 1;
+  if(document.body) document.body.classList.remove('endless');
   state.settlePanelShown = false;
   state.settleReopenT = 0;
   /* ?tutorial=1 强制进入新手演习（忽略「已看过教程」的记录） */
@@ -118,16 +212,7 @@ function startLevel(idx){
   state.stunT = 0; state.stunCd = 0; state.invulnT = 0;
   document.body.classList.remove('stunned');
   state.stickX = 0;
-  state.boss = {
-    char: ch.char, title: ch.title, chap: ch.chap,
-    hp: ch.hp, maxHp: ch.hp,
-    x: view.cx, y: view.bossY, baseY: view.bossY,
-    r: Math.round(view.bossH*0.34), w: Math.round(view.bossH*0.62), h: view.bossH,
-    flash: 0, hitScale: 1, entrance: 0, dead: false,
-    movePhase: rand(0,TAU), charge: 0, dir: 1, hopT: 0,
-    dodgeCd: 0.8, dashT: 0, dashX: view.cx, enraged: false, invuln: 0,
-    brk: 0, brkMax: Math.max(20, Math.round(ch.hp * (ch.breakPct || 0.09))), brkT: 0, brkCount: 0
-  };
+  state.boss = buildBoss(ch);
   buildBossTexture(true);
   state.loadLv = refreshLoadLevel();
 

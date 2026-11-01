@@ -147,6 +147,8 @@ function syncIntroTools(){
 
 /* 回主页面：清掉本关运行时状态，把首页重新显示出来（不保存这一局的进度） */
 function goHome(){
+  state.endless = false;
+  if(document.body) document.body.classList.remove('endless');
   closeAllScreens();
   Sound.ui();
   /* 停掉结算音轨（BGM 是程序化生成的，跟着游戏状态停） */
