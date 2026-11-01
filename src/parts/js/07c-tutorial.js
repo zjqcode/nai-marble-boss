@@ -44,28 +44,39 @@ function tutPlace(target){
   var el = tutBuild();
   if(!el) return;
   var W = window.innerWidth, H = window.innerHeight;
-  var x = W * 0.5, y = H * 0.5, below = true;
+  var card = el.querySelector('.coach-card');
+  el.style.width = '';
+  var cw = card.offsetWidth || 220;
+  var ch = card.offsetHeight || 70;
+  var cx = W * 0.5, cy = H * 0.5;
+  var arrowUp = true;                    /* true = 气泡在目标下方，箭头朝上 */
+  var top, left;
+
   if(target === 'stickL' || target === 'stickR'){
     var s = document.getElementById(target);
     if(s){
       var r = s.getBoundingClientRect();
-      x = r.left + r.width / 2;
-      y = r.top;
-      below = false;
+      cx = r.left + r.width / 2;
+      /* 摇杆贴底：气泡放上方，箭头朝下 */
+      top = Math.max(8, r.top - ch - 14);
+      arrowUp = false;
     }
   } else if(target === 'boss' && state.boss){
-    x = state.boss.x;
-    y = view.arenaTop + 10;
-    below = true;
+    var b = state.boss;
+    cx = b.x;
+    /* 关键：放到 Boss 下沿再往下一点，别压住立绘 */
+    top = Math.min(H - ch - 10, b.y + b.h * 0.5 + 12);
+    arrowUp = true;
   }
-  var halfW = Math.min(210, W * 0.46);
-  var left = Math.max(10, Math.min(W - halfW - 10, x - halfW));
-  el.style.width = (halfW * 2) + 'px';
+  if(top === undefined){
+    top = Math.max(8, Math.min(H - ch - 10, cy - ch / 2));
+  }
+  left = Math.max(8, Math.min(W - cw - 8, cx - cw / 2));
+
   el.style.left = left + 'px';
-  /* 摇杆在上方 → 气泡放摇杆上面；否则放下方 */
-  var cardH = 86;
-  el.style.top = (below ? y + 14 : y - cardH - 16) + 'px';
-  el.classList.toggle('up', !below);
+  el.style.top = top + 'px';
+  el.classList.toggle('up', arrowUp);
+  el.style.setProperty('--arrow-x', Math.round(cx - left) + 'px');
 }
 
 function tutSetStep(n){

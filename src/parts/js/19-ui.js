@@ -103,7 +103,8 @@ function hideFsHint(remember){
 function maybeShowFsHint(){
   var el = $id('fsHint'), btn = $id('bIntroFull');
   if(!el || !btn) return;
-  if(fsHintSeen()) return;
+  /* 不再用永久标记拦：只要当前不在全屏，每次进首页都提示一次（8 秒自动收），
+     避免玩家第一次没注意、之后就永远看不到入口。 */
   if(document.fullscreenElement || document.webkitFullscreenElement) return;
   var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
   if(!can) return;

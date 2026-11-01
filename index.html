@@ -1257,11 +1257,12 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 }
 #coach.show{opacity:1;transform:none}
 .coach-card{
-  pointer-events:auto;padding:11px 13px 12px;border-radius:14px;
+  pointer-events:auto;display:inline-block;max-width:232px;
+  padding:8px 11px 9px;border-radius:12px;
   background:linear-gradient(160deg,rgba(255,238,194,.97),rgba(238,192,120,.97));
-  color:#243a2c;box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(255,246,214,.6);
+  color:#243a2c;box-shadow:0 10px 24px rgba(0,0,0,.42),0 0 0 1px rgba(255,246,214,.55);
 }
-.coach-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.coach-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .coach-step{
   font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#5a4a22;
   background:rgba(255,255,255,.45);padding:2px 7px;border-radius:99px;
@@ -1270,13 +1271,13 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   pointer-events:auto;border:none;background:none;padding:2px 0;cursor:pointer;
   font:inherit;font-size:11px;color:#6b5a2e;text-decoration:underline;opacity:.85;
 }
-.coach-text{margin:0;font-size:13.5px;font-weight:700;line-height:1.45}
-.coach-sub{margin:3px 0 0;font-size:11px;color:#5b4a24;opacity:.85;line-height:1.4}
+.coach-text{margin:0;font-size:12.5px;font-weight:700;line-height:1.4}
+.coach-sub{margin:2px 0 0;font-size:10px;color:#5b4a24;opacity:.8;line-height:1.35}
 .coach-arrow{
-  position:absolute;left:50%;bottom:-7px;width:14px;height:14px;margin-left:-7px;
+  position:absolute;left:var(--arrow-x,50%);bottom:-6px;width:12px;height:12px;margin-left:-6px;
   background:rgba(240,198,128,.97);transform:rotate(45deg);border-radius:2px;
 }
-#coach.up .coach-arrow{bottom:auto;top:-7px;background:rgba(255,238,194,.97)}
+#coach.up .coach-arrow{bottom:auto;top:-6px;background:rgba(255,238,194,.97)}
 </style>
 </head>
 <body>
@@ -3246,28 +3247,39 @@ function tutPlace(target){
   var el = tutBuild();
   if(!el) return;
   var W = window.innerWidth, H = window.innerHeight;
-  var x = W * 0.5, y = H * 0.5, below = true;
+  var card = el.querySelector('.coach-card');
+  el.style.width = '';
+  var cw = card.offsetWidth || 220;
+  var ch = card.offsetHeight || 70;
+  var cx = W * 0.5, cy = H * 0.5;
+  var arrowUp = true;                    /* true = 气泡在目标下方，箭头朝上 */
+  var top, left;
+
   if(target === 'stickL' || target === 'stickR'){
     var s = document.getElementById(target);
     if(s){
       var r = s.getBoundingClientRect();
-      x = r.left + r.width / 2;
-      y = r.top;
-      below = false;
+      cx = r.left + r.width / 2;
+      /* 摇杆贴底：气泡放上方，箭头朝下 */
+      top = Math.max(8, r.top - ch - 14);
+      arrowUp = false;
     }
   } else if(target === 'boss' && state.boss){
-    x = state.boss.x;
-    y = view.arenaTop + 10;
-    below = true;
+    var b = state.boss;
+    cx = b.x;
+    /* 关键：放到 Boss 下沿再往下一点，别压住立绘 */
+    top = Math.min(H - ch - 10, b.y + b.h * 0.5 + 12);
+    arrowUp = true;
   }
-  var halfW = Math.min(210, W * 0.46);
-  var left = Math.max(10, Math.min(W - halfW - 10, x - halfW));
-  el.style.width = (halfW * 2) + 'px';
+  if(top === undefined){
+    top = Math.max(8, Math.min(H - ch - 10, cy - ch / 2));
+  }
+  left = Math.max(8, Math.min(W - cw - 8, cx - cw / 2));
+
   el.style.left = left + 'px';
-  /* 摇杆在上方 → 气泡放摇杆上面；否则放下方 */
-  var cardH = 86;
-  el.style.top = (below ? y + 14 : y - cardH - 16) + 'px';
-  el.classList.toggle('up', !below);
+  el.style.top = top + 'px';
+  el.classList.toggle('up', arrowUp);
+  el.style.setProperty('--arrow-x', Math.round(cx - left) + 'px');
 }
 
 function tutSetStep(n){
@@ -7062,7 +7074,8 @@ function hideFsHint(remember){
 function maybeShowFsHint(){
   var el = $id('fsHint'), btn = $id('bIntroFull');
   if(!el || !btn) return;
-  if(fsHintSeen()) return;
+  /* 不再用永久标记拦：只要当前不在全屏，每次进首页都提示一次（8 秒自动收），
+     避免玩家第一次没注意、之后就永远看不到入口。 */
   if(document.fullscreenElement || document.webkitFullscreenElement) return;
   var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
   if(!can) return;
