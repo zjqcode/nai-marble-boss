@@ -1284,14 +1284,28 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 #coach.up .coach-arrow{bottom:auto;top:-6px;background:rgba(255,238,194,.97)}
 
 /* 游戏内新手指南 */
-.guide-sheet{max-width:560px}
+.guide-sheet{
+  max-width:560px;max-height:calc(100% - 16px);overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.guide-sheet #bGuideTrain{width:100%;margin:2px 0 8px}
 .guide-list{
   margin:0 0 12px;padding-left:20px;display:grid;gap:7px;
   font-size:13px;line-height:1.55;color:#dbe8de;
 }
 .guide-list b{color:#ffe3a8}
 .guide-list li::marker{color:#e9c27a;font-weight:700}
-</style>
+
+/* 矮屏（手机横屏 360~420px）压缩指南面板，保证两个按钮都在视野内 */
+@media (max-height:430px){
+  .guide-sheet{padding:10px 14px 10px}
+  .guide-sheet .sheet-head{margin-bottom:6px;gap:8px}
+  .guide-sheet h2{font-size:18px}
+  .guide-sheet .sheet-head p{font-size:9.5px;margin-top:2px}
+  .guide-list{font-size:11.5px;gap:4px;margin-bottom:8px;padding-left:18px}
+  .guide-sheet #bGuideTrain{min-height:40px;font-size:12.5px;margin:0 0 6px}
+  .guide-sheet .ghost-btn{min-height:38px;font-size:11.5px}
+}</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
@@ -1576,7 +1590,8 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
       <li>一发球没碰到 Boss 就掉出底部算<b>空放</b>，装填会变慢</li>
       <li>血瓶留到 <b>2 颗心以下</b>再喝</li>
     </ol>
-    <button class="ghost-btn" data-close>返回</button>
+        <button class="start-btn small" id="bGuideTrain"><span>▶ 开始新手演习</span></button>
+<button class="ghost-btn" data-close>返回</button>
   </div>
 </section>
 <div id="rotate">
@@ -2904,7 +2919,7 @@ function startLevel(idx){
   state.settlePanelShown = false;
   state.settleReopenT = 0;
   /* ?tutorial=1 强制进入新手演习（忽略「已看过教程」的记录） */
-  if(typeof tutStart === 'function') tutStart(idx, /[?&]tutorial=1/.test(location.search));
+  if(typeof tutStart === 'function'){ tutStart(idx, state.tutForce || /[?&]tutorial=1/.test(location.search)); state.tutForce = false; }
   state.paused = false;
   state.balls.length = 0;
   state.rocks.length = 0;
@@ -3158,7 +3173,7 @@ function bindStick(el, opts){
     /* 关键：锚点 = 按下位置，不是圆心 */
     ax = e.clientX;
     ay = e.clientY;
-    maxR = r.width * STICK_TRAVEL;
+    maxR = r.width * (opts.travel || STICK_TRAVEL);
     pid = e.pointerId;
     el.classList.add('active');
     try{ el.setPointerCapture(pid); }catch(err){}
@@ -3193,9 +3208,17 @@ function bindSticks(){
   /* ---- 左摇杆：只取横向 ---- */
   bindStick($id('stickL'), {
     horizontal: true,
+    travel: 0.20,                 /* 左摇杆要更跟手：到满速只要推 20% 直径 */
     onMove: function(nx){
       if(state.stunT > 0){ state.stickX = 0; return; }
-      state.stickX = Math.abs(nx) < STICK_DEAD ? 0 : clamp(nx, -1, 1);
+      /* 手机自带浏览器上原来要推很大一段才动，手感发闷。
+         这里把死区外的输入重新映射到 0~1，并用 0.78 次方轻微加速：
+         轻轻一推就能走，推到底也还是满速，不会变得乱窜。 */
+      var t = Math.abs(nx);
+      if(t <= STICK_DEAD){ state.stickX = 0; return; }
+      var k = Math.min(1, (t - STICK_DEAD) / (1 - STICK_DEAD));
+      var v = Math.pow(k, 0.78);
+      state.stickX = nx < 0 ? -v : v;
     },
     onEnd: function(){ state.stickX = 0; }
   });
@@ -3341,10 +3364,12 @@ function tutStart(chapterIndex, force){
 }
 
 function tutStop(done){
+  var wasOn = tutOn;
   tutOn = false;
   state.tutHold = false;
   if(tutEl) tutEl.classList.remove('show');
   if(done) tutDone();
+  if(done && wasOn) toast('演习完成！照着这个打法继续打 Boss 吧');
 }
 
 /* 每帧调用：第 1 步靠位移判定 */
@@ -7434,6 +7459,15 @@ function bindEvents(){
     startCampaign();
   });
   $id('bIntroLevels').addEventListener('click', openLevels);
+  /* 从指南面板直接开演习：强制走教程流程 */
+  $id('bGuideTrain').addEventListener('click', function(){
+    Sound.init(); Sound.resume(); Sound.ui();
+    closeAllScreens();
+    hideIntro();
+    state.tutForce = true;
+    if(isPortraitNow()) enterLandscape();
+    startLevel(0);
+  });
   $id('bIntroGuide').addEventListener('click', function(){
     Sound.ui();
     /* 用游戏内面板而不是新标签：开新标签会让手机退出全屏 */

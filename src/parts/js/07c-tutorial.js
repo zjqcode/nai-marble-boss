@@ -102,10 +102,12 @@ function tutStart(chapterIndex, force){
 }
 
 function tutStop(done){
+  var wasOn = tutOn;
   tutOn = false;
   state.tutHold = false;
   if(tutEl) tutEl.classList.remove('show');
   if(done) tutDone();
+  if(done && wasOn) toast('演习完成！照着这个打法继续打 Boss 吧');
 }
 
 /* 每帧调用：第 1 步靠位移判定 */

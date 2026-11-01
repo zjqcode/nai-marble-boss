@@ -55,7 +55,7 @@ function bindStick(el, opts){
     /* 关键：锚点 = 按下位置，不是圆心 */
     ax = e.clientX;
     ay = e.clientY;
-    maxR = r.width * STICK_TRAVEL;
+    maxR = r.width * (opts.travel || STICK_TRAVEL);
     pid = e.pointerId;
     el.classList.add('active');
     try{ el.setPointerCapture(pid); }catch(err){}
@@ -90,9 +90,17 @@ function bindSticks(){
   /* ---- 左摇杆：只取横向 ---- */
   bindStick($id('stickL'), {
     horizontal: true,
+    travel: 0.20,                 /* 左摇杆要更跟手：到满速只要推 20% 直径 */
     onMove: function(nx){
       if(state.stunT > 0){ state.stickX = 0; return; }
-      state.stickX = Math.abs(nx) < STICK_DEAD ? 0 : clamp(nx, -1, 1);
+      /* 手机自带浏览器上原来要推很大一段才动，手感发闷。
+         这里把死区外的输入重新映射到 0~1，并用 0.78 次方轻微加速：
+         轻轻一推就能走，推到底也还是满速，不会变得乱窜。 */
+      var t = Math.abs(nx);
+      if(t <= STICK_DEAD){ state.stickX = 0; return; }
+      var k = Math.min(1, (t - STICK_DEAD) / (1 - STICK_DEAD));
+      var v = Math.pow(k, 0.78);
+      state.stickX = nx < 0 ? -v : v;
     },
     onEnd: function(){ state.stickX = 0; }
   });
