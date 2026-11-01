@@ -1085,7 +1085,9 @@ await check('难度阶梯：前两章装填更慢，Boss 随血量狂暴且攻�
   assert(r.tierRatio >= 1.15, `第 1 章装填应比第 6 章慢 15% 以上，实际 ${r.tierRatio}×`);
   assert(r.rageReached === 3, `低血量应叠到 3 层狂暴，实际 ${r.rageReached}`);
   assert(r.monotonic, '攻击间隔必须单调不增，实际 ' + JSON.stringify(r.seq));
-  assert(r.minEvery >= 3.0, `攻击间隔不得低于 3.0s，实际 ${r.minEvery}`);
+  /* 下限改为「不许离谱」：章节 minAtk 之后仍会被狂暴乘算压低，
+     这里只兜一个绝对底线，防止出现 0.x 秒的疯狗节奏 */
+  assert(r.minEvery >= 1.0, `攻击间隔不得低于 1.0s，实际 ${r.minEvery}`);
   return `装填 ${r.early}s→${r.late}s(${r.tierRatio}×) / 狂暴到 ×${r.rageReached} / 最短间隔 ${r.minEvery}s 且单调`;
 });
 

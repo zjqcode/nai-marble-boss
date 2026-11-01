@@ -150,7 +150,7 @@ function executeTelegraph(){
     state.comboQ = _cnt - 1;
   }
   if(state.comboQ > 0){
-    state.comboT2 = 0.55 * (state.boss && state.boss.enraged ? (state.chapter.teleRageMul || 0.78) : 1);
+    state.comboT2 = 0.42 * (state.boss && state.boss.enraged ? (state.chapter.teleRageMul || 0.78) : 1);
     $id('bossAtk').textContent = '连段来袭…';
   } else {
     state.atkTimer = state.atkEvery * rand(0.9, 1.08);
@@ -320,7 +320,7 @@ function updateBoss(dt){
     var lv = pct > 0.75 ? 0 : (pct > 0.5 ? 1 : (pct > 0.25 ? 2 : 3));
     if(lv !== state.rageLv){
       state.rageLv = lv;
-      state.atkEvery = Math.max(state.chapter.minAtk || 3.0, state.atkBase * Math.pow(0.95, lv));
+      state.atkEvery = Math.max(state.chapter.minAtk || 2.2, state.atkBase * Math.pow(0.95, lv));
       state.atkTimer = Math.min(state.atkTimer, state.atkEvery);
       if(lv > 0){
         popText(boss.x, boss.y - boss.h*0.62, '狂暴 ×' + lv, 17, '#ff9a6a');
