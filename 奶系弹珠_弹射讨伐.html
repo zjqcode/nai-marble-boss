@@ -1359,7 +1359,36 @@ body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointe
 }
 /* 保证任何情况下列表至少能看到一行 */
 #levels #levelList{min-height:88px}
-</style>
+
+/* ---------- 竖屏 dock 居中 + 摇杆缩小的安全布局 ---------- */
+@media (orientation:portrait){
+  /* 竖屏 dock 居中放底部，左右摇杆各占一边，互不重叠 */
+  #dock{
+    top:auto;bottom:calc(var(--sab) + 14px);right:auto;left:50%;
+    transform:translateX(-50%);
+    flex-direction:row;gap:10px;
+  }
+  .stick{
+    width:98px;height:98px;
+    bottom:calc(var(--sab) + 74px);
+  }
+  #stickL{left:12px}
+  #stickR{right:12px}
+  #itemBar{left:12px;bottom:calc(var(--sab) + 190px)}
+  #itemBar2{right:12px;bottom:calc(var(--sab) + 190px)}
+  #bPlate{bottom:calc(var(--sab) + 300px)}
+}
+
+/* 竖屏提示页（未选「仍要竖屏游玩」）时，教程气泡和浮层一律不出现 */
+@media (orientation:portrait) and (max-width:600px){
+  body:not(.portrait-ok) #coach,
+  body:not(.portrait-ok) #fsHint,
+  body:not(.portrait-ok) #fsSpot,
+  body:not(.portrait-ok) #bIntroFull,
+  body:not(.portrait-ok) #bIntroSound{
+    display:none !important;
+  }
+}</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
@@ -8073,6 +8102,15 @@ function bindEvents(){
       audioSuspend();
       state.moveDir = 0;
       state.stickX = 0;
+      /* 切后台立刻暂停：不然回来时可能已经被 Boss 反击打掉几颗心 */
+      if(state.mode === 'play' && !state.paused){
+        state.aim.active = false;
+        state.aim.power = 0;
+        if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+        openScreen('pause');
+        var _sub = document.querySelector('#pause .lose-sub');
+        if(_sub) _sub.textContent = '切到后台，已自动暂停';
+      }
     } else {
       audioResume();
     }

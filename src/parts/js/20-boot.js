@@ -393,6 +393,15 @@ function bindEvents(){
       audioSuspend();
       state.moveDir = 0;
       state.stickX = 0;
+      /* 切后台立刻暂停：不然回来时可能已经被 Boss 反击打掉几颗心 */
+      if(state.mode === 'play' && !state.paused){
+        state.aim.active = false;
+        state.aim.power = 0;
+        if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+        openScreen('pause');
+        var _sub = document.querySelector('#pause .lose-sub');
+        if(_sub) _sub.textContent = '切到后台，已自动暂停';
+      }
     } else {
       audioResume();
     }
