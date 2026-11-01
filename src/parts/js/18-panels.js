@@ -44,6 +44,8 @@ function showWin(){
 }
 
 function showLose(){
+  var _rb = $id('bRetry');
+  if(_rb){ var _sp = _rb.querySelector('span'); if(_sp) _sp.textContent = '再 来 一 次'; }
   var res = state.result;
   if(!res) return;
   $id('loseHp').textContent = (res.hpPct !== undefined ? res.hpPct : 100) + '%';
@@ -66,6 +68,8 @@ function showLose(){
     if(t) t.textContent = '无尽结束 · 第 ' + w + ' 波';
     var sub = $id('loseSub');
     if(sub) sub.textContent = '最高纪录 第 ' + best + ' 波 · 本局得分 ' + fmt(state.score);
+    var retryBtn = $id('bRetry');
+    if(retryBtn){ var span = retryBtn.querySelector('span'); if(span) span.textContent = '再 来 一 次（无尽）'; }
   }
 }
 

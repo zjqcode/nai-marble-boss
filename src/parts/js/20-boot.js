@@ -251,8 +251,15 @@ function bindEvents(){
   $id('bLoseHome').addEventListener('click', function(){ goHome(); });
   $id('bRetry').addEventListener('click', function(){
     Sound.ui();
+    var wasEndless = state.endless;
     closeAllScreens();
-    startLevel(state.chapterIndex);
+    /* 无尽模式失败后重开的是无尽，而不是「第 N 章」 —— 否则会莫名进入普通关卡 */
+    if(wasEndless){
+      state.endless = false;
+      startEndless();
+    } else {
+      startLevel(state.chapterIndex);
+    }
   });
 
   $id('shopList').addEventListener('click', function(e){

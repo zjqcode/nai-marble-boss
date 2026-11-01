@@ -73,11 +73,25 @@ var ENDLESS_HP = (function(){
   return arr;
 })();
 
+/* 攻击间隔表：也要强制单调递减，否则某章基础间隔较慢时，
+   后面一波反而比前面好打（第 3 章调慢后就出现过这个问题）。 */
+var ENDLESS_EVERY = (function(){
+  var arr = [], prev = 0;
+  for(var w = 1; w <= 8; w++){
+    var ch = CHAPTERS[Math.min(w - 1, CHAPTERS.length - 1)];
+    var e = ch.every * Math.pow(0.97, w - 1);
+    if(w > 1) e = Math.min(e, prev * 0.97);
+    prev = e;
+    arr.push(Math.max(2.0, Math.round(e * 100) / 100));
+  }
+  return arr;
+})();
+
 function endlessWaveCfg(w){
   var ch = endlessChapter(w);
   return {
     hp: ENDLESS_HP[Math.min(w - 1, ENDLESS_HP.length - 1)],
-    every: Math.max(2.0, ch.every * Math.pow(0.97, w - 1)),
+    every: ENDLESS_EVERY[Math.min(w - 1, ENDLESS_EVERY.length - 1)],
     dmg: Math.min(4, [1,1,1,2,2,2,2,3][ch.id - 1] + Math.floor((w - 1) / 4)),
     time: Math.max(50, Math.round(ch.time * Math.pow(0.98, w - 1)))
   };
