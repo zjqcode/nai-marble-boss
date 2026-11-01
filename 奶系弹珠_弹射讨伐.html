@@ -1243,9 +1243,13 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 首次引导：整屏压暗，只在全屏按钮处留一个亮洞 */
 .fs-spot{
-  position:absolute;display:none;z-index:3;pointer-events:none;
-  border-radius:16px;
-  box-shadow:0 0 0 9999px rgba(4,12,12,.66), 0 0 0 3px rgba(255,214,140,.55), 0 0 34px rgba(255,214,140,.45);
+  position:absolute;inset:0;display:none;z-index:3;pointer-events:none;
+  /* 用径向渐变挖洞：比 9999px 的 box-shadow 便宜一个数量级 */
+  background:radial-gradient(circle at var(--sx,50%) var(--sy,30%),
+    rgba(4,12,12,0) calc(var(--sr,40px) - 3px),
+    rgba(255,214,140,.55) calc(var(--sr,40px) - 2px),
+    rgba(255,214,140,.35) var(--sr,40px),
+    rgba(4,12,12,.66) calc(var(--sr,40px) + 2px));
 }
 .fs-spot.show{display:block;animation:fsSpotIn .25s ease}
 @keyframes fsSpotIn{from{opacity:0}to{opacity:1}}
@@ -1278,6 +1282,15 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   background:rgba(240,198,128,.97);transform:rotate(45deg);border-radius:2px;
 }
 #coach.up .coach-arrow{bottom:auto;top:-6px;background:rgba(255,238,194,.97)}
+
+/* 游戏内新手指南 */
+.guide-sheet{max-width:560px}
+.guide-list{
+  margin:0 0 12px;padding-left:20px;display:grid;gap:7px;
+  font-size:13px;line-height:1.55;color:#dbe8de;
+}
+.guide-list b{color:#ffe3a8}
+.guide-list li::marker{color:#e9c27a;font-weight:700}
 </style>
 </head>
 <body>
@@ -1548,6 +1561,24 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   </div>
 </section>
 
+<section id="guide" class="screen" aria-hidden="true">
+  <div class="sheet guide-sheet" role="dialog" aria-modal="true" aria-label="新手指南">
+    <div class="sheet-head">
+      <div><span class="panel-eyebrow">HOW TO PLAY</span><h2>30 秒上手</h2>
+        <p>先看这几条，剩下的边打边会</p></div>
+      <button class="x" data-close aria-label="关闭">✕</button>
+    </div>
+    <ol class="guide-list">
+      <li><b>左摇杆</b>左右跑，<b>右摇杆下拉蓄力、松手发射</b></li>
+      <li>奶球撞 Boss 会掉球，<b>同类同级相撞升 1 级</b>，等级越高越痛</li>
+      <li>打 Boss 身上<b>两个发光圆点</b>是 1.5 倍伤害，打身体只有三成</li>
+      <li>地面<b>红区</b>亮起就走出去，站着不动会被砸中</li>
+      <li>一发球没碰到 Boss 就掉出底部算<b>空放</b>，装填会变慢</li>
+      <li>血瓶留到 <b>2 颗心以下</b>再喝</li>
+    </ol>
+    <button class="ghost-btn" data-close>返回</button>
+  </div>
+</section>
 <div id="rotate">
   <div class="rot-phone"></div>
   <p class="panel-eyebrow">READY TO ROLL?</p><h2>横过来，尽情弹。</h2>
@@ -7120,10 +7151,12 @@ function syncIntroTools(){
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
   var spot = $id('fsSpot');
   if(spot){
-    spot.style.left = (snd.offsetLeft - 10 - w - 7) + 'px';
-    spot.style.top = (snd.offsetTop - 7) + 'px';
-    spot.style.width = (w + 14) + 'px';
-    spot.style.height = (h + 14) + 'px';
+    /* 渐变圆心的坐标 = 全屏按钮中心（相对 #intro） */
+    var bx = snd.offsetLeft - 10 - w + w / 2;
+    var by = snd.offsetTop + h / 2;
+    spot.style.setProperty('--sx', Math.round(bx) + 'px');
+    spot.style.setProperty('--sy', Math.round(by) + 'px');
+    spot.style.setProperty('--sr', Math.round(w / 2 + 9) + 'px');
   }
   var hint = $id('fsHint');
   if(hint){
@@ -7403,8 +7436,8 @@ function bindEvents(){
   $id('bIntroLevels').addEventListener('click', openLevels);
   $id('bIntroGuide').addEventListener('click', function(){
     Sound.ui();
-    /* 指南是独立页面，放新标签页打开，手机端会跳到浏览器 */
-    window.open('https://naiwadanzhu.surge.sh/guide.html', '_blank', 'noopener');
+    /* 用游戏内面板而不是新标签：开新标签会让手机退出全屏 */
+    openScreen('guide');
   });
   $id('bIntroGallery').addEventListener('click', showGallery);
   $id('bIntroShop').addEventListener('click', function(){
@@ -7461,7 +7494,14 @@ function bindEvents(){
   /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
   syncIntroTools();
   maybeShowFsHint();
-  window.addEventListener('resize', syncIntroTools);
+  /* 手机地址栏收起/展开会连续触发 resize：合并到下一帧只对齐一次，避免反复读写布局 */
+  var introToolsPending = false;
+  function queueSyncIntroTools(){
+    if(introToolsPending) return;
+    introToolsPending = true;
+    requestAnimationFrame(function(){ introToolsPending = false; syncIntroTools(); });
+  }
+  window.addEventListener('resize', queueSyncIntroTools);
   window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
   document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
   document.addEventListener('webkitfullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
@@ -7754,11 +7794,17 @@ function boot(){
   requestAnimationFrame(loop);
 }
 
-var lastTs = 0, acc = 0;
+var lastTs = 0, acc = 0, introSkip = false;
 function loop(ts){
   if(!lastTs) lastTs = ts;
   var raw = Math.min(0.05, (ts - lastTs)/1000);
   lastTs = ts;
+  /* 首页只是静态展示（动画都在 DOM/CSS 里），隔帧渲染就够了：
+     手机上能明显减少掉帧和发热，进入战斗后恢复满帧。 */
+  if(state.mode === 'intro'){
+    introSkip = !introSkip;
+    if(introSkip){ requestAnimationFrame(loop); return; }
+  }
   /* 慢放：只压缩逼近物理的时间流速，渲染照常每帧跑 */
   var scale = 1;
   if(state.slowmo > 0){

@@ -131,10 +131,12 @@ function syncIntroTools(){
   fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
   var spot = $id('fsSpot');
   if(spot){
-    spot.style.left = (snd.offsetLeft - 10 - w - 7) + 'px';
-    spot.style.top = (snd.offsetTop - 7) + 'px';
-    spot.style.width = (w + 14) + 'px';
-    spot.style.height = (h + 14) + 'px';
+    /* 渐变圆心的坐标 = 全屏按钮中心（相对 #intro） */
+    var bx = snd.offsetLeft - 10 - w + w / 2;
+    var by = snd.offsetTop + h / 2;
+    spot.style.setProperty('--sx', Math.round(bx) + 'px');
+    spot.style.setProperty('--sy', Math.round(by) + 'px');
+    spot.style.setProperty('--sr', Math.round(w / 2 + 9) + 'px');
   }
   var hint = $id('fsHint');
   if(hint){

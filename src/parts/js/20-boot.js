@@ -133,8 +133,8 @@ function bindEvents(){
   $id('bIntroLevels').addEventListener('click', openLevels);
   $id('bIntroGuide').addEventListener('click', function(){
     Sound.ui();
-    /* 指南是独立页面，放新标签页打开，手机端会跳到浏览器 */
-    window.open('https://naiwadanzhu.surge.sh/guide.html', '_blank', 'noopener');
+    /* 用游戏内面板而不是新标签：开新标签会让手机退出全屏 */
+    openScreen('guide');
   });
   $id('bIntroGallery').addEventListener('click', showGallery);
   $id('bIntroShop').addEventListener('click', function(){
@@ -191,7 +191,14 @@ function bindEvents(){
   /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
   syncIntroTools();
   maybeShowFsHint();
-  window.addEventListener('resize', syncIntroTools);
+  /* 手机地址栏收起/展开会连续触发 resize：合并到下一帧只对齐一次，避免反复读写布局 */
+  var introToolsPending = false;
+  function queueSyncIntroTools(){
+    if(introToolsPending) return;
+    introToolsPending = true;
+    requestAnimationFrame(function(){ introToolsPending = false; syncIntroTools(); });
+  }
+  window.addEventListener('resize', queueSyncIntroTools);
   window.addEventListener('orientationchange', function(){ setTimeout(syncIntroTools, 120); });
   document.addEventListener('fullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
   document.addEventListener('webkitfullscreenchange', function(){ setTimeout(syncIntroTools, 60); });
@@ -484,11 +491,17 @@ function boot(){
   requestAnimationFrame(loop);
 }
 
-var lastTs = 0, acc = 0;
+var lastTs = 0, acc = 0, introSkip = false;
 function loop(ts){
   if(!lastTs) lastTs = ts;
   var raw = Math.min(0.05, (ts - lastTs)/1000);
   lastTs = ts;
+  /* 首页只是静态展示（动画都在 DOM/CSS 里），隔帧渲染就够了：
+     手机上能明显减少掉帧和发热，进入战斗后恢复满帧。 */
+  if(state.mode === 'intro'){
+    introSkip = !introSkip;
+    if(introSkip){ requestAnimationFrame(loop); return; }
+  }
   /* 慢放：只压缩逼近物理的时间流速，渲染照常每帧跑 */
   var scale = 1;
   if(state.slowmo > 0){

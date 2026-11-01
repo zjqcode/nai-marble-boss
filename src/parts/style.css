@@ -1231,9 +1231,13 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 首次引导：整屏压暗，只在全屏按钮处留一个亮洞 */
 .fs-spot{
-  position:absolute;display:none;z-index:3;pointer-events:none;
-  border-radius:16px;
-  box-shadow:0 0 0 9999px rgba(4,12,12,.66), 0 0 0 3px rgba(255,214,140,.55), 0 0 34px rgba(255,214,140,.45);
+  position:absolute;inset:0;display:none;z-index:3;pointer-events:none;
+  /* 用径向渐变挖洞：比 9999px 的 box-shadow 便宜一个数量级 */
+  background:radial-gradient(circle at var(--sx,50%) var(--sy,30%),
+    rgba(4,12,12,0) calc(var(--sr,40px) - 3px),
+    rgba(255,214,140,.55) calc(var(--sr,40px) - 2px),
+    rgba(255,214,140,.35) var(--sr,40px),
+    rgba(4,12,12,.66) calc(var(--sr,40px) + 2px));
 }
 .fs-spot.show{display:block;animation:fsSpotIn .25s ease}
 @keyframes fsSpotIn{from{opacity:0}to{opacity:1}}
@@ -1266,3 +1270,12 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
   background:rgba(240,198,128,.97);transform:rotate(45deg);border-radius:2px;
 }
 #coach.up .coach-arrow{bottom:auto;top:-6px;background:rgba(255,238,194,.97)}
+
+/* 游戏内新手指南 */
+.guide-sheet{max-width:560px}
+.guide-list{
+  margin:0 0 12px;padding-left:20px;display:grid;gap:7px;
+  font-size:13px;line-height:1.55;color:#dbe8de;
+}
+.guide-list b{color:#ffe3a8}
+.guide-list li::marker{color:#e9c27a;font-weight:700}
