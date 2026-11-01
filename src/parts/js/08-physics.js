@@ -219,7 +219,12 @@ function triggerBreak(hx, hy){
   var boss = state.boss;
   if(!boss || boss.dead) return;
   boss.brk = 0;
-  boss.brkT = 3.5;
+  /* 破防硬直：狂躁状态下大幅缩短，逼玩家在更短的窗口里输出 */
+  var _brkBase = 3.5;
+  if(boss.enraged){
+    _brkBase *= (state.chapter.brkRageMul || 0.55);
+  }
+  boss.brkT = _brkBase;
   boss.brkCount++;
   /* 同一局内一次比一次难破，避免后期无限硬直 */
   boss.brkMax = Math.round(boss.brkMax * 1.35);

@@ -466,6 +466,7 @@ function boot(){
       META: META,
       startLevel: startLevel,
       damage: function(d){ damageBossRaw(view.cx, view.bossY, d, false, 5); },
+      addBreak: addBreak,
       spawn: function(lv, x, y, vx, vy){
         var b = makeBall(x, y, lv, vx, vy);
         state.balls.push(b);
