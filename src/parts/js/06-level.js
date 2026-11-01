@@ -48,29 +48,57 @@ function buildBoss(ch){
 
 
 /* =========================================================
-   无尽模式
-   - 不限章节：永久第 1 章的场地，波次递进（血量、攻击频率、伤害都在涨）
-   - 不能使用道具（道具栏隐藏，useItem 直接拒绝）
-   - 每波有独立倒计时，超时或血量归零即结束
+   无尽模式（8 波 = 8 个 Boss）
+   - 第 N 波固定是第 N 章的 Boss，打完自动进下一波
+   - 难度在章节本身之上再叠一层：血量 ×1.12/波、攻击间隔 ×0.97/波
+   - 打完全部 8 波 = 通关；中途倒下也记录最高波次
+   - 全程禁用道具
    ========================================================= */
+var ENDLESS_WAVES = 8;
+
+function endlessChapter(w){
+  return CHAPTERS[clamp(w - 1, 0, CHAPTERS.length - 1)];
+}
+
+/* 8 波血量表：以每章基础血量为底，再叠逐波增幅，并强制比上一波高 12% 以上 */
+var ENDLESS_HP = (function(){
+  var arr = [], prev = 0;
+  for(var w = 1; w <= 8; w++){
+    var ch = CHAPTERS[Math.min(w - 1, CHAPTERS.length - 1)];
+    var hp = ch.hp * (1 + 0.20 * (w - 1));
+    if(w > 1) hp = Math.max(hp, prev * 1.12);
+    prev = hp;
+    arr.push(Math.round(hp));
+  }
+  return arr;
+})();
+
 function endlessWaveCfg(w){
-  var base = CHAPTERS[0];
+  var ch = endlessChapter(w);
   return {
-    hp: Math.round(base.hp * Math.pow(1.30, w - 1)),
-    every: Math.max(2.0, base.every * Math.pow(0.93, w - 1)),
-    dmg: Math.min(4, 1 + Math.floor((w - 1) / 3)),
-    time: Math.max(45, Math.round(base.time * Math.pow(0.97, w - 1)))
+    hp: ENDLESS_HP[Math.min(w - 1, ENDLESS_HP.length - 1)],
+    every: Math.max(2.0, ch.every * Math.pow(0.97, w - 1)),
+    dmg: Math.min(4, [1,1,1,2,2,2,2,3][ch.id - 1] + Math.floor((w - 1) / 4)),
+    time: Math.max(50, Math.round(ch.time * Math.pow(0.98, w - 1)))
   };
 }
 
 function applyEndlessWave(){
   var w = state.wave;
+  var ch = endlessChapter(w);
   var cfg = endlessWaveCfg(w);
+
+  /* 这一波是哪个 Boss，HUD / 立绘都跟着换 */
+  state.chapter = ch;
+  state.chapterIndex = clamp(w - 1, 0, CHAPTERS.length - 1);
+
   var b = state.boss;
   if(b){
+    b.char = ch.char; b.title = ch.title; b.chap = ch.chap;
     b.maxHp = cfg.hp; b.hp = cfg.hp;
     b.brkMax = Math.max(20, Math.round(cfg.hp * 0.09));
-    b.dead = false;
+    b.brk = 0; b.brkT = 0;
+    b.dead = false; b.enraged = false; b.invuln = 0;
   }
   state.atkEvery = cfg.every * state.eff.attackDelay;
   state.atkBase = state.atkEvery;
@@ -79,8 +107,11 @@ function applyEndlessWave(){
   state.rageLv = 0;
   state.timer = cfg.time;
   state.timeMax = cfg.time;
+
   var label = $id('chapLabel');
-  if(label) label.textContent = '无尽 · 第 ' + w + ' 波';
+  if(label) label.textContent = '无尽 ' + w + '/' + ENDLESS_WAVES;
+  var name = $id('levelName');
+  if(name) name.textContent = ch.title;
   updateLevelHUD && updateLevelHUD();
 }
 
@@ -88,15 +119,17 @@ function startEndless(){
   startLevel(0);
   state.endless = true;
   state.wave = 1;
+  state.endlessCleared = false;
+  document.body.classList.add('endless');
+  document.body.classList.remove('endless-clear');
   /* 无尽模式不弹新手教程（想学操作请走「新手演习」） */
   if(typeof tutStop === 'function') tutStop(false);
-  document.body.classList.add('endless');
   applyEndlessWave();
   updateItemBar();
-  toast('无尽模式开始 · 本模式不能使用道具');
+  toast('无尽模式 · 共 ' + ENDLESS_WAVES + ' 波，不能使用道具');
 }
 
-/* 一波打完：不结算，直接换更强的下一个 Boss */
+/* 一波打完 */
 function endlessWaveClear(boss){
   boss.dead = true;
   state.flashHue = 'gold';
@@ -107,22 +140,43 @@ function endlessWaveClear(boss){
   Sound.win();
   ring(boss.x, boss.y, boss.r*0.3, boss.r*4.0, '255,235,170', .9, 6);
   burst(boss.x, boss.y, boss.r, 48, 11, '#ffe9b0');
-  state.score += 500 + state.wave*250;
-  state.runMilk += 10 + state.wave*3;
+  state.score += 400 + state.wave*250;
+  state.runMilk += 8 + state.wave*3;
   state.telegraph = null;
   state.atkAnim = null;
+
   var cleared = state.wave;
+
+  /* 8 波全清：走胜利结算（无尽通关） */
+  if(cleared >= ENDLESS_WAVES){
+    state.endlessCleared = true;
+    state.score += 3000;
+    state.runMilk += 80;
+    settleLevel('win');
+    setTimeout(function(){
+      if(state.mode !== 'victory') return;
+      document.body.classList.add('endless-clear');
+      var t = $id('winTitle');
+      if(t) t.textContent = '无尽通关 · ' + ENDLESS_WAVES + ' 波全清！';
+      var kicker = document.querySelector('#win .result-kicker');
+      if(kicker) kicker.innerHTML = '<span aria-hidden="true">✦</span> ENDLESS CLEARED <span aria-hidden="true">✦</span>';
+      META.bestEndless = Math.max(META.bestEndless || 0, ENDLESS_WAVES);
+      saveMeta();
+    }, 220);
+    return;
+  }
+
   state.wave++;
-  toast('第 ' + cleared + ' 波击破！第 ' + state.wave + ' 波来了');
+  var nextName = endlessChapter(state.wave).title;
+  toast('第 ' + cleared + ' 波击破！下一波：' + nextName);
   setTimeout(function(){
     if(!state.endless || state.mode !== 'play') return;
-    state.boss = buildBoss(CHAPTERS[0]);
+    state.boss = buildBoss(endlessChapter(state.wave));
     buildBossTexture(true);
     applyEndlessWave();
     state.cineT = Math.max(state.cineT, 0.8);
   }, 950);
 }
-
 function startLevel(idx){
   idx = clamp(idx|0, 0, CHAPTERS.length-1);
   var ch = CHAPTERS[idx];

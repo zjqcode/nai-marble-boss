@@ -33,7 +33,7 @@ function updateBreakHUD(){
 
 function updateLevelHUD(){
   if(!state.chapter) return;
-  $id('chapLabel').textContent = state.endless ? ('无尽 · 第 ' + state.wave + ' 波') : state.chapter.chap;
+  $id('chapLabel').textContent = state.endless ? ('无尽 ' + state.wave + '/' + (typeof ENDLESS_WAVES === 'number' ? ENDLESS_WAVES : 8)) : state.chapter.chap;
   $id('levelName').textContent = state.chapter.title;
   var tl = $id('timerLabel');
   tl.textContent = formatTime(state.timer);

@@ -1308,3 +1308,7 @@ body.endless #bPlate{display:none !important}
 .endless-btn b{font-size:14px;letter-spacing:.06em}
 .endless-btn span{font-size:10.5px;opacity:.72;letter-spacing:.02em}
 .endless-btn:active{transform:translateY(1px)}
+
+/* 无尽通关面板：没有「解锁角色」和「进入下一章」这回事 */
+body.endless-clear #unlockBox,
+body.endless-clear #bNext{display:none !important}
