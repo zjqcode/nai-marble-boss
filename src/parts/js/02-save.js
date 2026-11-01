@@ -58,14 +58,14 @@ function charLv(name){ return META.lv[name] || 1; }
 
 /* 奶瓶商店：消耗品，买一次用一次，局内点击左下道具栏使用 */
 var SHOP_ITEMS = [
-  {key:'potion',    n:'血瓶',       ico:'❤', cost:30, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
-  {key:'multi',     n:'多球发射',   ico:'✹', cost:40, d:'立刻扇形发射 5 颗当前等级奶球'},
-  {key:'plate',     n:'反弹板',     ico:'▰', cost:50, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
-  {key:'time',      n:'加时奶糖',   ico:'⏱', cost:50, max:6, d:'关卡时间 +10 秒。可叠加，最多持有 6 个'},
-  {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:60, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
-  {key:'portal',    n:'传送阵',     ico:'◎', cost:70, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
-  {key:'thunder',   n:'雷电球',     ico:'⚡', cost:80, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
-  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:90, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.8'}
+  {key:'potion',    n:'血瓶',       ico:'❤', cost:40, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
+  {key:'multi',     n:'多球发射',   ico:'✹', cost:50, d:'立刻扇形发射 5 颗当前等级奶球'},
+  {key:'plate',     n:'反弹板',     ico:'▰', cost:60, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
+  {key:'time',      n:'加时奶糖',   ico:'⏱', cost:60, max:6, d:'关卡时间 +10 秒。可叠加，最多持有 6 个'},
+  {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:70, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
+  {key:'portal',    n:'传送阵',     ico:'◎', cost:80, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
+  {key:'thunder',   n:'雷电球',     ico:'⚡', cost:90, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
+  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:100, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.45'}
 ];
 function shopItem(key){
   for(var i=0;i<SHOP_ITEMS.length;i++) if(SHOP_ITEMS[i].key === key) return SHOP_ITEMS[i];

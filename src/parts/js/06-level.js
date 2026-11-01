@@ -109,8 +109,8 @@ function applyEndlessWave(){
   var b = state.boss;
   if(b){
     b.char = ch.char; b.title = ch.title; b.chap = ch.chap;
-    b.maxHp = cfg.hp; b.hp = cfg.hp;
-    b.brkMax = Math.max(20, Math.round(cfg.hp * 0.09));
+    b.maxHp = Math.round(cfg.hp * (state.hpBoost || 1)); b.hp = b.maxHp;
+    b.brkMax = Math.max(20, Math.round(b.maxHp * 0.09));
     b.brk = 0; b.brkT = 0;
     b.dead = false; b.enraged = false; b.invuln = 0;
   }
@@ -193,6 +193,14 @@ function endlessWaveClear(boss){
     state.cineT = Math.max(state.cineT, 0.8);
   }, 950);
 }
+
+/* 养成越强，Boss 血越厚：满级玩家约 +42%，新手 0%。
+   解决「练满后一路平推」，同时不抬高新玩家的难度。 */
+function hpBoostFor(){
+  var hb = heroBonus();
+  return 1 + Math.min(0.5, Math.max(0, hb.n) * 0.008);
+}
+
 function startLevel(idx){
   idx = clamp(idx|0, 0, CHAPTERS.length-1);
   var ch = CHAPTERS[idx];
@@ -283,6 +291,12 @@ function startLevel(idx){
   document.body.classList.remove('stunned');
   state.stickX = 0;
   state.boss = buildBoss(ch);
+  state.hpBoost = hpBoostFor();
+  if(state.hpBoost > 1){
+    state.boss.maxHp = Math.round(state.boss.hp * state.hpBoost);
+    state.boss.hp = state.boss.maxHp;
+    state.boss.brkMax = Math.max(20, Math.round(state.boss.maxHp * (ch.breakPct || 0.09)));
+  }
   buildBossTexture(true);
   state.loadLv = refreshLoadLevel();
 

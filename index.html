@@ -1758,7 +1758,7 @@ var CHAPTERS = [
    breakPct:0.125, dodgeW:0.21, tele:1.22, dodgeRate:0.85, combo:2, enragePct:0.60,
    desc:'会下炸弹蛋的奶鸡，满场都是爆炸。',
    intro:'蛋蛋会铺满场地，优先打断它的轰炸。'},
-  {id:8, chap:'第八章', title:'终焉奶蛙', char:'奶蛙', hp:2500, time:64, every:5.4, atk:'thunder', atkName:'雷霆万钧',
+  {id:8, chap:'第八章', title:'终焉奶蛙', char:'奶蛙', hp:2500, time:64, every:5.0, atk:'thunder', atkName:'雷霆万钧',
    springs:true, portal:true, move:true, dodge:1.3, range:0.22,
    breakPct:0.13, dodgeW:0.17, tele:1.40, dodgeRate:0.88, combo:2, enragePct:0.62,
    desc:'雷霆缠身的最终 BOSS，会闪避、游走、降下雷柱。',
@@ -1831,14 +1831,14 @@ function charLv(name){ return META.lv[name] || 1; }
 
 /* 奶瓶商店：消耗品，买一次用一次，局内点击左下道具栏使用 */
 var SHOP_ITEMS = [
-  {key:'potion',    n:'血瓶',       ico:'❤', cost:30, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
-  {key:'multi',     n:'多球发射',   ico:'✹', cost:40, d:'立刻扇形发射 5 颗当前等级奶球'},
-  {key:'plate',     n:'反弹板',     ico:'▰', cost:50, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
-  {key:'time',      n:'加时奶糖',   ico:'⏱', cost:50, max:6, d:'关卡时间 +10 秒。可叠加，最多持有 6 个'},
-  {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:60, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
-  {key:'portal',    n:'传送阵',     ico:'◎', cost:70, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
-  {key:'thunder',   n:'雷电球',     ico:'⚡', cost:80, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
-  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:90, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.8'}
+  {key:'potion',    n:'血瓶',       ico:'❤', cost:40, d:'回复 1 颗心。受伤时才可用，满血 / 暂停 / 已阵亡时不可用'},
+  {key:'multi',     n:'多球发射',   ico:'✹', cost:50, d:'立刻扇形发射 5 颗当前等级奶球'},
+  {key:'plate',     n:'反弹板',     ico:'▰', cost:60, ownButton:true, d:'按右侧「反弹板」按钮，拖到空处松手放下，8 秒内反复折射'},
+  {key:'time',      n:'加时奶糖',   ico:'⏱', cost:60, max:6, d:'关卡时间 +10 秒。可叠加，最多持有 6 个'},
+  {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:70, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
+  {key:'portal',    n:'传送阵',     ico:'◎', cost:80, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
+  {key:'thunder',   n:'雷电球',     ico:'⚡', cost:90, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
+  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:100, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.45'}
 ];
 function shopItem(key){
   for(var i=0;i<SHOP_ITEMS.length;i++) if(SHOP_ITEMS[i].key === key) return SHOP_ITEMS[i];
@@ -2884,6 +2884,7 @@ var state = {
   tutHold: false,
   /* 无尽模式 */
   endless: false,
+  hpBoost: 1,
   wave: 1,
   /* 空放惩罚：missStreak 连续空放次数、reloadBase 未受罚的装填基准 */
   missStreak: 0, reloadBase: 0,
@@ -3068,8 +3069,8 @@ function applyEndlessWave(){
   var b = state.boss;
   if(b){
     b.char = ch.char; b.title = ch.title; b.chap = ch.chap;
-    b.maxHp = cfg.hp; b.hp = cfg.hp;
-    b.brkMax = Math.max(20, Math.round(cfg.hp * 0.09));
+    b.maxHp = Math.round(cfg.hp * (state.hpBoost || 1)); b.hp = b.maxHp;
+    b.brkMax = Math.max(20, Math.round(b.maxHp * 0.09));
     b.brk = 0; b.brkT = 0;
     b.dead = false; b.enraged = false; b.invuln = 0;
   }
@@ -3152,6 +3153,14 @@ function endlessWaveClear(boss){
     state.cineT = Math.max(state.cineT, 0.8);
   }, 950);
 }
+
+/* 养成越强，Boss 血越厚：满级玩家约 +42%，新手 0%。
+   解决「练满后一路平推」，同时不抬高新玩家的难度。 */
+function hpBoostFor(){
+  var hb = heroBonus();
+  return 1 + Math.min(0.5, Math.max(0, hb.n) * 0.008);
+}
+
 function startLevel(idx){
   idx = clamp(idx|0, 0, CHAPTERS.length-1);
   var ch = CHAPTERS[idx];
@@ -3242,6 +3251,12 @@ function startLevel(idx){
   document.body.classList.remove('stunned');
   state.stickX = 0;
   state.boss = buildBoss(ch);
+  state.hpBoost = hpBoostFor();
+  if(state.hpBoost > 1){
+    state.boss.maxHp = Math.round(state.boss.hp * state.hpBoost);
+    state.boss.hp = state.boss.maxHp;
+    state.boss.brkMax = Math.max(20, Math.round(state.boss.maxHp * (ch.breakPct || 0.09)));
+  }
   buildBossTexture(true);
   state.loadLv = refreshLoadLevel();
 
@@ -3854,7 +3869,7 @@ function damageBoss(b, hx, hy, weak){
   var dmg = DMG[b.lv] * CHARS[b.lv].dmg * eff.bossDmg * eff.dmgAll * bounceMul * (crit ? 1.8 : 1);
   if(weak) dmg *= 1.5;
   else dmg *= 0.35;            /* 身体命中：三成伤害，但积累破防 */
-  if(state.superT > 0) dmg *= 1.8;
+  if(state.superT > 0) dmg *= 1.45;
   if(state.frenzyT > 0) dmg *= 2;
   if(state.boss && state.boss.brkT > 0) dmg *= 1.3;   /* 破防中增伤 */
   state.maxLv = Math.max(state.maxLv, b.lv);
@@ -4843,6 +4858,7 @@ function updateBuffs(){
   if(!el) return;
   var html = '';
   if(state.superT > 0) html += '<span class="buff-chip">超级奶娃 ' + Math.ceil(state.superT) + 's</span>';
+  if(state.hpBoost > 1.02) html += '<span class="buff-chip">Boss 强化 +' + Math.round((state.hpBoost - 1) * 100) + '%</span>';
   if(state.frenzyT > 0) html += '<span class="buff-chip frenzy">狂暴 ' + Math.ceil(state.frenzyT) + 's</span>';
   if(state.shield > 0) html += '<span class="buff-chip shield">奶瓶护盾 ×' + state.shield + '</span>';
   if(state.fireT > 0) html += '<span class="buff-chip fire">火焰 ' + Math.ceil(state.fireT) + 's</span>';

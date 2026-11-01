@@ -189,7 +189,7 @@ function damageBoss(b, hx, hy, weak){
   var dmg = DMG[b.lv] * CHARS[b.lv].dmg * eff.bossDmg * eff.dmgAll * bounceMul * (crit ? 1.8 : 1);
   if(weak) dmg *= 1.5;
   else dmg *= 0.35;            /* 身体命中：三成伤害，但积累破防 */
-  if(state.superT > 0) dmg *= 1.8;
+  if(state.superT > 0) dmg *= 1.45;
   if(state.frenzyT > 0) dmg *= 2;
   if(state.boss && state.boss.brkT > 0) dmg *= 1.3;   /* 破防中增伤 */
   state.maxLv = Math.max(state.maxLv, b.lv);

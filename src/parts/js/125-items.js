@@ -89,6 +89,7 @@ function updateBuffs(){
   if(!el) return;
   var html = '';
   if(state.superT > 0) html += '<span class="buff-chip">超级奶娃 ' + Math.ceil(state.superT) + 's</span>';
+  if(state.hpBoost > 1.02) html += '<span class="buff-chip">Boss 强化 +' + Math.round((state.hpBoost - 1) * 100) + '%</span>';
   if(state.frenzyT > 0) html += '<span class="buff-chip frenzy">狂暴 ' + Math.ceil(state.frenzyT) + 's</span>';
   if(state.shield > 0) html += '<span class="buff-chip shield">奶瓶护盾 ×' + state.shield + '</span>';
   if(state.fireT > 0) html += '<span class="buff-chip fire">火焰 ' + Math.ceil(state.fireT) + 's</span>';

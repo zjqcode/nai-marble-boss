@@ -61,6 +61,7 @@ var state = {
   tutHold: false,
   /* 无尽模式 */
   endless: false,
+  hpBoost: 1,
   wave: 1,
   /* 空放惩罚：missStreak 连续空放次数、reloadBase 未受罚的装填基准 */
   missStreak: 0, reloadBase: 0,

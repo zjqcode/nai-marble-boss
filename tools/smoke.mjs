@@ -937,7 +937,7 @@ await check('结算面板：失败面板与「无新角色解锁」的胜利面�
 });
 
 // ---------- 8i. 加时奶糖 ----------
-await check('加时奶糖：+10 秒、50 奶瓶、最多堆 6 个', async () => {
+await check('加时奶糖：+10 秒、60 奶瓶、最多堆 6 个', async () => {
   await session.goto(`${fileUrl}?debug&level=1`);
   await waitImages();
   const r = await session.evaluate(`
@@ -983,9 +983,9 @@ await check('加时奶糖：+10 秒、50 奶瓶、最多堆 6 个', async () => 
       return out;
     })()`);
   assert(r.hasCard, '商店里应有「加时奶糖」');
-  assert(/50 奶瓶/.test(r.cardText), '售价应为 50 奶瓶，实际卡片: ' + r.cardText.slice(0, 60));
+  assert(/60 奶瓶/.test(r.cardText), '售价应为 60 奶瓶，实际卡片: ' + r.cardText.slice(0, 60));
   assert(r.stacked === 6, `最多只能堆 6 个，实际 ${r.stacked}`);
-  assert(r.spent === 300, `买 6 个应花 300 奶瓶，实际 ${r.spent}`);
+  assert(r.spent === 360, `买 6 个应花 360 奶瓶，实际 ${r.spent}`);
   assert(/已满/.test(r.buyLabel), '买满后按钮应显示「已满」，实际 ' + r.buyLabel);
   assert(r.delta === 10, `用 1 个应 +10 秒，实际 ${r.delta}`);
   assert(r.left === 5, `用掉后应剩 5 个，实际 ${r.left}`);
