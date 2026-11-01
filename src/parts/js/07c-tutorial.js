@@ -17,7 +17,8 @@ var TUT_STEPS = [
   { target: 'stickL', text: '红区亮起来时，用左摇杆躲开', sub: '站着不动会被砸中' }
 ];
 
-var tutEl = null, tutOn = false, tutStep = 0, tutStartX = 0, tutMoved = 0;
+var tutEl = null, tutOn = false, tutStep = 0, tutStartX = 0, tutMoved = 0, tutElapsed = 0, tutHits = 0;
+var TUT_STEP_TIMEOUT = 20;   /* 单步最多等 20 秒（游戏时间），卡住就自动往下走 */
 
 function tutDone(){
   try{ localStorage.setItem(TUT_KEY, '1'); }catch(e){}
@@ -81,6 +82,7 @@ function tutPlace(target){
 
 function tutSetStep(n){
   tutStep = n;
+  tutElapsed = 0;
   if(n >= TUT_STEPS.length){ tutStop(true); return; }
   var st = TUT_STEPS[n];
   var el = tutBuild();
@@ -111,8 +113,17 @@ function tutStop(done){
 }
 
 /* 每帧调用：第 1 步靠位移判定 */
-function tutMoveTick(){
-  if(!tutOn || tutStep !== 0 || !state.boss) return;
+function tutMoveTick(dt){
+  if(!tutOn) return;
+  if(state.paused || state.mode !== 'play') return;   /* 暂停/切后台不计时 */
+  /* 兜底：某一步 20 秒还没完成就自动推进，避免新手卡死在某一步 */
+  tutElapsed += (dt || 0);
+  if(tutElapsed > TUT_STEP_TIMEOUT){
+    if(tutStep < TUT_STEPS.length - 1) tutSetStep(tutStep + 1);
+    else tutStop(true);
+    return;
+  }
+  if(tutStep !== 0 || !state.boss) return;
   var d = Math.abs(state.cannonX - tutStartX);
   if(d > 50){
     if(tutMoved === 0) tutMoved = 1;
@@ -128,6 +139,13 @@ function tutOnFire(){
 function tutOnWeak(){
   if(!tutOn || tutStep !== 2) return;
   tutSetStep(3);
+}
+
+/* 命中 Boss 任意位置：打不中弱点的话，累计 4 下也算过关，避免卡死 */
+function tutOnBossHit(weak){
+  if(!tutOn || tutStep !== 2) return;
+  tutHits++;
+  if(weak || tutHits >= 4) tutSetStep(3);
 }
 
 function tutOnTelegraph(){

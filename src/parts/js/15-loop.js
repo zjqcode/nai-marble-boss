@@ -59,7 +59,7 @@ function stepPhysics(dt){
 }
 
 function update(dt){
-  if(typeof tutMoveTick === 'function') tutMoveTick();
+  if(typeof tutMoveTick === 'function') tutMoveTick(dt);
 
   /* 结算面板被误关（点空白/切后台回来）时自动重新弹出：
      否则会卡在「Boss 已死、场地空、没有下一步」的死界面。 */
