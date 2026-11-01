@@ -4167,6 +4167,8 @@ function beginTelegraph(isCombo){
   var w = view.w * (ch.dodgeW || 0.22) * (ATK_WIDTH[type] || 1);
   var tele = ch.tele || 1.25;
   if(isCombo) tele *= 0.8;      /* 连段后续更急 */
+  /* 狂暴状态：蓄力更短，留给玩家躲的时间更少 */
+  if(boss.enraged) tele *= (ch.teleRageMul || 0.78);
   var tg = {
     type:type, atkName:ch.atkName, t:tele, total:tele,
     x:aimX, aimX:aimX, dodgeW:Math.max(34, w), combo:!!isCombo
@@ -4292,7 +4294,7 @@ function executeTelegraph(){
     state.comboQ = (ch.combo || 1) - 1;
   }
   if(state.comboQ > 0){
-    state.comboT2 = 0.55;
+    state.comboT2 = 0.55 * (state.boss && state.boss.enraged ? (state.chapter.teleRageMul || 0.78) : 1);
     $id('bossAtk').textContent = '连段来袭…';
   } else {
     state.atkTimer = state.atkEvery * rand(0.9, 1.08);
