@@ -82,5 +82,5 @@ var MAXLV = CHARS.length - 1;
 var DMG = [4,7,12,20,32,50,75,110,155,215,300,410,560];
 var DMG_MUL = [0.9,1.0,1.05,1.1,1.15,1.2,1.1,1.3,1.25,1.35,1.4,1.5,1.6];
 CHARS.forEach(function(c,i){ c.dmg = DMG_MUL[i]; });
-var UP_COST = [10, 18, 28, 40];
+var UP_COST = [100, 100, 100, 100];   /* 升一级 100 奶瓶 */
 

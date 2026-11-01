@@ -100,7 +100,7 @@ function buildGallery(){
       dh += '<div class="up-btn max">已满级</div>';
     } else {
       var poor = META.milk < cost ? ' poor' : '';
-      dh += '<button class="up-btn' + poor + '" id="bUpgrade">升级<small>' + cost + ' 奶瓶</small></button>';
+      dh += '<button class="up-btn' + poor + '" id="bUpgrade">升级 <small>' + cost + ' 奶瓶</small></button>';
     }
   } else {
     dh += '<div class="li-lock">🔒</div>';

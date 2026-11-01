@@ -78,7 +78,7 @@ function heroBonus(){
     total += Math.max(1, lv|0);
   }
   var n = Math.max(0, total - CHARS.length);
-  return {n:n, hp:Math.min(5, n), dmg:1 + Math.min(0.5, n*0.03)};
+  return {n:n, hp:Math.min(3, n), dmg:1 + Math.min(0.25, n*0.015)};
 }
 function charByName(name){
   for(var i=0;i<CHARS.length;i++) if(CHARS[i].n === name) return CHARS[i];
@@ -121,6 +121,9 @@ function buildEff(){
     else if(c.key === 'crit') e.crit += v;
     else if(c.key === 'extraBalls') e.extraBalls += v;
   }
+  /* 满级后伤害溢出：技能加成只按 60% 生效，削一半的成长红利 */
+  e.dmgAll = 1 + (e.dmgAll - 1) * 0.6;
+  e.bossDmg = 1 + (e.bossDmg - 1) * 0.6;
   e.extraBalls = Math.min(3, e.extraBalls);
   e.crit = Math.min(0.45, e.crit);
   return e;
