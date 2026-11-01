@@ -309,7 +309,7 @@ function updateBoss(dt){
     var lv = pct > 0.75 ? 0 : (pct > 0.5 ? 1 : (pct > 0.25 ? 2 : 3));
     if(lv !== state.rageLv){
       state.rageLv = lv;
-      state.atkEvery = Math.max(3.0, state.atkBase * Math.pow(0.95, lv));
+      state.atkEvery = Math.max(state.chapter.minAtk || 3.0, state.atkBase * Math.pow(0.95, lv));
       state.atkTimer = Math.min(state.atkTimer, state.atkEvery);
       if(lv > 0){
         popText(boss.x, boss.y - boss.h*0.62, '狂暴 ×' + lv, 17, '#ff9a6a');
