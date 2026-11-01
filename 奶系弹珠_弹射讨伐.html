@@ -1324,6 +1324,11 @@ body.endless #bPlate{display:none !important}
 /* 无尽通关面板：没有「解锁角色」和「进入下一章」这回事 */
 body.endless-clear #unlockBox,
 body.endless-clear #bNext{display:none !important}
+
+/* 任何全屏面版打开时，浮层（教程气泡 / 全屏引导）一律让位，别压在弹窗上 */
+body.panel-open #coach,
+body.panel-open #fsHint,
+body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}
 </style>
 </head>
 <body>
@@ -7137,6 +7142,17 @@ function buildLevelList(){
 function openLevels(){
   Sound.ui();
   buildLevelList();
+  /* 无尽按钮上显示最高波次，给玩家一个目标 */
+  var eb = $id('bEndless');
+  if(eb){
+    var sub = eb.querySelector('span');
+    if(sub){
+      var best = META.bestEndless || 0;
+      sub.textContent = best > 0
+        ? ('波次无限，不能使用道具 · 最高 第 ' + best + ' 波')
+        : '波次无限，不能使用道具';
+    }
+  }
   openScreen('levels');
 }
 
@@ -7359,6 +7375,9 @@ function togglePause(){
   state.aim.active = false;
   state.aim.power = 0;
   if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+  /* 暂停时告诉玩家当前在哪（无尽模式尤其需要） */
+  var __pSub = document.querySelector('#pause .lose-sub');
+  if(__pSub) __pSub.textContent = state.endless ? ('无尽 · 第 ' + state.wave + ' / 8 波') : '喝口水，回来接着打';
   openScreen('pause');
   Sound.ui();
   return true;

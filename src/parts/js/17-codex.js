@@ -59,6 +59,17 @@ function buildLevelList(){
 function openLevels(){
   Sound.ui();
   buildLevelList();
+  /* 无尽按钮上显示最高波次，给玩家一个目标 */
+  var eb = $id('bEndless');
+  if(eb){
+    var sub = eb.querySelector('span');
+    if(sub){
+      var best = META.bestEndless || 0;
+      sub.textContent = best > 0
+        ? ('波次无限，不能使用道具 · 最高 第 ' + best + ' 波')
+        : '波次无限，不能使用道具';
+    }
+  }
   openScreen('levels');
 }
 

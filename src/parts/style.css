@@ -1312,3 +1312,8 @@ body.endless #bPlate{display:none !important}
 /* 无尽通关面板：没有「解锁角色」和「进入下一章」这回事 */
 body.endless-clear #unlockBox,
 body.endless-clear #bNext{display:none !important}
+
+/* 任何全屏面版打开时，浮层（教程气泡 / 全屏引导）一律让位，别压在弹窗上 */
+body.panel-open #coach,
+body.panel-open #fsHint,
+body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}

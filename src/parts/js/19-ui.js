@@ -53,6 +53,9 @@ function togglePause(){
   state.aim.active = false;
   state.aim.power = 0;
   if(typeof cancelPlatePlacement === 'function') cancelPlatePlacement(true);
+  /* 暂停时告诉玩家当前在哪（无尽模式尤其需要） */
+  var __pSub = document.querySelector('#pause .lose-sub');
+  if(__pSub) __pSub.textContent = state.endless ? ('无尽 · 第 ' + state.wave + ' / 8 波') : '喝口水，回来接着打';
   openScreen('pause');
   Sound.ui();
   return true;
