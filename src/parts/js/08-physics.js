@@ -294,7 +294,7 @@ function damageBossRaw(hx, hy, dmg, crit, lv, weak, bounces){
   coins = Math.min(8, Math.round(coins * state.eff.milk));
   spawnCoins(hx, hy, coins);
   if(boss.hp <= 0){ bossDie(); return; }
-  if(state.telegraph && state.interrupt >= state.interruptNeed) interruptAttack();
+  if(state.telegraph && state.interrupt >= state.interruptNeed && !(state.boss && state.boss.enraged)) interruptAttack();
 }
 
 function spawnCoins(x, y, n){

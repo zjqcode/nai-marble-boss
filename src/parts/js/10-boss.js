@@ -320,10 +320,13 @@ function updateBoss(dt){
       updateBuffs();
     }
   }
-  if(!boss.enraged && boss.hp < boss.maxHp*(state.chapter.enragePct || 0.5) && !boss.dead){
+  var _enrPct = state.chapter.enragePct || 0;
+  if(_enrPct > 0 && !boss.enraged && boss.hp < boss.maxHp*_enrPct && !boss.dead){
     boss.enraged = true;
-    state.atkEvery *= 0.8;
-    state.atkBase *= 0.8;      /* 基准一起降，否则下一层狂暴会把 enrage 的加速覆盖掉 */
+    /* 狂躁：攻击间隔大幅缩短（每章不同，4~8 关 0.5~0.6 倍） */
+    var _mul = state.chapter.rageMul || 0.8;
+    state.atkEvery *= _mul;
+    state.atkBase *= _mul;      /* 基准一起降，否则下一层狂暴会把 enrage 的加速覆盖掉 */
     state.atkTimer = Math.min(state.atkTimer, state.atkEvery);
     state.flash = Math.max(state.flash, .4);
     state.shake = Math.max(state.shake, 10);
@@ -412,7 +415,7 @@ function updateBoss(dt){
   if(state.telegraph){
     state.telegraph.t -= dt;
     boss.charge = clamp(state.telegraph.t / state.telegraph.total, 0, 1);
-    if(state.interrupt >= state.interruptNeed){ interruptAttack(); return; }
+    if(state.interrupt >= state.interruptNeed && !boss.enraged){ interruptAttack(); return; }
     if(state.telegraph.t <= 0) executeTelegraph();
     return;
   }
