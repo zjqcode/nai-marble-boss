@@ -65,7 +65,7 @@ var SHOP_ITEMS = [
   {key:'fire',      n:'火焰灼烧',   ico:'🔥', cost:70, d:'8 秒内所有伤害 +50%，奶球附带火焰'},
   {key:'portal',    n:'传送阵',     ico:'◎', cost:80, d:'任何关卡临时开启一对传送阵，持续 20 秒'},
   {key:'thunder',   n:'雷电球',     ico:'⚡', cost:90, d:'召唤 3 道雷击，高额伤害并大幅积累破防'},
-  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:100, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.45'}
+  {key:'transform', n:'变身超级奶娃', ico:'✦', cost:100, d:'立刻变身 12 秒：发射等级 +3、伤害 ×1.2'}
 ];
 function shopItem(key){
   for(var i=0;i<SHOP_ITEMS.length;i++) if(SHOP_ITEMS[i].key === key) return SHOP_ITEMS[i];

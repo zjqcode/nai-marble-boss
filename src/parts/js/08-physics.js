@@ -184,14 +184,20 @@ function damageBoss(b, hx, hy, weak){
   /* 记「这一发打中了」：掉出场外时用来判断是不是空放 */
   b.hitBoss = true;
   var bounces = b.bounce || 0;
-  var bounceMul = 1 + Math.min(1.2, bounces*0.15);
-  var crit = bounces >= 4 || Math.random() < eff.crit;
-  var dmg = DMG[b.lv] * CHARS[b.lv].dmg * eff.bossDmg * eff.dmgAll * bounceMul * (crit ? 1.8 : 1);
+  var bounceMul = 1 + Math.min(0.6, bounces*0.08);
+  var crit = bounces >= 6 || Math.random() < eff.crit;
+  var dmg = DMG[b.lv] * CHARS[b.lv].dmg * eff.bossDmg * eff.dmgAll * bounceMul * (crit ? 1.5 : 1);
   if(weak) dmg *= 1.5;
   else dmg *= 0.35;            /* 身体命中：三成伤害，但积累破防 */
-  if(state.superT > 0) dmg *= 1.45;
+  if(state.superT > 0) dmg *= 1.2;
   if(state.frenzyT > 0) dmg *= 2;
   if(state.boss && state.boss.brkT > 0) dmg *= 1.3;   /* 破防中增伤 */
+  /* 单发伤害上限：任何叠满的暴击/变身/弹跳组合都不能一发带走过多的血，
+     否则满级玩家一下就把 Boss 删了，完全没挑战。 */
+  if(state.boss && state.boss.maxHp > 0){
+    var _cap = state.boss.maxHp * 0.18;
+    if(dmg > _cap) dmg = _cap;
+  }
   state.maxLv = Math.max(state.maxLv, b.lv);
   /* 破防值只由身体命中积累，鼓励「打不中弱点也别停手」 */
   if(!weak) addBreak(dmg * 2.6, hx, hy);
@@ -246,6 +252,13 @@ function damageBossRaw(hx, hy, dmg, crit, lv, weak, bounces){
   if(!boss || boss.dead) return;
   dmg = Math.max(1, Math.round(dmg * (state.heroDmg || 1)));
   if(state.fireT > 0) dmg = Math.round(dmg * 1.5);
+  /* 单发最终上限：不超过 Boss 血量 18%。
+     满级 + 超级奶娃 + 暴击 + 多次弹跳叠起来原本能一发带走 20%+，
+     这里统一夹住，保证再强也要打几下。 */
+  if(boss.maxHp > 0){
+    var _hardCap = boss.maxHp * 0.18;
+    if(dmg > _hardCap) dmg = Math.round(_hardCap);
+  }
   boss.hp = Math.max(0, boss.hp - dmg);
   boss.flash = 1;
   boss.hitScale = 0.9;
