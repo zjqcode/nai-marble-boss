@@ -9,9 +9,16 @@ function beginTelegraph(isCombo){
   if(!boss || boss.dead || state.stun > 0 || boss.brkT > 0) return;
   var ch = state.chapter;
   var type = ch.atk;
-  /* 锁定玩家此刻的位置：想躲就得在蓄力结束前走出危险区 */
+  /* 锁定玩家此刻的位置：想躲就得在蓄力结束前走出危险区。
+     狂暴时会「预判走位」——按你当前移动方向往前带一段，
+     原地不动/直线跑都会被打中，必须变向才躲得掉。 */
   var aimX = state.cannonX;
+  if(boss.enraged && (ch.aimLead || 0) > 0){
+    var _lead = (ch.aimLead || 0) * view.w * (state.stickX || 0);
+    aimX = clamp(state.cannonX + _lead, view.left + 20, view.right - 20);
+  }
   var w = view.w * (ch.dodgeW || 0.22) * (ATK_WIDTH[type] || 1);
+  if(boss.enraged && ch.rageZone) w *= ch.rageZone;
   var tele = ch.tele || 1.25;
   if(isCombo) tele *= 0.8;      /* 连段后续更急 */
   /* 狂暴状态：蓄力更短，留给玩家躲的时间更少 */
@@ -138,7 +145,9 @@ function executeTelegraph(){
   $id('bossAtk').classList.remove('hot');
   /* 本轮还有后续段数就排队，否则回到正常反击计时 */
   if(state.comboQ <= 0 && (ch.combo || 1) > 1){
-    state.comboQ = (ch.combo || 1) - 1;
+    var _cnt = (ch.combo || 1);
+    if(boss.enraged) _cnt += (ch.rageCombo || 1);   /* 狂暴时多一段 */
+    state.comboQ = _cnt - 1;
   }
   if(state.comboQ > 0){
     state.comboT2 = 0.55 * (state.boss && state.boss.enraged ? (state.chapter.teleRageMul || 0.78) : 1);

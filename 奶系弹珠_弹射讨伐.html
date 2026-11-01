@@ -1806,7 +1806,7 @@ var CHAPTERS = [
    intro:'蛋蛋会铺满场地，优先打断它的轰炸。'},
   {id:8, chap:'第八章', title:'终焉奶蛙', char:'奶蛙', hp:2500, time:64, every:4.1, atk:'thunder', atkName:'雷霆万钧',
    springs:true, portal:true, move:true, dodge:1.3, range:0.22,
-   breakPct:0.13, dodgeW:0.17, tele:1.40, dodgeRate:0.88, combo:2, enragePct:0.62, rageMul:0.48, minAtk:1.9,  brkRageMul:0.5,
+   breakPct:0.13, dodgeW:0.17, tele:1.40, dodgeRate:0.88, combo:2, enragePct:0.62, rageMul:0.48,  aimLead:0.22, rageZone:1.35, rageCombo:1,  brkRageMul:0.5,
    desc:'雷霆缠身的最终 BOSS，会闪避、游走、降下雷柱。',
    intro:'最终决战：它会在雷光中闪避你的每一发高级球。'}
 ];
@@ -4162,9 +4162,16 @@ function beginTelegraph(isCombo){
   if(!boss || boss.dead || state.stun > 0 || boss.brkT > 0) return;
   var ch = state.chapter;
   var type = ch.atk;
-  /* 锁定玩家此刻的位置：想躲就得在蓄力结束前走出危险区 */
+  /* 锁定玩家此刻的位置：想躲就得在蓄力结束前走出危险区。
+     狂暴时会「预判走位」——按你当前移动方向往前带一段，
+     原地不动/直线跑都会被打中，必须变向才躲得掉。 */
   var aimX = state.cannonX;
+  if(boss.enraged && (ch.aimLead || 0) > 0){
+    var _lead = (ch.aimLead || 0) * view.w * (state.stickX || 0);
+    aimX = clamp(state.cannonX + _lead, view.left + 20, view.right - 20);
+  }
   var w = view.w * (ch.dodgeW || 0.22) * (ATK_WIDTH[type] || 1);
+  if(boss.enraged && ch.rageZone) w *= ch.rageZone;
   var tele = ch.tele || 1.25;
   if(isCombo) tele *= 0.8;      /* 连段后续更急 */
   /* 狂暴状态：蓄力更短，留给玩家躲的时间更少 */
@@ -4291,7 +4298,9 @@ function executeTelegraph(){
   $id('bossAtk').classList.remove('hot');
   /* 本轮还有后续段数就排队，否则回到正常反击计时 */
   if(state.comboQ <= 0 && (ch.combo || 1) > 1){
-    state.comboQ = (ch.combo || 1) - 1;
+    var _cnt = (ch.combo || 1);
+    if(boss.enraged) _cnt += (ch.rageCombo || 1);   /* 狂暴时多一段 */
+    state.comboQ = _cnt - 1;
   }
   if(state.comboQ > 0){
     state.comboT2 = 0.55 * (state.boss && state.boss.enraged ? (state.chapter.teleRageMul || 0.78) : 1);
