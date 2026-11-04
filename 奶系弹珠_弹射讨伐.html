@@ -7916,6 +7916,15 @@ function bindEvents(){
       }
     }catch(e){ toast('全屏切换失败'); }
   }
+  /* iframe 内嵌（B站 Toy 等平台）时全屏 API 可能被禁用：
+     直接隐藏全屏按钮，避免玩家点了没反应。 */
+  var _fsOk = false;
+  try { _fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); } catch(e) { _fsOk = false; }
+  if(!_fsOk){
+    var _fsBtn = $id('bFull'), _fsIntro = $id('bIntroFull');
+    if(_fsBtn) _fsBtn.style.display = 'none';
+    if(_fsIntro) _fsIntro.style.display = 'none';
+  }
   $id('bFull').addEventListener('click', toggleFullscreen);
   $id('bIntroFull').addEventListener('click', toggleFullscreen);
   /* 首页两个工具按钮对齐（各断点尺寸不同，测量后再摆） */
