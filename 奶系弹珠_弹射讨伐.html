@@ -24,6 +24,12 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body.embedded{--toy-top:0px}
+/* B站 App 在左上角浮一个小电视图标（约 40×40，贴 8px 边），
+   正好压在暂停/更多上 —— 内嵌时整排按钮下移 52px 让开它。 */
+@media (orientation:landscape){
+  body.embedded #dock{top:calc(var(--sat) + 52px);z-index:30}
+  body.embedded #hud{left:calc(var(--sal) + 124px)}
+}
 /* B站 Toy 的悬浮按钮在右上角，只有得分卡需要下移让位 */
 body.embedded .score-card{transform:translateY(38px)}
 body{
@@ -981,14 +987,14 @@ button:disabled{cursor:default}
 
 /* Battle HUD: stable top strip, thumb controls, support actions in More. */
 #dock{left:calc(var(--sal) + 14px);right:auto;top:calc(var(--sat) + 8px);bottom:auto;transform:none;width:auto;padding:0;gap:7px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:flex-start;z-index:18}
-.dock-btn,.dock-btn.sm,.utility-menu summary{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 auto;padding:6px 3px;gap:2px;border-radius:12px;border:1px solid #b7ceb62e;background:#12342ee8;color:#cad8c1;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 12px #051d1938}
+.dock-btn,.dock-btn.sm,.utility-menu summary{width:48px;height:48px;min-width:48px;min-height:48px;flex:0 0 auto;padding:6px 3px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;gap:2px;border-radius:12px;border:1px solid #b7ceb62e;background:#12342ee8;color:#cad8c1;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 12px #051d1938}
 .dock-btn svg,.utility-menu summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
 .dock-btn .tx,.dock-btn span.tx,.utility-menu summary span{font-size:9px;letter-spacing:0;line-height:1.2;display:block}
 .utility-menu{position:relative}
 .utility-menu summary{list-style:none}
 .utility-menu summary::-webkit-details-marker{display:none}
 .utility-menu[open] summary{background:#d6d7a927;border-color:#e7d5a280;color:#f0dfb4}
-.utility-pop{position:absolute;left:0;right:auto;top:54px;width:280px;padding:16px;border-radius:18px;background:#173b33fa;border:1px solid #aec5a647;box-shadow:0 16px 48px #001b16b3;animation:panelIn .18s ease-out;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.utility-pop{position:absolute;left:0;right:auto;top:54px;max-width:calc(100vw - 24px);width:280px;padding:16px;border-radius:18px;background:#173b33fa;border:1px solid #aec5a647;box-shadow:0 16px 48px #001b16b3;animation:panelIn .18s ease-out;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .utility-pop>p{display:flex;justify-content:space-between;gap:10px;margin:0 0 12px;color:#e9e5c8;font-size:12px;font-weight:700}
 .utility-pop>p span{font-size:8px;letter-spacing:.14em;color:#9bb49e;align-self:center;font-weight:400}
 .utility-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -1370,6 +1376,7 @@ body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointe
 
 /* ---------- 竖屏 dock 居中 + 摇杆缩小的安全布局 ---------- */
 @media (orientation:portrait){
+    /* 弹层定位在文件末尾的 portrait 块里统一处理（要排在基础规则之后才生效） */
   /* 竖屏 dock 居中放底部，左右摇杆各占一边，互不重叠 */
   #dock{
     top:auto;bottom:calc(var(--sab) + 14px);right:auto;left:50%;
@@ -1422,7 +1429,12 @@ body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointe
   body.embedded .score-card strong{font-size:19px;line-height:1}
 body.embedded #dock{bottom:calc(var(--sab) + 18px)}
   /* 第一行已经写了章节，第二行血条也写着 Boss 名 —— 章节卡里的名字会重复，藏掉 */
-  body.embedded .level-card b{display:none}
+body.embedded .level-card b{display:none}
+  /* 竖屏 dock 在底部 → 弹层向上展开并左右居中，保证整块留在屏幕内 */
+  .utility-pop{
+    top:auto;bottom:58px;left:50%;transform:translateX(-50%);
+    width:min(300px, calc(100vw - 24px));max-width:none;
+  }
   /* Toast 要落在 dock 上方，别把暂停/更多盖住 */
   body.embedded #toast{bottom:calc(var(--sab) + 96px)}
   body.embedded .combo{top:120px}
