@@ -1439,7 +1439,16 @@ body.embedded .level-card b{display:none}
   body.embedded #toast{bottom:calc(var(--sab) + 96px)}
   body.embedded .combo{top:120px}
 }
-</style>
+/* ---------- 横屏 · 道具栏让开顶部按钮 ----------
+   内嵌时 dock 下移到 52px 让开平台图标，道具栏原来在 64px 会被压住；
+   非内嵌 dock 在 8~56，道具栏 64 也几乎贴着。统一重新排：
+     非内嵌：道具栏 top = sat + 72
+     内嵌  ：道具栏 top = sat + 112（dock 底 100 + 12）
+   左栏（4 个）与右栏（最多 4 个）同步下移，右侧也不再压住得分。 */
+@media (orientation:landscape){
+  #itemBar,#itemBar2{top:calc(var(--sat) + 72px)}
+  body.embedded #itemBar,body.embedded #itemBar2{top:calc(var(--sat) + 112px)}
+}</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
