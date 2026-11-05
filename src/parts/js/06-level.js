@@ -276,6 +276,7 @@ function startLevel(idx){
   state.atkAnim = null;
   state.gasT = 0;
   state.cineT = 1.7;
+  if(document.body) document.body.classList.add('cine');   /* 开场过场：先藏起对局按钮 */
   state.deadReason = '';
   state.reloadT = 0.5;
   /* 装填按章节分档：前两章慢一点，逼玩家认真对待每一发；后期维持原速 */

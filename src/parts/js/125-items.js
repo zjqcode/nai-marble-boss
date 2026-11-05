@@ -193,6 +193,18 @@ function refreshPlateBtn(){
   var off = !placing && (n <= 0 || state.mode !== 'play' || state.paused || state.cineT > 0);
   if(btn._off !== off){ btn._off = off; btn.classList.toggle('off', off); }
   if(btn._arm !== placing){ btn._arm = placing; btn.classList.toggle('arm', placing); }
+  alignPlateBtn();
+}
+
+/* 横屏里道具栏是「贴顶两列」布局，而反弹板原来按 bottom 定位，
+   于是和道具错开一格。这里统一按「右侧道具栏的最后一行下方」对齐。 */
+function alignPlateBtn(){
+  var btn = $id('bPlate');
+  if(!btn) return;
+  var bar = $id('itemBar2');
+  var n = bar ? bar.children.length : 0;
+  /* 只告诉 CSS 占了几行，像素位置交给 calc，避免「量到的 rect 是上一帧」的问题 */
+  btn.style.setProperty('--rows', String(Math.ceil(n / 2)));
 }
 
 /* 道具通用演出：全屏环 + 名字 + 闪光，解决「买了没特效」 */

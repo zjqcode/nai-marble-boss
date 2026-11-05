@@ -1032,7 +1032,7 @@ body{--stick-size:112px;--stick-bottom:16px;--item-size:48px}
 .item-btn{width:var(--item-size);height:var(--item-size);min-width:44px;min-height:44px;border-radius:13px;background:#173c31e3;border:1px solid #b8cdaa40;font-size:22px;box-shadow:0 4px 12px #001d1550}
 .item-btn b{font-size:10px;background:#e1d29f;color:#294333;min-width:16px;min-height:16px;line-height:16px;right:-3px;top:-3px}
 .item-btn.off{opacity:.5}.item-btn .cd{font-size:10px}
-#bPlate{left:auto;right:calc(var(--sar) + 16px);top:auto;bottom:calc(var(--sab) + var(--stick-bottom) + var(--stick-size) + 12px);margin:0;width:48px;height:48px;border-radius:13px;background:#183e34ed;border:1px solid #b9d4ba55;color:#cde4c7;box-shadow:none;gap:3px}
+#bPlate{left:auto;right:calc(var(--sar) + 16px);top:calc(var(--sat) + var(--item-top,72px) + var(--rows,0) * var(--item-size) + max(0, var(--rows,0) - 1) * 8px + 8px);bottom:auto;margin:0;width:48px;height:48px;border-radius:13px;background:#183e34ed;border:1px solid #b9d4ba55;color:#cde4c7;box-shadow:none;gap:3px}
 #bPlate .ico{font-size:16px}#bPlate .tx{font-size:9px}#bPlate b{background:#c1d7b0;color:#294333;font-size:9px}
 body.playing #bPlate.arm{background:#b9d4a730;border-color:#cbeab9;box-shadow:0 0 0 4px #b6dda016}
 body.panel-open #hud,body.panel-open #dock,body.panel-open .stick,body.panel-open #itemBar,body.panel-open #itemBar2,body.panel-open #bPlate{pointer-events:none}
@@ -1446,9 +1446,26 @@ body.embedded .level-card b{display:none}
      内嵌  ：道具栏 top = sat + 112（dock 底 100 + 12）
    左栏（4 个）与右栏（最多 4 个）同步下移，右侧也不再压住得分。 */
 @media (orientation:landscape){
-  #itemBar,#itemBar2{top:calc(var(--sat) + 72px)}
-  body.embedded #itemBar,body.embedded #itemBar2{top:calc(var(--sat) + 112px)}
-}</style>
+  #itemBar,#itemBar2{top:calc(var(--sat) + var(--item-top,72px))}
+  body.embedded #itemBar,body.embedded #itemBar2{top:calc(var(--sat) + var(--item-top,112px))}
+}
+
+/* ---- 道具栏 / 反弹板 统一垂直节奏 ----
+   道具栏顶部 = sat + --item-top；反弹板紧贴右侧道具栏最后一行下方 8px。
+   --item-top 挂在 body 上，两个元素都能读到。 */
+@media (orientation:landscape){
+  body{--item-top:72px}
+  body.embedded{--item-top:112px}
+  #bPlate{
+    top:calc(var(--sat) + var(--item-top,72px) + var(--rows,0) * var(--item-size) + max(0, var(--rows,0) - 1) * 8px + 8px);
+    bottom:auto;
+  }
+}
+/* 开场 VS 过场期间隐藏对局按钮（过场结束自动恢复） */
+body.cine #dock,
+body.cine #itemBar,
+body.cine #itemBar2,
+body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
@@ -3345,6 +3362,7 @@ function startLevel(idx){
   state.atkAnim = null;
   state.gasT = 0;
   state.cineT = 1.7;
+  if(document.body) document.body.classList.add('cine');   /* 开场过场：先藏起对局按钮 */
   state.deadReason = '';
   state.reloadT = 0.5;
   /* 装填按章节分档：前两章慢一点，逼玩家认真对待每一发；后期维持原速 */
@@ -5105,6 +5123,18 @@ function refreshPlateBtn(){
   var off = !placing && (n <= 0 || state.mode !== 'play' || state.paused || state.cineT > 0);
   if(btn._off !== off){ btn._off = off; btn.classList.toggle('off', off); }
   if(btn._arm !== placing){ btn._arm = placing; btn.classList.toggle('arm', placing); }
+  alignPlateBtn();
+}
+
+/* 横屏里道具栏是「贴顶两列」布局，而反弹板原来按 bottom 定位，
+   于是和道具错开一格。这里统一按「右侧道具栏的最后一行下方」对齐。 */
+function alignPlateBtn(){
+  var btn = $id('bPlate');
+  if(!btn) return;
+  var bar = $id('itemBar2');
+  var n = bar ? bar.children.length : 0;
+  /* 只告诉 CSS 占了几行，像素位置交给 calc，避免「量到的 rect 是上一帧」的问题 */
+  btn.style.setProperty('--rows', String(Math.ceil(n / 2)));
 }
 
 /* 道具通用演出：全屏环 + 名字 + 闪光，解决「买了没特效」 */
@@ -5697,6 +5727,9 @@ function update(dt){
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
+      /* 开场 VS 过场期间：把暂停/更多、道具栏、反弹板都藏起来，
+         免得玩家还没开打就看到一堆按钮 */
+      if(state.cineT <= 0 && document.body) document.body.classList.remove('cine');
       updateBoss(dt);
       updateFx(dt);
       updateCoins(dt);
@@ -5803,6 +5836,7 @@ function update(dt){
     /* 血瓶可用状态 / 反弹板数量与放置高亮，跟着 0.12 秒的节流刷新 */
     refreshItemBtnStates();
     refreshPlateBtn();
+  if(typeof alignPlateBtn === 'function') alignPlateBtn();
     if(state.chapter && state.mode === 'play' && !state.telegraph && state.cineT <= 0){
       var el = $id('bossAtk');
       if(state.stun > 0){

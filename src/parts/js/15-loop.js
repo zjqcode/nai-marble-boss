@@ -75,6 +75,9 @@ function update(dt){
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
+      /* 开场 VS 过场期间：把暂停/更多、道具栏、反弹板都藏起来，
+         免得玩家还没开打就看到一堆按钮 */
+      if(state.cineT <= 0 && document.body) document.body.classList.remove('cine');
       updateBoss(dt);
       updateFx(dt);
       updateCoins(dt);
@@ -181,6 +184,7 @@ function update(dt){
     /* 血瓶可用状态 / 反弹板数量与放置高亮，跟着 0.12 秒的节流刷新 */
     refreshItemBtnStates();
     refreshPlateBtn();
+  if(typeof alignPlateBtn === 'function') alignPlateBtn();
     if(state.chapter && state.mode === 'play' && !state.telegraph && state.cineT <= 0){
       var el = $id('bossAtk');
       if(state.stun > 0){
