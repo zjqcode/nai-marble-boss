@@ -70,11 +70,6 @@
 </header>
 
 <div id="itemBar" aria-label="道具栏"></div>
-<button id="bPlate" aria-label="放置反弹板" aria-pressed="false">
-  <span class="ico">▰</span>
-  <span class="tx">反弹板</span>
-  <b id="plateCount">0</b>
-</button>
 <!-- 双摇杆：左=炮台左右移动（只认横向），右=下拉蓄力、松手发射（方向与拉动方向相反） -->
 <div id="stickL" class="stick" aria-label="左摇杆：炮台左右移动">
   <div class="stick-ring"></div>
@@ -125,7 +120,13 @@
 </nav>
 
 <!-- 道具栏分左右两栏：买再多也放得下（左栏满了往右栏排） -->
-<div id="itemBar2" aria-label="道具栏（右）"></div>
+<div id="itemBar2" aria-label="道具栏（右）">
+  <button id="bPlate" aria-label="放置反弹板" aria-pressed="false">
+    <span class="ico">▰</span>
+    <span class="tx">反弹板</span>
+    <b id="plateCount">0</b>
+  </button>
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 

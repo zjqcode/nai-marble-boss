@@ -155,7 +155,16 @@ function updateItemBar(){
   var leftHtml = btns.slice(0, ITEM_SPLIT).join('');
   var rightHtml = btns.slice(ITEM_SPLIT).join('');
   if(barL.innerHTML !== leftHtml) barL.innerHTML = leftHtml;
-  if(barR && barR.innerHTML !== rightHtml) barR.innerHTML = rightHtml;
+  if(barR){
+    /* 反弹板是独立按钮（不是道具），innerHTML 重建会把它冲掉：
+       先留引用 → 重建 → 再挂回末尾，让它和道具共用同一个网格 */
+    var plateBtn = barR.querySelector('#bPlate') || $id('bPlate');
+    if(barR._items !== rightHtml){
+      barR.innerHTML = rightHtml;
+      barR._items = rightHtml;
+    }
+    if(plateBtn && plateBtn.parentNode !== barR) barR.appendChild(plateBtn);
+  }
   refreshItemBtnStates();
   refreshPlateBtn();
 }

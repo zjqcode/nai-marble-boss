@@ -1465,7 +1465,34 @@ body.embedded .level-card b{display:none}
 body.cine #dock,
 body.cine #itemBar,
 body.cine #itemBar2,
-body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}</style>
+body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}
+
+/* ---- 反弹板：作为右栏网格里的普通格子 ----
+   历史遗留：它曾是独立 fixed 按钮，散落在多个媒体查询里改 right/bottom/尺寸，
+   结果永远和道具栏错开。现在它就在 #itemBar2 里，用 !important 压掉那些定位，
+   尺寸与 .item-btn 完全一致。 */
+#itemBar2 #bPlate{
+  position:static !important;
+  left:auto !important;right:auto !important;top:auto !important;bottom:auto !important;
+  margin:0 !important;
+  width:var(--item-size) !important;height:var(--item-size) !important;
+  min-width:0 !important;min-height:0 !important;
+  border-radius:13px !important;
+  padding:2px 0 1px !important;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  background:#173c31e3 !important;
+  border:1px solid #b8cdaa40 !important;
+  box-shadow:0 4px 12px #001d1550 !important;
+}
+#itemBar2 #bPlate .ico{font-size:18px !important;line-height:1}
+#itemBar2 #bPlate .tx{font-size:8px !important;opacity:.85}
+#itemBar2 #bPlate b{
+  position:absolute;right:-3px;top:-3px;
+  min-width:16px;height:16px;line-height:16px;border-radius:8px;
+  background:#c1d7b0;color:#294333;font-size:9px;font-weight:700;text-align:center;
+}
+#itemBar2 #bPlate{position:relative !important}
+</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
@@ -1525,11 +1552,6 @@ body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}</style>
 </header>
 
 <div id="itemBar" aria-label="道具栏"></div>
-<button id="bPlate" aria-label="放置反弹板" aria-pressed="false">
-  <span class="ico">▰</span>
-  <span class="tx">反弹板</span>
-  <b id="plateCount">0</b>
-</button>
 <!-- 双摇杆：左=炮台左右移动（只认横向），右=下拉蓄力、松手发射（方向与拉动方向相反） -->
 <div id="stickL" class="stick" aria-label="左摇杆：炮台左右移动">
   <div class="stick-ring"></div>
@@ -1580,7 +1602,13 @@ body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}</style>
 </nav>
 
 <!-- 道具栏分左右两栏：买再多也放得下（左栏满了往右栏排） -->
-<div id="itemBar2" aria-label="道具栏（右）"></div>
+<div id="itemBar2" aria-label="道具栏（右）">
+  <button id="bPlate" aria-label="放置反弹板" aria-pressed="false">
+    <span class="ico">▰</span>
+    <span class="tx">反弹板</span>
+    <b id="plateCount">0</b>
+  </button>
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -5085,7 +5113,16 @@ function updateItemBar(){
   var leftHtml = btns.slice(0, ITEM_SPLIT).join('');
   var rightHtml = btns.slice(ITEM_SPLIT).join('');
   if(barL.innerHTML !== leftHtml) barL.innerHTML = leftHtml;
-  if(barR && barR.innerHTML !== rightHtml) barR.innerHTML = rightHtml;
+  if(barR){
+    /* 反弹板是独立按钮（不是道具），innerHTML 重建会把它冲掉：
+       先留引用 → 重建 → 再挂回末尾，让它和道具共用同一个网格 */
+    var plateBtn = barR.querySelector('#bPlate') || $id('bPlate');
+    if(barR._items !== rightHtml){
+      barR.innerHTML = rightHtml;
+      barR._items = rightHtml;
+    }
+    if(plateBtn && plateBtn.parentNode !== barR) barR.appendChild(plateBtn);
+  }
   refreshItemBtnStates();
   refreshPlateBtn();
 }
