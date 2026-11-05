@@ -241,15 +241,18 @@ function bindEvents(){
       if(btn) btn.disabled = false;
       setTimeout(layout, 200);
       if(!stillPortrait){ toast('已切到横屏'); return; }
-      /* 锁不上（iOS Safari / iframe 里被禁 / 浏览器不支持）时不能什么都不做，
-         否则玩家会以为按钮坏了 —— 直接切到竖屏可玩模式并说明原因。 */
-      document.body.classList.add('portrait-ok');
-      setTimeout(layout, 120);
+      /* 转不过去就明确说明，并高亮「仍要竖屏游玩」，
+         绝不擅自把界面换成竖屏（玩家点的是「进入横屏」）。 */
       var embedded = false;
       try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
       toast(embedded
-        ? '平台内不能自动转屏 · 已切竖屏，可点右上角全屏再转手机'
-        : '这个浏览器不支持自动转屏 · 已切竖屏，也可以手动把手机横过来');
+        ? '平台内不能自动转屏 · 请点右上角全屏，或手动把手机横过来'
+        : '这个浏览器不允许自动转屏 · 请手动把手机横过来');
+      var ok = $id('bRotateOk');
+      if(ok){
+        ok.classList.add('pulse-once');
+        setTimeout(function(){ ok.classList.remove('pulse-once'); }, 2400);
+      }
     });
   });
 

@@ -25,32 +25,32 @@ function lockLandscape(){
   }catch(e){ return Promise.resolve(false); }
 }
 
-/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转）
-   顺序很关键：
-     1) 先直接 lock（部分浏览器/WebView 不要求全屏）
-     2) 不行再 requestFullscreen，成功后立刻 lock（Android Chrome 只有全屏才允许）
-     3) 都不行就如实返回「还是竖屏」，由调用方给替代方案 */
+/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（没转成）
+   关键：requestFullscreen 必须在点击手势里【同步】调用，
+   放进 .then 里会因为微任务丢失用户激活而被浏览器拒绝（上一版就是这么坏的）。 */
 function enterLandscape(){
   var el = document.documentElement;
   var fsFn = el.requestFullscreen || el.webkitRequestFullscreen;
   var inFull = document.fullscreenElement || document.webkitFullscreenElement;
   var embedded = false;
   try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
-  /* iframe 内嵌（B站 Toy）里请求全屏会被浏览器拦掉甚至触发跳转，
-     而且平台自己就有全屏按钮 —— 内嵌时只尝试锁方向。 */
+  /* iframe 内嵌（B站 Toy）里这个 API 被禁用，调了也只会被拒，直接跳过 */
   if(embedded) fsFn = null;
 
   var lock = function(){ return lockLandscape(); };
 
-  return lock().then(function(lockOk){
-    if(lockOk) return isPortraitNow();
-    if(inFull || !fsFn) return isPortraitNow();
-    var step;
-    try{ step = Promise.resolve(fsFn.call(el, { navigationUI: 'hide' })); }
-    catch(e){ step = Promise.resolve(); }
-    return step.then(function(){ return lock(); }, function(){ return false; })
-      .then(function(){ return isPortraitNow(); });
-  }, function(){ return isPortraitNow(); });
+  if(inFull || !fsFn){
+    /* 已经全屏 / 没有全屏 API：只剩锁方向这一条路 */
+    return lock().then(function(){ return isPortraitNow(); },
+                       function(){ return isPortraitNow(); });
+  }
+
+  /* 同步发起全屏（保住手势），再锁方向 */
+  var step;
+  try{ step = Promise.resolve(fsFn.call(el)); }
+  catch(e){ step = Promise.resolve(); }
+  return step.then(function(){ return lock(); }, function(){ return false; })
+    .then(function(){ return isPortraitNow(); });
 }
 
 /* ---------- 暂停 ----------

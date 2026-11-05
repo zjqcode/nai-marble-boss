@@ -454,6 +454,8 @@ body.playing #dock{opacity:1;pointer-events:auto}
 }
 .rot-phone::after{content:"";position:absolute;left:50%;bottom:5px;width:12px;height:2px;border-radius:2px;background:rgba(255,220,160,.5);transform:translateX(-50%)}
 @keyframes rotHint{0%,22%{transform:rotate(90deg)}62%,100%{transform:rotate(0deg)}}
+.ghost-btn.pulse-once{animation:rotOkPulse 1.2s ease-in-out 2;border-color:rgba(255,226,170,.9);color:#ffeec2}
+@keyframes rotOkPulse{0%,100%{box-shadow:0 0 0 0 rgba(247,201,107,0)}50%{box-shadow:0 0 0 6px rgba(247,201,107,.22)}}
 .rot-tip{margin:6px 0 0;font-size:11px;line-height:1.6;color:rgba(255,226,170,.62);max-width:260px}
 #rotate h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.06em;color:#ffe8b8}
 #rotate p{margin:8px 0 16px;font-size:11.5px;line-height:1.8;color:rgba(255,240,215,.55);letter-spacing:.04em}
@@ -7465,32 +7467,32 @@ function lockLandscape(){
   }catch(e){ return Promise.resolve(false); }
 }
 
-/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转）
-   顺序很关键：
-     1) 先直接 lock（部分浏览器/WebView 不要求全屏）
-     2) 不行再 requestFullscreen，成功后立刻 lock（Android Chrome 只有全屏才允许）
-     3) 都不行就如实返回「还是竖屏」，由调用方给替代方案 */
+/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（没转成）
+   关键：requestFullscreen 必须在点击手势里【同步】调用，
+   放进 .then 里会因为微任务丢失用户激活而被浏览器拒绝（上一版就是这么坏的）。 */
 function enterLandscape(){
   var el = document.documentElement;
   var fsFn = el.requestFullscreen || el.webkitRequestFullscreen;
   var inFull = document.fullscreenElement || document.webkitFullscreenElement;
   var embedded = false;
   try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
-  /* iframe 内嵌（B站 Toy）里请求全屏会被浏览器拦掉甚至触发跳转，
-     而且平台自己就有全屏按钮 —— 内嵌时只尝试锁方向。 */
+  /* iframe 内嵌（B站 Toy）里这个 API 被禁用，调了也只会被拒，直接跳过 */
   if(embedded) fsFn = null;
 
   var lock = function(){ return lockLandscape(); };
 
-  return lock().then(function(lockOk){
-    if(lockOk) return isPortraitNow();
-    if(inFull || !fsFn) return isPortraitNow();
-    var step;
-    try{ step = Promise.resolve(fsFn.call(el, { navigationUI: 'hide' })); }
-    catch(e){ step = Promise.resolve(); }
-    return step.then(function(){ return lock(); }, function(){ return false; })
-      .then(function(){ return isPortraitNow(); });
-  }, function(){ return isPortraitNow(); });
+  if(inFull || !fsFn){
+    /* 已经全屏 / 没有全屏 API：只剩锁方向这一条路 */
+    return lock().then(function(){ return isPortraitNow(); },
+                       function(){ return isPortraitNow(); });
+  }
+
+  /* 同步发起全屏（保住手势），再锁方向 */
+  var step;
+  try{ step = Promise.resolve(fsFn.call(el)); }
+  catch(e){ step = Promise.resolve(); }
+  return step.then(function(){ return lock(); }, function(){ return false; })
+    .then(function(){ return isPortraitNow(); });
 }
 
 /* ---------- 暂停 ----------
@@ -7991,15 +7993,18 @@ function bindEvents(){
       if(btn) btn.disabled = false;
       setTimeout(layout, 200);
       if(!stillPortrait){ toast('已切到横屏'); return; }
-      /* 锁不上（iOS Safari / iframe 里被禁 / 浏览器不支持）时不能什么都不做，
-         否则玩家会以为按钮坏了 —— 直接切到竖屏可玩模式并说明原因。 */
-      document.body.classList.add('portrait-ok');
-      setTimeout(layout, 120);
+      /* 转不过去就明确说明，并高亮「仍要竖屏游玩」，
+         绝不擅自把界面换成竖屏（玩家点的是「进入横屏」）。 */
       var embedded = false;
       try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
       toast(embedded
-        ? '平台内不能自动转屏 · 已切竖屏，可点右上角全屏再转手机'
-        : '这个浏览器不支持自动转屏 · 已切竖屏，也可以手动把手机横过来');
+        ? '平台内不能自动转屏 · 请点右上角全屏，或手动把手机横过来'
+        : '这个浏览器不允许自动转屏 · 请手动把手机横过来');
+      var ok = $id('bRotateOk');
+      if(ok){
+        ok.classList.add('pulse-once');
+        setTimeout(function(){ ok.classList.remove('pulse-once'); }, 2400);
+      }
     });
   });
 
