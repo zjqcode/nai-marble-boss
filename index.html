@@ -23,6 +23,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
+body.embedded{--toy-top:46px}
 body{
   background:#050a12;color:var(--ink);font-family:var(--font);
   overflow:hidden;position:fixed;inset:0;
@@ -973,7 +974,7 @@ button:disabled{cursor:default}
 .shop-buy.poor{opacity:.6;background:#d0d6cb08;color:#c1c6b4}.shop-buy.full{opacity:.6;background:#b7d9bd0d;color:#bdd7bd;border-color:#a6c19b2b}
 
 /* Battle HUD: stable top strip, thumb controls, support actions in More. */
-#dock{left:auto;right:calc(var(--sar) + 14px);top:calc(var(--sat) + 10px);bottom:auto;transform:none;width:auto;padding:0;gap:7px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:flex-start;z-index:18}
+#dock{left:calc(var(--sal) + 14px);right:auto;top:calc(var(--sat) + 10px + var(--toy-top,0px));bottom:auto;transform:none;width:auto;padding:0;gap:7px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:flex-start;z-index:18}
 .dock-btn,.dock-btn.sm,.utility-menu summary{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 auto;padding:6px 3px;gap:2px;border-radius:12px;border:1px solid #b7ceb62e;background:#12342ee8;color:#cad8c1;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 12px #051d1938}
 .dock-btn svg,.utility-menu summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
 .dock-btn .tx,.dock-btn span.tx,.utility-menu summary span{font-size:9px;letter-spacing:0;line-height:1.2;display:block}
@@ -981,21 +982,23 @@ button:disabled{cursor:default}
 .utility-menu summary{list-style:none}
 .utility-menu summary::-webkit-details-marker{display:none}
 .utility-menu[open] summary{background:#d6d7a927;border-color:#e7d5a280;color:#f0dfb4}
-.utility-pop{position:absolute;right:0;top:54px;width:280px;padding:16px;border-radius:18px;background:#173b33fa;border:1px solid #aec5a647;box-shadow:0 16px 48px #001b16b3;animation:panelIn .18s ease-out;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.utility-pop{position:absolute;left:0;right:auto;top:54px;width:280px;padding:16px;border-radius:18px;background:#173b33fa;border:1px solid #aec5a647;box-shadow:0 16px 48px #001b16b3;animation:panelIn .18s ease-out;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .utility-pop>p{display:flex;justify-content:space-between;gap:10px;margin:0 0 12px;color:#e9e5c8;font-size:12px;font-weight:700}
 .utility-pop>p span{font-size:8px;letter-spacing:.14em;color:#9bb49e;align-self:center;font-weight:400}
 .utility-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .utility-grid .dock-btn{width:100%;height:60px;gap:5px;background:#c7d2a907;border-color:#bcd2ad1e;border-radius:12px;box-shadow:none}
 .utility-grid .dock-btn.on{color:#ead7a0;background:#dfd3a015;border-color:#ddc58e47}
 .utility-grid .dock-btn svg{width:21px;height:21px}.utility-grid .dock-btn span.tx{font-size:11px}
-#hud{top:calc(var(--sat) + 10px);left:calc(var(--sal) + 16px);right:calc(var(--sar) + 125px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:112px minmax(0,1fr) 116px;align-items:start;max-width:none}
+#hud{top:calc(var(--sat) + 10px + var(--toy-top,0px));left:calc(var(--sal) + 112px);right:calc(var(--sar) + 16px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:122px minmax(0,1fr) 128px;align-items:start;max-width:none}
 .hud-row{display:contents}
 .hud-card,.boss-bar{border:0;filter:drop-shadow(0 2px 4px #001614);border-radius:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;padding:0;min-width:0}
-.score-card{grid-column:1;grid-row:1}.level-card{grid-column:3;grid-row:1;text-align:right}
+.score-card{grid-column:3;grid-row:1;text-align:right}.level-card{grid-column:1;grid-row:1;text-align:left}
 .score-card strong{font-size:26px;color:#f1dfb1;background:none;filter:none;line-height:1.1}
 .lbl,.best{font-size:10px;letter-spacing:.04em;color:#b0c7b8}.best em{color:#e3d3a2}
 .level-card b,#levelName{font-size:13px;color:#e6e9d4;max-width:none}.level-card .sc-top{justify-content:space-between}
-#chapLabel,#timerLabel{font-size:10px}#timerLabel{color:#e9d6a5}.hearts{max-width:116px;gap:3px;margin-top:4px;row-gap:3px}.hearts i{font-size:11px;color:#ed9f88;filter:none}.hearts.many i{font-size:9px}
+.score-card .sc-top{justify-content:flex-end;gap:10px}
+.score-card .lbl,.score-card .best{text-align:right}
+#chapLabel,#timerLabel{font-size:10px}#timerLabel{color:#e9d6a5}.hearts{max-width:116px;gap:3px;margin-top:4px;row-gap:3px;justify-content:flex-start}.hearts i{font-size:11px;color:#ed9f88;filter:none}.hearts.many i{font-size:9px}
 .boss-bar{grid-column:2;grid-row:1;width:100%;max-width:340px;justify-self:center}
 .bb-top{margin-bottom:6px;align-items:center}#bossName{font-size:12px;color:#e5e5c7;letter-spacing:.04em}#bossHpText{font-size:10px;color:#b7c6b1}
 .bb-track{height:7px;background:#d3deb717;box-shadow:0 0 0 1px #b4d5b11a;overflow:hidden}
@@ -1216,7 +1219,7 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 
 /* 首页全屏按钮的引导气泡：只在没进过全屏时出现，点一下或等几秒就收 */
 .fs-hint{
-  position:absolute;z-index:7;pointer-events:none;
+  position:fixed;z-index:70;pointer-events:none;
   display:flex;align-items:center;gap:7px;
   padding:9px 14px;border-radius:12px;
   background:linear-gradient(160deg,#ffeec2,#eec078);border:none;
@@ -3582,7 +3585,7 @@ var TUT_STEPS = [
   { target: 'stickL', text: '红区亮起来时，用左摇杆躲开', sub: '站着不动会被砸中' }
 ];
 
-var tutEl = null, tutOn = false, tutStep = 0, tutStartX = 0, tutMoved = 0, tutElapsed = 0, tutHits = 0;
+var tutEl = null, tutOn = false, tutStep = 0, tutStartX = null, tutMoved = 0, tutElapsed = 0, tutHits = 0;
 var TUT_STEP_TIMEOUT = 20;   /* 单步最多等 20 秒（游戏时间），卡住就自动往下走 */
 
 function tutDone(){
@@ -3658,7 +3661,7 @@ function tutSetStep(n){
   el.querySelector('.coach-sub').textContent = st.sub || '';
   tutPlace(st.target);
   state.tutHold = (n <= 1);   /* 前两步 Boss 先别打人 */
-  if(n === 0){ tutStartX = state.cannonX; tutMoved = 0; }
+  if(n === 0){ tutStartX = null; tutMoved = 0; }   /* 待第一帧再取基准（见 tutMoveTick） */
 }
 
 function tutStart(chapterIndex, force){
@@ -3689,6 +3692,8 @@ function tutMoveTick(dt){
     return;
   }
   if(tutStep !== 0 || !state.boss) return;
+  /* 基准位置在第一帧才取：避开 startLevel 里「先 tutStart、后摆炮台」的顺序问题 */
+  if(tutStartX === null){ tutStartX = state.cannonX; return; }
   var d = Math.abs(state.cannonX - tutStartX);
   if(d > 50){
     if(tutMoved === 0) tutMoved = 1;
@@ -7543,6 +7548,11 @@ function maybeShowFsHint(){
   if(document.fullscreenElement || document.webkitFullscreenElement) return;
   var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
   if(!can) return;
+  /* 按钮本身已被隐藏（iframe 里 fullscreenEnabled 为 false）就别提示了，
+     否则会留下一个指向不存在按钮的错位气泡。 */
+  var enabled = false;
+  try{ enabled = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }catch(e){ enabled = false; }
+  if(!enabled || window.__fsDisabled || btn.style.display === 'none') return;
   el.classList.remove('hide');
   el.classList.add('show');
   el.classList.add('pulse');
@@ -7556,27 +7566,32 @@ function maybeShowFsHint(){
 function syncIntroTools(){
   var fs = $id('bIntroFull'), snd = $id('bIntroSound');
   if(!fs || !snd) return;
-  var par = fs.offsetParent;
-  if(!par) return;
-  var w = snd.offsetWidth, h = snd.offsetHeight;
-  if(!w || !h) return;
-  fs.style.width = w + 'px';
-  fs.style.height = h + 'px';
-  fs.style.top = snd.offsetTop + 'px';
-  fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var sr = snd.getBoundingClientRect();
+  if(!sr.width || !sr.height) return;
+  /* 用视口坐标（fixed）而不是 offsetLeft/offsetTop：
+     以前用 offset 相对 #intro 计算，父级/断点一变就会飘到别处，
+     内嵌（B站 Toy iframe）里尤其明显。 */
+  var size = Math.round(sr.width);
+  var fLeft = Math.round(sr.left - size - 10);
+  var fTop = Math.round(sr.top);
+  fs.style.position = 'fixed';
+  fs.style.width = size + 'px';
+  fs.style.height = size + 'px';
+  fs.style.left = fLeft + 'px';
+  fs.style.right = 'auto';
+  fs.style.top = fTop + 'px';
+
   var spot = $id('fsSpot');
   if(spot){
-    /* 渐变圆心的坐标 = 全屏按钮中心（相对 #intro） */
-    var bx = snd.offsetLeft - 10 - w + w / 2;
-    var by = snd.offsetTop + h / 2;
-    spot.style.setProperty('--sx', Math.round(bx) + 'px');
-    spot.style.setProperty('--sy', Math.round(by) + 'px');
-    spot.style.setProperty('--sr', Math.round(w / 2 + 9) + 'px');
+    spot.style.setProperty('--sx', Math.round(fLeft + size / 2) + 'px');
+    spot.style.setProperty('--sy', Math.round(fTop + size / 2) + 'px');
+    spot.style.setProperty('--sr', Math.round(size / 2 + 9) + 'px');
   }
   var hint = $id('fsHint');
   if(hint){
-    hint.style.top = (snd.offsetTop + h + 10) + 'px';
-    hint.style.right = (par.clientWidth - (snd.offsetLeft + 10 - h) - w) + 'px';
+    hint.style.left = fLeft + 'px';
+    hint.style.right = 'auto';
+    hint.style.top = (fTop + size + 10) + 'px';
   }
 }
 
@@ -7920,10 +7935,20 @@ function bindEvents(){
      直接隐藏全屏按钮，避免玩家点了没反应。 */
   var _fsOk = false;
   try { _fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); } catch(e) { _fsOk = false; }
+  /* 内嵌标记：平台（B站 Toy）会在iframe右上角叠自己的按钮，
+     给 HUD/dock 预留 --toy-top，避免被压住。 */
+  var _embedded = false;
+  try { _embedded = window.self !== window.top; } catch(e) { _embedded = true; }
+  if(_embedded && document.body) document.body.classList.add('embedded');
   if(!_fsOk){
+    window.__fsDisabled = true;
     var _fsBtn = $id('bFull'), _fsIntro = $id('bIntroFull');
     if(_fsBtn) _fsBtn.style.display = 'none';
     if(_fsIntro) _fsIntro.style.display = 'none';
+    /* 全屏不可用时把引导气泡一起收掉，免得指向一个看不见的按钮 */
+    var _fsh = $id('fsHint'), _fss = $id('fsSpot');
+    if(_fsh) _fsh.classList.remove('show', 'pulse');
+    if(_fss) _fss.classList.remove('show');
   }
   $id('bFull').addEventListener('click', toggleFullscreen);
   $id('bIntroFull').addEventListener('click', toggleFullscreen);

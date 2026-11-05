@@ -200,10 +200,20 @@ function bindEvents(){
      直接隐藏全屏按钮，避免玩家点了没反应。 */
   var _fsOk = false;
   try { _fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); } catch(e) { _fsOk = false; }
+  /* 内嵌标记：平台（B站 Toy）会在iframe右上角叠自己的按钮，
+     给 HUD/dock 预留 --toy-top，避免被压住。 */
+  var _embedded = false;
+  try { _embedded = window.self !== window.top; } catch(e) { _embedded = true; }
+  if(_embedded && document.body) document.body.classList.add('embedded');
   if(!_fsOk){
+    window.__fsDisabled = true;
     var _fsBtn = $id('bFull'), _fsIntro = $id('bIntroFull');
     if(_fsBtn) _fsBtn.style.display = 'none';
     if(_fsIntro) _fsIntro.style.display = 'none';
+    /* 全屏不可用时把引导气泡一起收掉，免得指向一个看不见的按钮 */
+    var _fsh = $id('fsHint'), _fss = $id('fsSpot');
+    if(_fsh) _fsh.classList.remove('show', 'pulse');
+    if(_fss) _fss.classList.remove('show');
   }
   $id('bFull').addEventListener('click', toggleFullscreen);
   $id('bIntroFull').addEventListener('click', toggleFullscreen);

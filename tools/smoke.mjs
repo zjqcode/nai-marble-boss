@@ -614,8 +614,11 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
              这里只保证 7 个入口都还在（不消失是硬要求） */
           entryCount: ['bPause','bRestart','bSound','bFull','bLevels','bGallery','bShop']
             .filter(id => document.getElementById(id)).length,
-          barRightVsDock: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().right)
-                            - Math.round(document.getElementById('dock').getBoundingClientRect().left),
+          /* 新版布局：暂停/更多在最左，得分/奶瓶在最右，血条居中 */
+  dockRight: Math.round(document.getElementById('dock').getBoundingClientRect().right),
+  bossBarLeft: Math.round(document.querySelector('.boss-bar').getBoundingClientRect().left),
+  scoreRight: Math.round(document.querySelector('.score-card').getBoundingClientRect().right),
+  viewportW: innerWidth,
           /* dock 在左侧竖栏，不能压场地，也不能被左摇杆盖住 */
           dock,
           dockOverlapsStickL: ov(dock, box('stickL')),
@@ -653,7 +656,8 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     /* 3) 血条必须保持缩短 */
     assert(r.bossBarPct <= 55, `Boss 血条应保持缩短（≤55%），实际 ${r.bossBarPct}%`);
     assert(r.entryCount === 7, `7 个入口必须都存在，实际 ${r.entryCount}`);
-    assert(r.barRightVsDock <= 0, `血条右端不应压到按键区（差 ${r.barRightVsDock}px`);
+    assert(r.dockRight <= r.bossBarLeft, `暂停/更多在左，不应压到血条（dock 右 ${r.dockRight} / 血条左 ${r.bossBarLeft}）`);
+  assert(r.scoreRight >= r.viewportW - 40, `得分/奶瓶应在右侧（右端 ${r.scoreRight} / 视口 ${r.viewportW}）`);
     /* 3) 场地框必须贴到屏幕最底部（下面不该留空带） */
     assert(r.fieldBottomGap <= 8, `场地底边应贴到屏幕底部，实际留空 ${r.fieldBottomGap}px`);
     assert(r.arenaH >= 260, `场地贴底后可玩带应 ≥260px，实际 ${r.arenaH}px`);

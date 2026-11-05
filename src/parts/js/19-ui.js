@@ -111,6 +111,11 @@ function maybeShowFsHint(){
   if(document.fullscreenElement || document.webkitFullscreenElement) return;
   var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
   if(!can) return;
+  /* 按钮本身已被隐藏（iframe 里 fullscreenEnabled 为 false）就别提示了，
+     否则会留下一个指向不存在按钮的错位气泡。 */
+  var enabled = false;
+  try{ enabled = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }catch(e){ enabled = false; }
+  if(!enabled || window.__fsDisabled || btn.style.display === 'none') return;
   el.classList.remove('hide');
   el.classList.add('show');
   el.classList.add('pulse');
@@ -124,27 +129,32 @@ function maybeShowFsHint(){
 function syncIntroTools(){
   var fs = $id('bIntroFull'), snd = $id('bIntroSound');
   if(!fs || !snd) return;
-  var par = fs.offsetParent;
-  if(!par) return;
-  var w = snd.offsetWidth, h = snd.offsetHeight;
-  if(!w || !h) return;
-  fs.style.width = w + 'px';
-  fs.style.height = h + 'px';
-  fs.style.top = snd.offsetTop + 'px';
-  fs.style.right = (par.clientWidth - snd.offsetLeft + 10) + 'px';
+  var sr = snd.getBoundingClientRect();
+  if(!sr.width || !sr.height) return;
+  /* 用视口坐标（fixed）而不是 offsetLeft/offsetTop：
+     以前用 offset 相对 #intro 计算，父级/断点一变就会飘到别处，
+     内嵌（B站 Toy iframe）里尤其明显。 */
+  var size = Math.round(sr.width);
+  var fLeft = Math.round(sr.left - size - 10);
+  var fTop = Math.round(sr.top);
+  fs.style.position = 'fixed';
+  fs.style.width = size + 'px';
+  fs.style.height = size + 'px';
+  fs.style.left = fLeft + 'px';
+  fs.style.right = 'auto';
+  fs.style.top = fTop + 'px';
+
   var spot = $id('fsSpot');
   if(spot){
-    /* 渐变圆心的坐标 = 全屏按钮中心（相对 #intro） */
-    var bx = snd.offsetLeft - 10 - w + w / 2;
-    var by = snd.offsetTop + h / 2;
-    spot.style.setProperty('--sx', Math.round(bx) + 'px');
-    spot.style.setProperty('--sy', Math.round(by) + 'px');
-    spot.style.setProperty('--sr', Math.round(w / 2 + 9) + 'px');
+    spot.style.setProperty('--sx', Math.round(fLeft + size / 2) + 'px');
+    spot.style.setProperty('--sy', Math.round(fTop + size / 2) + 'px');
+    spot.style.setProperty('--sr', Math.round(size / 2 + 9) + 'px');
   }
   var hint = $id('fsHint');
   if(hint){
-    hint.style.top = (snd.offsetTop + h + 10) + 'px';
-    hint.style.right = (par.clientWidth - (snd.offsetLeft + 10 - h) - w) + 'px';
+    hint.style.left = fLeft + 'px';
+    hint.style.right = 'auto';
+    hint.style.top = (fTop + size + 10) + 'px';
   }
 }
 

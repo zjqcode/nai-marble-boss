@@ -17,7 +17,7 @@ var TUT_STEPS = [
   { target: 'stickL', text: '红区亮起来时，用左摇杆躲开', sub: '站着不动会被砸中' }
 ];
 
-var tutEl = null, tutOn = false, tutStep = 0, tutStartX = 0, tutMoved = 0, tutElapsed = 0, tutHits = 0;
+var tutEl = null, tutOn = false, tutStep = 0, tutStartX = null, tutMoved = 0, tutElapsed = 0, tutHits = 0;
 var TUT_STEP_TIMEOUT = 20;   /* 单步最多等 20 秒（游戏时间），卡住就自动往下走 */
 
 function tutDone(){
@@ -93,7 +93,7 @@ function tutSetStep(n){
   el.querySelector('.coach-sub').textContent = st.sub || '';
   tutPlace(st.target);
   state.tutHold = (n <= 1);   /* 前两步 Boss 先别打人 */
-  if(n === 0){ tutStartX = state.cannonX; tutMoved = 0; }
+  if(n === 0){ tutStartX = null; tutMoved = 0; }   /* 待第一帧再取基准（见 tutMoveTick） */
 }
 
 function tutStart(chapterIndex, force){
@@ -124,6 +124,8 @@ function tutMoveTick(dt){
     return;
   }
   if(tutStep !== 0 || !state.boss) return;
+  /* 基准位置在第一帧才取：避开 startLevel 里「先 tutStart、后摆炮台」的顺序问题 */
+  if(tutStartX === null){ tutStartX = state.cannonX; return; }
   var d = Math.abs(state.cannonX - tutStartX);
   if(d > 50){
     if(tutMoved === 0) tutMoved = 1;
