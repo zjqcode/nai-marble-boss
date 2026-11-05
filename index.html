@@ -454,6 +454,7 @@ body.playing #dock{opacity:1;pointer-events:auto}
 }
 .rot-phone::after{content:"";position:absolute;left:50%;bottom:5px;width:12px;height:2px;border-radius:2px;background:rgba(255,220,160,.5);transform:translateX(-50%)}
 @keyframes rotHint{0%,22%{transform:rotate(90deg)}62%,100%{transform:rotate(0deg)}}
+.rot-tip{margin:6px 0 0;font-size:11px;line-height:1.6;color:rgba(255,226,170,.62);max-width:260px}
 #rotate h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.06em;color:#ffe8b8}
 #rotate p{margin:8px 0 16px;font-size:11.5px;line-height:1.8;color:rgba(255,240,215,.55);letter-spacing:.04em}
 #rotate .ghost-btn{width:auto}
@@ -7464,20 +7465,32 @@ function lockLandscape(){
   }catch(e){ return Promise.resolve(false); }
 }
 
-/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转） */
+/* 返回 Promise<boolean>：true 表示尝试完仍是竖屏（需要提示用户手动旋转）
+   顺序很关键：
+     1) 先直接 lock（部分浏览器/WebView 不要求全屏）
+     2) 不行再 requestFullscreen，成功后立刻 lock（Android Chrome 只有全屏才允许）
+     3) 都不行就如实返回「还是竖屏」，由调用方给替代方案 */
 function enterLandscape(){
   var el = document.documentElement;
   var fsFn = el.requestFullscreen || el.webkitRequestFullscreen;
   var inFull = document.fullscreenElement || document.webkitFullscreenElement;
-  var step;
-  if(!inFull && fsFn){
-    try{ step = Promise.resolve(fsFn.call(el)); }
+  var embedded = false;
+  try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+  /* iframe 内嵌（B站 Toy）里请求全屏会被浏览器拦掉甚至触发跳转，
+     而且平台自己就有全屏按钮 —— 内嵌时只尝试锁方向。 */
+  if(embedded) fsFn = null;
+
+  var lock = function(){ return lockLandscape(); };
+
+  return lock().then(function(lockOk){
+    if(lockOk) return isPortraitNow();
+    if(inFull || !fsFn) return isPortraitNow();
+    var step;
+    try{ step = Promise.resolve(fsFn.call(el, { navigationUI: 'hide' })); }
     catch(e){ step = Promise.resolve(); }
-  } else {
-    step = Promise.resolve();
-  }
-  return step.then(function(){ return lockLandscape(); }, function(){ return false; })
-    .then(function(){ return isPortraitNow(); });
+    return step.then(function(){ return lock(); }, function(){ return false; })
+      .then(function(){ return isPortraitNow(); });
+  }, function(){ return isPortraitNow(); });
 }
 
 /* ---------- 暂停 ----------
@@ -7972,9 +7985,21 @@ function bindEvents(){
   /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
   $id('bRotateGo').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
+    var btn = this;
+    if(btn) btn.disabled = true;
     enterLandscape().then(function(stillPortrait){
-      if(stillPortrait) toast('浏览器不允许锁定方向 · 请手动把手机横过来');
+      if(btn) btn.disabled = false;
       setTimeout(layout, 200);
+      if(!stillPortrait){ toast('已切到横屏'); return; }
+      /* 锁不上（iOS Safari / iframe 里被禁 / 浏览器不支持）时不能什么都不做，
+         否则玩家会以为按钮坏了 —— 直接切到竖屏可玩模式并说明原因。 */
+      document.body.classList.add('portrait-ok');
+      setTimeout(layout, 120);
+      var embedded = false;
+      try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+      toast(embedded
+        ? '平台内不能自动转屏 · 已切竖屏，可点右上角全屏再转手机'
+        : '这个浏览器不支持自动转屏 · 已切竖屏，也可以手动把手机横过来');
     });
   });
 
@@ -8081,6 +8106,20 @@ function bindEvents(){
       if(e.target === this) closeScreen(this.id);
     });
   }
+
+  /* 转屏面板补一条提示：内嵌平台里只能靠平台自己的全屏按钮 */
+  (function(){
+    var rot = $id('rotate');
+    if(!rot || rot.querySelector('.rot-tip')) return;
+    var embedded = false;
+    try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+    if(!embedded) return;
+    var p = document.createElement('p');
+    p.className = 'rot-tip';
+    p.textContent = '在 B站播放器里：先点右上角全屏，再旋转手机';
+    var go = $id('bRotateGo');
+    if(go && go.parentNode) go.parentNode.insertBefore(p, go.nextSibling);
+  })();
 
   $id('bRotateOk').addEventListener('click', function(){
     document.body.classList.add('portrait-ok');

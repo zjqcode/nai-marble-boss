@@ -235,9 +235,21 @@ function bindEvents(){
   /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
   $id('bRotateGo').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
+    var btn = this;
+    if(btn) btn.disabled = true;
     enterLandscape().then(function(stillPortrait){
-      if(stillPortrait) toast('浏览器不允许锁定方向 · 请手动把手机横过来');
+      if(btn) btn.disabled = false;
       setTimeout(layout, 200);
+      if(!stillPortrait){ toast('已切到横屏'); return; }
+      /* 锁不上（iOS Safari / iframe 里被禁 / 浏览器不支持）时不能什么都不做，
+         否则玩家会以为按钮坏了 —— 直接切到竖屏可玩模式并说明原因。 */
+      document.body.classList.add('portrait-ok');
+      setTimeout(layout, 120);
+      var embedded = false;
+      try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+      toast(embedded
+        ? '平台内不能自动转屏 · 已切竖屏，可点右上角全屏再转手机'
+        : '这个浏览器不支持自动转屏 · 已切竖屏，也可以手动把手机横过来');
     });
   });
 
@@ -344,6 +356,20 @@ function bindEvents(){
       if(e.target === this) closeScreen(this.id);
     });
   }
+
+  /* 转屏面板补一条提示：内嵌平台里只能靠平台自己的全屏按钮 */
+  (function(){
+    var rot = $id('rotate');
+    if(!rot || rot.querySelector('.rot-tip')) return;
+    var embedded = false;
+    try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+    if(!embedded) return;
+    var p = document.createElement('p');
+    p.className = 'rot-tip';
+    p.textContent = '在 B站播放器里：先点右上角全屏，再旋转手机';
+    var go = $id('bRotateGo');
+    if(go && go.parentNode) go.parentNode.insertBefore(p, go.nextSibling);
+  })();
 
   $id('bRotateOk').addEventListener('click', function(){
     document.body.classList.add('portrait-ok');
