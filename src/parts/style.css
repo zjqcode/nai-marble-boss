@@ -11,7 +11,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
-body.embedded{--toy-top:46px}
+body.embedded{--toy-top:0px}
+/* B站 Toy 的悬浮按钮在右上角，只有得分卡需要下移让位 */
+body.embedded .score-card{transform:translateY(38px)}
 body{
   background:#050a12;color:var(--ink);font-family:var(--font);
   overflow:hidden;position:fixed;inset:0;
@@ -962,7 +964,7 @@ button:disabled{cursor:default}
 .shop-buy.poor{opacity:.6;background:#d0d6cb08;color:#c1c6b4}.shop-buy.full{opacity:.6;background:#b7d9bd0d;color:#bdd7bd;border-color:#a6c19b2b}
 
 /* Battle HUD: stable top strip, thumb controls, support actions in More. */
-#dock{left:calc(var(--sal) + 14px);right:auto;top:calc(var(--sat) + 10px + var(--toy-top,0px));bottom:auto;transform:none;width:auto;padding:0;gap:7px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:flex-start;z-index:18}
+#dock{left:calc(var(--sal) + 14px);right:auto;top:calc(var(--sat) + 8px);bottom:auto;transform:none;width:auto;padding:0;gap:7px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:flex-start;z-index:18}
 .dock-btn,.dock-btn.sm,.utility-menu summary{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 auto;padding:6px 3px;gap:2px;border-radius:12px;border:1px solid #b7ceb62e;background:#12342ee8;color:#cad8c1;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 12px #051d1938}
 .dock-btn svg,.utility-menu summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
 .dock-btn .tx,.dock-btn span.tx,.utility-menu summary span{font-size:9px;letter-spacing:0;line-height:1.2;display:block}
@@ -977,7 +979,7 @@ button:disabled{cursor:default}
 .utility-grid .dock-btn{width:100%;height:60px;gap:5px;background:#c7d2a907;border-color:#bcd2ad1e;border-radius:12px;box-shadow:none}
 .utility-grid .dock-btn.on{color:#ead7a0;background:#dfd3a015;border-color:#ddc58e47}
 .utility-grid .dock-btn svg{width:21px;height:21px}.utility-grid .dock-btn span.tx{font-size:11px}
-#hud{top:calc(var(--sat) + 10px + var(--toy-top,0px));left:calc(var(--sal) + 112px);right:calc(var(--sar) + 16px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:122px minmax(0,1fr) 128px;align-items:start;max-width:none}
+#hud{top:calc(var(--sat) + 8px);left:calc(var(--sal) + 112px);right:calc(var(--sar) + 16px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:122px minmax(0,1fr) 128px;align-items:start;max-width:none}
 .hud-row{display:contents}
 .hud-card,.boss-bar{border:0;filter:drop-shadow(0 2px 4px #001614);border-radius:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;padding:0;min-width:0}
 .score-card{grid-column:3;grid-row:1;text-align:right}.level-card{grid-column:1;grid-row:1;text-align:left}
