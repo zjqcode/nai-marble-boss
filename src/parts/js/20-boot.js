@@ -235,24 +235,23 @@ function bindEvents(){
   /* 竖屏提示条：主动请求横屏（全屏 + 锁方向），失败就提示手动旋转 */
   $id('bRotateGo').addEventListener('click', function(){
     Sound.init(); Sound.resume(); Sound.ui();
-    var btn = this;
+    var btn = this, note = $id('rotNote');
     if(btn) btn.disabled = true;
     enterLandscape().then(function(stillPortrait){
       if(btn) btn.disabled = false;
       setTimeout(layout, 200);
       if(!stillPortrait){ toast('已切到横屏'); return; }
-      /* 转不过去就明确说明，并高亮「仍要竖屏游玩」，
-         绝不擅自把界面换成竖屏（玩家点的是「进入横屏」）。 */
+      /* 转不动就把面板里的提示改成「手动横过来」，
+         比一闪而过的 toast 更容易被看到 */
       var embedded = false;
       try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
-      toast(embedded
-        ? '平台内不能自动转屏 · 请点右上角全屏，或手动把手机横过来'
-        : '这个浏览器不允许自动转屏 · 请手动把手机横过来');
-      var ok = $id('bRotateOk');
-      if(ok){
-        ok.classList.add('pulse-once');
-        setTimeout(function(){ ok.classList.remove('pulse-once'); }, 2400);
+      if(note){
+        note.textContent = embedded
+          ? '平台内不能自动转屏 —— 直接用手把手机横过来，或点右上角全屏'
+          : '这个浏览器不支持自动转屏 —— 直接用手把手机横过来';
+        note.className = 'rot-note warn';
       }
+      toast('请直接把手机横过来');
     });
   });
 
@@ -373,12 +372,6 @@ function bindEvents(){
     var go = $id('bRotateGo');
     if(go && go.parentNode) go.parentNode.insertBefore(p, go.nextSibling);
   })();
-
-  $id('bRotateOk').addEventListener('click', function(){
-    document.body.classList.add('portrait-ok');
-    Sound.ui();
-    setTimeout(layout, 60);
-  });
 
   window.addEventListener('keydown', function(e){
     if(e.repeat) return;

@@ -562,7 +562,7 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
         portrait: innerHeight > innerWidth,
         rotate: getComputedStyle(document.getElementById('rotate')).display,
         goBtn: vis('bRotateGo'),
-        skipBtn: vis('bRotateOk'),
+        note: (document.getElementById('rotNote') || {}).textContent || '',
         throwErr: null,
       };
       try { document.getElementById('bRotateGo').click(); } catch (e) { out.throwErr = String(e); }
@@ -570,8 +570,8 @@ await check('横屏布局：HUD 压扁、场地变高；竖屏有「进入横屏
     })()`);
   assert(portrait.portrait, '冒烟会话应是竖屏');
   assert(portrait.rotate !== 'none', '竖屏应显示「请横屏游玩」');
-  assert(portrait.goBtn, '竖屏提示里应有「进入横屏」按钮');
-  assert(portrait.skipBtn, '竖屏提示里应保留「仍要竖屏游玩」');
+  assert(portrait.goBtn, '竖屏提示里应有切横屏按钮');
+  assert(/横过来/.test(portrait.note), '竖屏提示里应告诉玩家手动横过来：' + portrait.note);
   assert(portrait.throwErr === null, '点「进入横屏」不应抛异常: ' + portrait.throwErr);
 
   /* 再切横屏测量布局 */

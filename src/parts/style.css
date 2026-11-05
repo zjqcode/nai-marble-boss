@@ -442,8 +442,9 @@ body.playing #dock{opacity:1;pointer-events:auto}
 }
 .rot-phone::after{content:"";position:absolute;left:50%;bottom:5px;width:12px;height:2px;border-radius:2px;background:rgba(255,220,160,.5);transform:translateX(-50%)}
 @keyframes rotHint{0%,22%{transform:rotate(90deg)}62%,100%{transform:rotate(0deg)}}
-.ghost-btn.pulse-once{animation:rotOkPulse 1.2s ease-in-out 2;border-color:rgba(255,226,170,.9);color:#ffeec2}
-@keyframes rotOkPulse{0%,100%{box-shadow:0 0 0 0 rgba(247,201,107,0)}50%{box-shadow:0 0 0 6px rgba(247,201,107,.22)}}
+.rot-how{margin:8px 0 0}
+.rot-note{margin:14px 0 0;font-size:11.5px;line-height:1.6;color:rgba(255,226,170,.55);letter-spacing:.02em;max-width:260px}
+.rot-note.warn{color:#ffc799;font-weight:700}
 .rot-tip{margin:6px 0 0;font-size:11px;line-height:1.6;color:rgba(255,226,170,.62);max-width:260px}
 #rotate h2{margin:0;font-size:19px;font-weight:800;letter-spacing:.06em;color:#ffe8b8}
 #rotate p{margin:8px 0 16px;font-size:11.5px;line-height:1.8;color:rgba(255,240,215,.55);letter-spacing:.04em}
@@ -1034,7 +1035,6 @@ body.panel-open #hud,body.panel-open #dock,body.panel-open .stick,body.panel-ope
 #rotate{background:radial-gradient(ellipse at 50% 30%,#2f503b,#102b2a 65%);gap:0;color:#eae7d0}
 #rotate h2{font-size:27px;color:#f1e2b6;letter-spacing:.02em;margin:12px 0}
 #rotate p{color:#abc1ad;line-height:1.8}#rotate .panel-eyebrow{color:#c4d4aa;font-size:10px;margin-top:25px}
-#rotate .ghost-btn{min-height:48px;font-size:13px}#bRotateGo{color:#314134;background:#ead9a5;border-color:#efdfb5}#bRotateOk{background:transparent;color:#b7cbb4}
 .rot-phone{border-color:#dccd96}
 @media (hover:hover){
   .intro-links button:hover,.ghost-btn:hover,.x:hover{background:#c6d9b315;border-color:#d2dfa461}
@@ -1384,4 +1384,34 @@ body.panel-open #fsSpot{opacity:0 !important;visibility:hidden !important;pointe
   body:not(.portrait-ok) #bIntroSound{
     display:none !important;
   }
+}
+
+/* ---------- 竖屏 · 内嵌（B站 Toy App）----------
+   App 播放器会在画面上叠自己的东西：
+   · 顶部左侧：小电视悬浮图标（压住"第一章"）
+   · 顶部右侧：分享/点赞竖栏（压住"得分 / 奶瓶"）
+   所以内嵌竖屏时把 HUD 改成「左对齐三行」：
+     第 1 行 章节 / 计时 / 生命
+     第 2 行 Boss 血条（占满）
+     第 3 行 得分 / 奶瓶（缩小，靠左）
+   右侧整条留空，平台怎么叠都不挡。 */
+@media (orientation:portrait){
+  body.embedded #hud{
+    top:calc(var(--sat) + 34px);
+    left:12px;right:calc(var(--sar) + 62px);
+    grid-template-columns:1fr;
+    gap:5px 0;
+  }
+  body.embedded .level-card{grid-column:1;grid-row:1;text-align:left}
+  body.embedded .boss-bar{grid-column:1;grid-row:2;max-width:none;width:100%;justify-self:stretch}
+  body.embedded .score-card{grid-column:1;grid-row:3;text-align:left;display:flex;align-items:baseline;gap:10px}
+  body.embedded .score-card .sc-top{justify-content:flex-start;gap:10px}
+  body.embedded .score-card .lbl,body.embedded .score-card .best{text-align:left}
+  body.embedded .score-card strong{font-size:19px;line-height:1}
+body.embedded #dock{bottom:calc(var(--sab) + 18px)}
+  /* 第一行已经写了章节，第二行血条也写着 Boss 名 —— 章节卡里的名字会重复，藏掉 */
+  body.embedded .level-card b{display:none}
+  /* Toast 要落在 dock 上方，别把暂停/更多盖住 */
+  body.embedded #toast{bottom:calc(var(--sab) + 96px)}
+  body.embedded .combo{top:120px}
 }
