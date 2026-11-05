@@ -27,6 +27,15 @@ const JS_MARK = '/*__JS__*/';
 
 const argv = process.argv.slice(2);
 const flags = new Set(argv.filter((a) => a.startsWith('--')));
+
+/* --split：把 样式/脚本/素材 全部拆成独立文件（B站 Toy 要求 index.html ≤ 1MB） */
+const splitMode = flags.has('--split');
+const splitDirArg = (() => {
+  const i = argv.indexOf('--split');
+  if (i < 0) return null;
+  const next = argv[i + 1];
+  return next && !next.startsWith('--') ? next : null;
+})();
 /* --web 的可选输出目录：node build.js --web public */
 const webMode = flags.has('--web');
 const webDirArg = (() => {
@@ -36,7 +45,7 @@ const webDirArg = (() => {
   return next && !next.startsWith('--') ? next : null;
 })();
 /* positional：排除 --flag，以及这几个 flag 后面那个「取值」 */
-const VALUED_FLAGS = new Set(['--web', '--asset-base', '--audio-base']);
+const VALUED_FLAGS = new Set(['--web', '--split', '--asset-base', '--audio-base']);
 const positional = argv.filter((a, i) => {
   if (a.startsWith('--')) return false;
   if (i > 0 && VALUED_FLAGS.has(argv[i - 1])) return false;
@@ -145,6 +154,54 @@ if (srcArg) {
   html = fs.readFileSync(srcArg, 'utf8');
 } else {
   html = assembleFromParts();
+}
+
+/* ---------- 3s. 拆分版（样式/脚本/素材各自独立） ----------
+   B站 Toy 限制：index.html 解压后 ≤ 1MB，超过会报
+   「请将内联的脚本、样式或图片拆成独立文件后重新打包」。 */
+if (splitMode) {
+  const outDir = path.resolve(root, splitDirArg || 'dist/split');
+  fs.rmSync(outDir, { recursive: true, force: true });
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const manifest = JSON.parse(fs.readFileSync(partsManifest, 'utf8'));
+  const skeleton = fs.readFileSync(path.join(partsDir, manifest.skeleton), 'utf8');
+  const style = fs.readFileSync(path.join(partsDir, manifest.style), 'utf8');
+  const js = manifest.js.map((f) => fs.readFileSync(path.join(partsDir, f), 'utf8')).join('');
+
+  let outHtml = skeleton
+    .replace('<style>' + STYLE_MARK + '</style>', '<link rel="stylesheet" href="styles.css">')
+    .replace('<script>' + JS_MARK + '</script>', '<script src="game.js"></script>');
+  /* 纯静态托管：去掉外部资源提示（preconnect / dns-prefetch） */
+  outHtml = outHtml.replace(/\s*<link rel="preconnect"[^>]*>\r?\n?/g, '\n')
+                   .replace(/\s*<link rel="dns-prefetch"[^>]*>\r?\n?/g, '\n');
+  if (outHtml.includes(STYLE_MARK) || outHtml.includes(JS_MARK)) {
+    throw new Error('拆分失败：骨架里的占位符没被替换');
+  }
+
+  fs.writeFileSync(path.join(outDir, 'index.html'), outHtml, 'utf8');
+  fs.writeFileSync(path.join(outDir, 'styles.css'), style, 'utf8');
+  fs.writeFileSync(path.join(outDir, 'game.js'), js, 'utf8');
+
+  const assetsOut = path.join(outDir, 'assets');
+  fs.mkdirSync(assetsOut, { recursive: true });
+  let n = 0, bytes = 0;
+  for (const f of fs.readdirSync(assetsDir)) {
+    if (!/\.(webp|png|jpg|jpeg|mp3|m4a|mp4)$/i.test(f)) continue;
+    fs.copyFileSync(path.join(assetsDir, f), path.join(assetsOut, f));
+    n++; bytes += fs.statSync(path.join(assetsDir, f)).size;
+  }
+
+  const kb = (f) => (fs.statSync(path.join(outDir, f)).size / 1024).toFixed(1) + ' KB';
+  console.log('split: ' + outDir);
+  console.log('  index.html : ' + kb('index.html') + '（平台上限 1MB）');
+  console.log('  styles.css : ' + kb('styles.css'));
+  console.log('  game.js    : ' + kb('game.js'));
+  console.log('  assets/    : ' + n + ' 个文件，' + (bytes / 1024).toFixed(0) + ' KB');
+  const total = ['index.html', 'styles.css', 'game.js']
+    .reduce((acc, f) => acc + fs.statSync(path.join(outDir, f)).size, 0) + bytes;
+  console.log('  合计       : ' + (total / 1024).toFixed(0) + ' KB（平台上限 50MB）');
+  process.exit(0);
 }
 
 /* ---------- 3a. 网页部署版（外置资源，便于 CDN / 浏览器缓存 / 国内加速） ----------

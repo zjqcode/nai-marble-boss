@@ -239,3 +239,33 @@ node tools/toy-check.mjs "C:\Users\逸愉\Documents\奶娃-B站Toy上传包"
 | 内嵌安全 | 不允许 top/parent 跳转 |
 
 当前结果：**15 项通过 / 0 项失败**（2 条提醒：用到 localStorage，代码里已有 try/catch）。
+---
+
+## 十四、平台 1MB 限制与拆分构建
+
+实际传包时平台报错：
+
+> index.html 解压后超过 1MB 上限，请将内联的脚本、样式或图片拆成独立文件后重新打包
+
+原因：单文件版把素材全内联，`index.html` 有 **1228 KB**。
+
+解决：`build.js` 新增 `--split` 模式，把样式、脚本、素材全部拆开。
+
+```bash
+node build.js --split dist/toy-split
+```
+
+产物：
+
+| 文件 | 大小 | 说明 |
+|---|---|---|
+| `index.html` | **20.4 KB** | 结构 + 外链 css/js（上限 1MB，余量 50 倍） |
+| `styles.css` | 93.7 KB | 全部样式 |
+| `game.js` | 239.3 KB | 全部脚本（仍是同一个 IIFE 作用域） |
+| `assets/` | 674 KB | 13 张立绘 + 3 个音效 |
+| 合计 | 1028 KB | 远低于 50MB |
+
+拆分版验证（断网 + 屏蔽 http/https 实测）：
+立绘 13/13 就绪、可开局、可发射、结算正常、无 JS 异常。
+
+> 注意：`--split` 产物会去掉 `preconnect` / `dns-prefetch` 外链提示，保证零外部请求。

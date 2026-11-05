@@ -86,6 +86,20 @@ for (const z of zips) {
   }
   const rootIndex = list.some((n) => n.replace(/^\.\//, '') === 'index.html');
   rootIndex ? ok(`${z} 入口在根目录 index.html`) : no(`${z} 根目录没有 index.html`);
+
+  /* 平台硬限制：index.html 解压后 ≤ 1MB */
+  let indexUnzipped = 0;
+  try {
+    const tmp0 = fs.mkdtempSync(path.join(os.tmpdir(), 'toyidx-'));
+    execSync(`tar -xf "${zp}" -C "${tmp0}" index.html`, { stdio: 'ignore' });
+    const f0 = path.join(tmp0, 'index.html');
+    if (fs.existsSync(f0)) indexUnzipped = fs.statSync(f0).size / 1024;
+  } catch {}
+  if (indexUnzipped) {
+    indexUnzipped <= 1024
+      ? ok(`${z} index.html 解压后 ${indexUnzipped.toFixed(1)} KB ≤ 1024 KB`)
+      : no(`${z} index.html 解压后 ${indexUnzipped.toFixed(0)} KB，超过平台 1MB 上限（需拆出 css/js/素材）`);
+  }
   const imgsInZip = list.filter((n) => /\.(png|jpe?g)$/i.test(n));
   if (imgsInZip.length) hm(`${z} 里含 ${imgsInZip.length} 张图片（平台是分开上传的，确认不是误放）`);
   console.log(`  ${z}: ${list.length} 个文件, ${mb.toFixed(2)} MB`);
