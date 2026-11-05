@@ -13,7 +13,7 @@
    3) 蓄力曲线略微前移（×1.1）：拉满更容易，不用把手指顶到边。
    4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
-var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
+var STICK_DEAD = 0.06;    /* 死区：手指微抖不算输入（0.07 → 0.06，轻微放宽） */
 var STICK_TRAVEL = 0.26;  /* 推到底需要的位移 = 摇杆直径 × 该比例（越小越省力） */
 
 function bindStick(el, opts){
@@ -90,7 +90,7 @@ function bindSticks(){
   /* ---- 左摇杆：只取横向 ---- */
   bindStick($id('stickL'), {
     horizontal: true,
-    travel: 0.20,                 /* 左摇杆要更跟手：到满速只要推 20% 直径 */
+    travel: 0.18,                 /* 左摇杆要更跟手：到满速只要推 18% 直径 */
     onMove: function(nx){
       if(state.stunT > 0){ state.stickX = 0; return; }
       /* 手机自带浏览器上原来要推很大一段才动，手感发闷。
@@ -99,7 +99,7 @@ function bindSticks(){
       var t = Math.abs(nx);
       if(t <= STICK_DEAD){ state.stickX = 0; return; }
       var k = Math.min(1, (t - STICK_DEAD) / (1 - STICK_DEAD));
-      var v = Math.pow(k, 0.78);
+      var v = Math.pow(k, 0.72);   /* 0.78 → 0.72：中段更跟手，推到底仍是满速 */
       state.stickX = nx < 0 ? -v : v;
     },
     onEnd: function(){ state.stickX = 0; }

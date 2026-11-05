@@ -118,7 +118,7 @@ function update(dt){
       var before = state.cannonX;
       state.cannonX = clamp(
         /* 按场宽算速度：危险区是场宽的比例，移动也得跟着场宽走，否则宽屏躲不开 */
-        state.cannonX + mv * view.w * 0.85 * dt,
+        state.cannonX + mv * view.w * 0.92 * dt,
         view.left + 34*view.s, view.right - 34*view.s);
       if(state.cannonX !== before){
         Sound.move();

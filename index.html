@@ -1839,12 +1839,12 @@ var CHAPTERS = [
    breakPct:0.08, dodgeW:0.17, tele:1.42, dodgeRate:0.62, combo:1, enragePct:0,
    desc:'长耳弹簧腿，喜欢跳起来砸场子，落地会震出石球。',
    intro:'利用两侧弹簧板加速反弹，它会开始闪避高级球。'},
-  {id:3, chap:'第三章', title:'吸球豆奶', char:'豆奶', hp:2600, time:80, every:5.3, atk:'suck', atkName:'吸星漩涡',
+  {id:3, chap:'第三章', title:'吸球豆奶', char:'豆奶', hp:2600, time:80, every:5.7, atk:'suck', atkName:'吸星漩涡',
    springs:false, portal:true, move:false, dodge:0.5, range:0.12,
    breakPct:0.09, dodgeW:0.22, tele:0.7, dodgeRate:0.68, combo:2, enragePct:0,
    desc:'胸口的漩涡会吸走奶球，混血的双色身体。',
    intro:'传送门可以绕过正面，但小心 BOSS 的吸球。'},
-  {id:4, chap:'第四章', title:'毒雾奶屎', char:'奶屎', hp:2500, time:75, every:4.2, atk:'fart', atkName:'臭屁攻击',
+  {id:4, chap:'第四章', title:'毒雾奶屎', char:'奶屎', hp:2500, time:75, every:4.6, atk:'fart', atkName:'臭屁攻击',
    springs:true, portal:true, move:false, dodge:0.65, range:0.14,
    breakPct:0.10, dodgeW:0.27, tele:0.72, dodgeRate:0.73, combo:2, enragePct:0.54, rageMul:0.6,  brkRageMul:0.6,
    desc:'冒着绿烟的塔状 BOSS，臭屁会熏掉勇者的生命。',
@@ -3494,7 +3494,7 @@ function fireBall(){
    3) 蓄力曲线略微前移（×1.1）：拉满更容易，不用把手指顶到边。
    4) 装填中松手不再白费：记下来，装填一结束立刻补发。
    ========================================================= */
-var STICK_DEAD = 0.07;    /* 死区：手指微抖不算输入 */
+var STICK_DEAD = 0.06;    /* 死区：手指微抖不算输入（0.07 → 0.06，轻微放宽） */
 var STICK_TRAVEL = 0.26;  /* 推到底需要的位移 = 摇杆直径 × 该比例（越小越省力） */
 
 function bindStick(el, opts){
@@ -3571,7 +3571,7 @@ function bindSticks(){
   /* ---- 左摇杆：只取横向 ---- */
   bindStick($id('stickL'), {
     horizontal: true,
-    travel: 0.20,                 /* 左摇杆要更跟手：到满速只要推 20% 直径 */
+    travel: 0.18,                 /* 左摇杆要更跟手：到满速只要推 18% 直径 */
     onMove: function(nx){
       if(state.stunT > 0){ state.stickX = 0; return; }
       /* 手机自带浏览器上原来要推很大一段才动，手感发闷。
@@ -3580,7 +3580,7 @@ function bindSticks(){
       var t = Math.abs(nx);
       if(t <= STICK_DEAD){ state.stickX = 0; return; }
       var k = Math.min(1, (t - STICK_DEAD) / (1 - STICK_DEAD));
-      var v = Math.pow(k, 0.78);
+      var v = Math.pow(k, 0.72);   /* 0.78 → 0.72：中段更跟手，推到底仍是满速 */
       state.stickX = nx < 0 ? -v : v;
     },
     onEnd: function(){ state.stickX = 0; }
@@ -5740,7 +5740,7 @@ function update(dt){
       var before = state.cannonX;
       state.cannonX = clamp(
         /* 按场宽算速度：危险区是场宽的比例，移动也得跟着场宽走，否则宽屏躲不开 */
-        state.cannonX + mv * view.w * 0.85 * dt,
+        state.cannonX + mv * view.w * 0.92 * dt,
         view.left + 34*view.s, view.right - 34*view.s);
       if(state.cannonX !== before){
         Sound.move();
