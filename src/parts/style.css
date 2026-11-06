@@ -1488,3 +1488,16 @@ body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}
   color:#ffe6b0;background:rgba(247,201,107,.14);border:1px solid rgba(247,201,107,.34);
 }
 .li-best.none{color:rgba(230,236,214,.45);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+
+/* ---- 商店：把纵向空间尽量留给道具列表 ----
+   顶部原来有：英文小标 + 大标题 + 说明 + 装饰条，横屏短屏时能占掉一半高度。 */
+#shop .sheet-head{margin:0 0 10px;align-items:center}
+#shop .sheet-head h2{font-size:22px;line-height:1.15;margin:0}
+#shop .sheet-head p{margin:2px 0 0;font-size:10px;opacity:.72}
+#shop .shop-grid{padding-top:0}
+@media (orientation:landscape) and (max-height:520px){
+  #shop .sheet-head{margin:0 0 8px}
+  #shop .sheet-head h2{font-size:19px}
+  #shop .sheet-head p{display:none}          /* 极矮屏连说明也省掉 */
+  #shop .sheet{padding:14px 16px}
+}
