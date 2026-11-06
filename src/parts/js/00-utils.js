@@ -5,6 +5,17 @@ var TAU = Math.PI * 2;
 var FONT = '"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",system-ui,sans-serif';
 var ASSET_DATA = /*__ASSETS__*/null;
 
+/* 轻量触感：iPhone 不支持 vibrate，会静默跳过；
+   只有用户真的在玩（过场结束、未暂停）才触发，避免加载阶段乱震。 */
+function buzz(pattern){
+  try{
+    if(!navigator.vibrate) return;
+    if(typeof state === 'undefined' || !state) return;
+    if(state.paused || state.cineT > 0) return;
+    navigator.vibrate(pattern);
+  }catch(e){}
+}
+
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 function rand(a,b){ return a+Math.random()*(b-a); }
 function lerp(a,b,t){ return a+(b-a)*t; }

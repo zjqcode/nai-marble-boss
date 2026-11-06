@@ -197,6 +197,7 @@ function heroHit(n, reason, noStun){
     return;                    /* 护盾抵挡不眩晕 */
   }
   setHeroHP(state.heroHP - n, true);
+  buzz(38);            /* 受伤给一次短震动，手机上「被打到」更明确 */
   state.flashHue = 'red';
   state.flash = Math.max(state.flash, .5);
   state.shake = Math.max(state.shake, 14);
@@ -228,6 +229,7 @@ function attackHit(tg, reason){
 
 function dodgeSuccess(){
   state.dodgeStreak++;
+  buzz(12);            /* 闪避开成功给一下轻震 */
   /* 极限闪避：在红区里站到最后一刻才走开（<0.22s）——奖励精准走位，不惩罚新手 */
   var perfect = state.dangerT <= 0.22;
   var add = 60 + Math.min(240, state.dodgeStreak*40);

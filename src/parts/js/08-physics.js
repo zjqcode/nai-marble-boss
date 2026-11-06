@@ -218,6 +218,7 @@ function addBreak(v, hx, hy){
 function triggerBreak(hx, hy){
   var boss = state.boss;
   if(!boss || boss.dead) return;
+  buzz(26);              /* 破防：中等力度 */
   boss.brk = 0;
   /* 破防硬直：狂躁状态下大幅缩短，逼玩家在更短的窗口里输出 */
   var _brkBase = 3.5;
