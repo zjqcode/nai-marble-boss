@@ -1,7 +1,7 @@
 /* =========================================================
    2. 存档 / 养成
    ========================================================= */
-var META = {milk:0, progress:0, unlocked:{}, lv:{}, best:0};
+var META = {milk:0, progress:0, unlocked:{}, lv:{}, best:0, bestTime:{}};
 
 function loadMeta(){
   var raw = store('nai_boss_meta');
@@ -17,6 +17,7 @@ function loadMeta(){
         META.unlocked = (o.unlocked && typeof o.unlocked === 'object') ? o.unlocked : {};
         META.shop = (o.shop && typeof o.shop === 'object') ? o.shop : {};
         META.items = (o.items && typeof o.items === 'object') ? o.items : {};
+        META.bestTime = (o.bestTime && typeof o.bestTime === 'object') ? o.bestTime : {};
       }
     }catch(e){}
   }
@@ -43,7 +44,8 @@ function saveMeta(){
       milk: META.milk, progress: META.progress, best: META.best,
     starterGift: META.starterGift || 0, bestEndless: META.bestEndless || 0,
       unlocked: META.unlocked, lv: META.lv,
-      shop: META.shop, items: META.items
+      shop: META.shop, items: META.items,
+      bestTime: META.bestTime || {}
     }));
   }catch(e){}
 }

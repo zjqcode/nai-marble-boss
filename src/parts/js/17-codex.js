@@ -34,6 +34,20 @@ function closeAllScreens(){
   state.paused = false;
 }
 
+/* 最快通关用时：mm:ss.s；没通关过就显示 -- */
+function fmtClearTime(sec){
+  if(!sec || !isFinite(sec)) return '';
+  var m = Math.floor(sec / 60), s2 = sec - m * 60;
+  var ss = s2.toFixed(1);
+  if(s2 < 10) ss = '0' + ss;
+  return (m > 0 ? (m + ':') : '') + ss + 's';
+}
+function bestTimeChip(ch){
+  var t = META.bestTime && META.bestTime[ch.id];
+  if(!t) return '<span class="li-best none">最快 --</span>';
+  return '<span class="li-best">最快 ' + fmtClearTime(t) + '</span>';
+}
+
 function buildLevelList(){
   var html = '';
   for(var i=0;i<CHAPTERS.length;i++){
@@ -45,7 +59,8 @@ function buildLevelList(){
     html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char) + '" alt=""></div>';
     html += '<div class="li-body"><div class="li-top"><b>' + ch.chap + ' · ' + ch.title + '</b><span>' + (cleared ? '已通关' : (avail ? '可挑战' : '未解锁')) + '</span></div>';
     html += '<p class="li-desc">' + ch.desc + '</p>';
-    html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span></div></div>';
+    html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span>' +
+      bestTimeChip(ch) + '</div></div>';
     if(avail){
       html += '<button class="li-go' + (cleared ? ' ghost' : '') + '" data-lv="' + i + '">' + (cleared ? '再战' : '挑战') + '</button>';
     } else {

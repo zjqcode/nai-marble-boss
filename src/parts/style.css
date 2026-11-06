@@ -1480,3 +1480,11 @@ body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}
   background:#c1d7b0;color:#294333;font-size:9px;font-weight:700;text-align:center;
 }
 #itemBar2 #bPlate{position:relative !important}
+/* 关卡条目上的「最快通关用时」 */
+.li-best{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:999px;
+  font-size:10px;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  color:#ffe6b0;background:rgba(247,201,107,.14);border:1px solid rgba(247,201,107,.34);
+}
+.li-best.none{color:rgba(230,236,214,.45);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}

@@ -1492,7 +1492,14 @@ body.cine #bPlate{opacity:0;pointer-events:none;transition:opacity .2s}
   background:#c1d7b0;color:#294333;font-size:9px;font-weight:700;text-align:center;
 }
 #itemBar2 #bPlate{position:relative !important}
-</style>
+/* 关卡条目上的「最快通关用时」 */
+.li-best{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:999px;
+  font-size:10px;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  color:#ffe6b0;background:rgba(247,201,107,.14);border:1px solid rgba(247,201,107,.34);
+}
+.li-best.none{color:rgba(230,236,214,.45);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}</style>
 </head>
 <body>
 <!-- 素材加载条：奶豆在跑，加载完自动消失 -->
@@ -1925,7 +1932,7 @@ var UP_COST = [100, 100, 100, 100];   /* 升一级 100 奶瓶 */
 /* =========================================================
    2. 存档 / 养成
    ========================================================= */
-var META = {milk:0, progress:0, unlocked:{}, lv:{}, best:0};
+var META = {milk:0, progress:0, unlocked:{}, lv:{}, best:0, bestTime:{}};
 
 function loadMeta(){
   var raw = store('nai_boss_meta');
@@ -1941,6 +1948,7 @@ function loadMeta(){
         META.unlocked = (o.unlocked && typeof o.unlocked === 'object') ? o.unlocked : {};
         META.shop = (o.shop && typeof o.shop === 'object') ? o.shop : {};
         META.items = (o.items && typeof o.items === 'object') ? o.items : {};
+        META.bestTime = (o.bestTime && typeof o.bestTime === 'object') ? o.bestTime : {};
       }
     }catch(e){}
   }
@@ -1967,7 +1975,8 @@ function saveMeta(){
       milk: META.milk, progress: META.progress, best: META.best,
     starterGift: META.starterGift || 0, bestEndless: META.bestEndless || 0,
       unlocked: META.unlocked, lv: META.lv,
-      shop: META.shop, items: META.items
+      shop: META.shop, items: META.items,
+      bestTime: META.bestTime || {}
     }));
   }catch(e){}
 }
@@ -5497,6 +5506,11 @@ function bossDie(){
   }
   if(META.progress < ch.id) META.progress = ch.id;
   META.best = Math.max(META.best, state.score);
+  /* 每章最快通关用时：只记更快的，单位秒（保留 1 位小数） */
+  var clearT = Math.max(1, state.timeMax - state.timer);
+  if(!META.bestTime) META.bestTime = {};
+  var prevBest = META.bestTime[ch.id];
+  if(!prevBest || clearT < prevBest) META.bestTime[ch.id] = Math.round(clearT * 10) / 10;
   saveMeta();
   state.result = {
     chapter: ch,
@@ -7360,6 +7374,20 @@ function closeAllScreens(){
   state.paused = false;
 }
 
+/* 最快通关用时：mm:ss.s；没通关过就显示 -- */
+function fmtClearTime(sec){
+  if(!sec || !isFinite(sec)) return '';
+  var m = Math.floor(sec / 60), s2 = sec - m * 60;
+  var ss = s2.toFixed(1);
+  if(s2 < 10) ss = '0' + ss;
+  return (m > 0 ? (m + ':') : '') + ss + 's';
+}
+function bestTimeChip(ch){
+  var t = META.bestTime && META.bestTime[ch.id];
+  if(!t) return '<span class="li-best none">最快 --</span>';
+  return '<span class="li-best">最快 ' + fmtClearTime(t) + '</span>';
+}
+
 function buildLevelList(){
   var html = '';
   for(var i=0;i<CHAPTERS.length;i++){
@@ -7371,7 +7399,8 @@ function buildLevelList(){
     html += '<div class="orb md' + (avail ? '' : ' locked') + '"><img src="' + assetURL(ch.char) + '" alt=""></div>';
     html += '<div class="li-body"><div class="li-top"><b>' + ch.chap + ' · ' + ch.title + '</b><span>' + (cleared ? '已通关' : (avail ? '可挑战' : '未解锁')) + '</span></div>';
     html += '<p class="li-desc">' + ch.desc + '</p>';
-    html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span></div></div>';
+    html += '<div class="li-meta"><span>HP ' + ch.hp + '</span><span>掉落：' + ch.char + '</span>' +
+      bestTimeChip(ch) + '</div></div>';
     if(avail){
       html += '<button class="li-go' + (cleared ? ' ghost' : '') + '" data-lv="' + i + '">' + (cleared ? '再战' : '挑战') + '</button>';
     } else {

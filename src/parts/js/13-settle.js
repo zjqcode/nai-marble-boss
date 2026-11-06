@@ -74,6 +74,11 @@ function bossDie(){
   }
   if(META.progress < ch.id) META.progress = ch.id;
   META.best = Math.max(META.best, state.score);
+  /* 每章最快通关用时：只记更快的，单位秒（保留 1 位小数） */
+  var clearT = Math.max(1, state.timeMax - state.timer);
+  if(!META.bestTime) META.bestTime = {};
+  var prevBest = META.bestTime[ch.id];
+  if(!prevBest || clearT < prevBest) META.bestTime[ch.id] = Math.round(clearT * 10) / 10;
   saveMeta();
   state.result = {
     chapter: ch,
