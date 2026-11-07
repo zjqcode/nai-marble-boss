@@ -2598,10 +2598,19 @@ function loadingDone(){
   setTimeout(function(){ if(LD_EL) LD_EL.style.display = 'none'; }, 340);
 }
 
+var loadChartIfNeeded = function(){};
+
 function loadImages(){
+  /* chart.webp（67KB 立绘总览图）目前没有任何地方绘制它 ——
+     以前每次进游戏都白下一个 67KB 的包，国内网络下很明显。改成用时才加载。 */
   var chart = new Image();
-  chart.src = ASSET_DATA ? ASSET_DATA.chart : ASSET_BASE + 'chart.webp';
+  chart.__lazy = true;
   IMG.chart = chart;
+  loadChartIfNeeded = function(){
+    if(!chart.__lazy) return;
+    chart.__lazy = false;
+    chart.src = ASSET_DATA ? ASSET_DATA.chart : ASSET_BASE + 'chart.webp';
+  };
   var loaded = 0;
   loadingBegin(CHARS.length);
   function tick(){

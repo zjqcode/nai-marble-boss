@@ -40,7 +40,7 @@ const isMp3Src = (s) => s.startsWith('data:audio/mpeg') || /\.mp3(?:$|[?#])/.tes
 
 async function waitImages() {
   await session.waitFor(
-    `(window.__imgs || []).length > 0 && window.__imgs.every(i => i.complete && i.naturalWidth > 0)`,
+    `(function(){ if (window.__NAI__ && window.__NAI__.imgState){ var s = window.__NAI__.imgState(); var k = Object.keys(s); return k.length >= 13 && k.every(function(n){ return s[n]; }); } var a = window.__imgs || []; return a.length > 0 && a.every(function(im){ return !im.src || (im.complete && im.naturalWidth > 0); }); })()`,
     20000,
     '所有图片解码完成'
   );
