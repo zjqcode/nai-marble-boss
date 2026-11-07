@@ -28,7 +28,7 @@ body.embedded{--toy-top:0px}
    正好压在暂停/更多上 —— 内嵌时整排按钮下移 52px 让开它。 */
 @media (orientation:landscape){
   body.embedded #dock{top:calc(var(--sat) + 52px);z-index:30}
-  body.embedded #hud{left:calc(var(--sal) + 124px)}
+  body.embedded #hud{left:calc(var(--sal) + 126px)}
 }
 /* B站 Toy 的悬浮按钮在右上角，只有得分卡需要下移让位 */
 body.embedded .score-card{transform:translateY(38px)}
@@ -1003,7 +1003,7 @@ button:disabled{cursor:default}
 .utility-grid .dock-btn{width:100%;height:60px;gap:5px;background:#c7d2a907;border-color:#bcd2ad1e;border-radius:12px;box-shadow:none}
 .utility-grid .dock-btn.on{color:#ead7a0;background:#dfd3a015;border-color:#ddc58e47}
 .utility-grid .dock-btn svg{width:21px;height:21px}.utility-grid .dock-btn span.tx{font-size:11px}
-#hud{top:calc(var(--sat) + 8px);left:calc(var(--sal) + 112px);right:calc(var(--sar) + 16px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:122px minmax(0,1fr) 128px;align-items:start;max-width:none}
+#hud{top:calc(var(--sat) + 8px);left:calc(var(--sal) + 126px);right:calc(var(--sar) + 16px);transform:none;width:auto;padding:0;gap:0 14px;display:grid;grid-template-columns:122px minmax(0,1fr) 128px;align-items:start;max-width:none}
 .hud-row{display:contents}
 .hud-card,.boss-bar{border:0;filter:drop-shadow(0 2px 4px #001614);border-radius:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;padding:0;min-width:0}
 .score-card{grid-column:3;grid-row:1;text-align:right}.level-card{grid-column:1;grid-row:1;text-align:left}
@@ -1274,8 +1274,12 @@ body:not(.playing) #hud,body:not(.playing) #dock,body:not(.playing) .stick,body:
 #coach{
   position:fixed;z-index:130;pointer-events:none;
   opacity:0;transform:translateY(6px);transition:opacity .22s ease,transform .22s ease;
+  /* 隐藏时彻底不参与命中测试：以前只是 opacity:0，
+     气泡里的 .coach-card 仍然是 pointer-events:auto，
+     于是它会变成一块「看不见的挡板」，盖住它最后停留的位置（比如左上角按钮）。 */
+  visibility:hidden;
 }
-#coach.show{opacity:1;transform:none}
+#coach.show{opacity:1;transform:none;visibility:visible}
 .coach-card{
   pointer-events:auto;display:inline-block;max-width:232px;
   padding:8px 11px 9px;border-radius:12px;
@@ -3435,7 +3439,6 @@ function startLevel(idx){
   state.atkAnim = null;
   state.gasT = 0;
   state.cineT = 1.7;
-  if(document.body) document.body.classList.add('cine');   /* 开场过场：先藏起对局按钮 */
   state.deadReason = '';
   state.reloadT = 0.5;
   /* 装填按章节分档：前两章慢一点，逼玩家认真对待每一发；后期维持原速 */
@@ -5801,6 +5804,14 @@ function stepPhysics(dt){
 }
 
 function update(dt){
+  /* 过场遮罩状态每帧同步：以前是「进过场加类、计时归零再删类」，
+     一旦 cineT 被别处直接置 0（重开/跳关/调试）就会永远停在 cine，
+     表现为暂停/更多整排按钮消失且点不动。 */
+  if(document.body){
+    var wantCine = state.mode === 'play' && state.cineT > 0;
+    if(document.body.classList.contains('cine') !== wantCine) document.body.classList.toggle('cine', wantCine);
+  }
+
   if(typeof tutMoveTick === 'function') tutMoveTick(dt);
 
   /* 结算面板被误关（点空白/切后台回来）时自动重新弹出：
@@ -5817,9 +5828,6 @@ function update(dt){
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
-      /* 开场 VS 过场期间：把暂停/更多、道具栏、反弹板都藏起来，
-         免得玩家还没开打就看到一堆按钮 */
-      if(state.cineT <= 0 && document.body) document.body.classList.remove('cine');
       updateBoss(dt);
       updateFx(dt);
       updateCoins(dt);

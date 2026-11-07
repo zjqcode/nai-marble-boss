@@ -59,6 +59,14 @@ function stepPhysics(dt){
 }
 
 function update(dt){
+  /* 过场遮罩状态每帧同步：以前是「进过场加类、计时归零再删类」，
+     一旦 cineT 被别处直接置 0（重开/跳关/调试）就会永远停在 cine，
+     表现为暂停/更多整排按钮消失且点不动。 */
+  if(document.body){
+    var wantCine = state.mode === 'play' && state.cineT > 0;
+    if(document.body.classList.contains('cine') !== wantCine) document.body.classList.toggle('cine', wantCine);
+  }
+
   if(typeof tutMoveTick === 'function') tutMoveTick(dt);
 
   /* 结算面板被误关（点空白/切后台回来）时自动重新弹出：
@@ -75,9 +83,6 @@ function update(dt){
   if(state.mode === 'play' && !state.paused){
     if(state.cineT > 0){
       state.cineT = Math.max(0, state.cineT - dt);
-      /* 开场 VS 过场期间：把暂停/更多、道具栏、反弹板都藏起来，
-         免得玩家还没开打就看到一堆按钮 */
-      if(state.cineT <= 0 && document.body) document.body.classList.remove('cine');
       updateBoss(dt);
       updateFx(dt);
       updateCoins(dt);

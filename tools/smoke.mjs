@@ -1236,6 +1236,44 @@ await check('正常存档在刷新后保留（升级 / 奶瓶）', async () => {
   return `奶瓶 ${st.milk}, 奶狗 Lv.${st.lv}`;
 });
 
+
+// ---------- 8z. 隐藏的教程气泡不得拦截点击 ----------
+await check('隐藏的教程气泡不拦截顶部按钮，暂停可点', async () => {
+  await session.goto(`${fileUrl}?debug&level=1`);
+  await waitImages();
+  const r = await session.evaluate(`
+    (() => {
+      const N = window.__NAI__;
+      /* 竖屏时 #rotate 遮罩会盖住整屏，这里先按「仍要竖屏游玩」处理再测命中 */
+      document.getElementById('rotate').style.display = 'none';
+      document.body.classList.add('portrait-ok');
+      N.state.cineT = 0;
+      for (let i = 0; i < 20; i++) N.tick(1);
+      const skip = document.querySelector("#coach .coach-skip");
+      if (skip) skip.click();
+      document.body.classList.add("playing");
+      const hit = (id) => {
+        const e = document.getElementById(id);
+        const b = e.getBoundingClientRect();
+        const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return !!(t && (t.id === id || (t.closest && t.closest("#" + id))));
+      };
+      const dock = document.getElementById("dock").getBoundingClientRect();
+      const chap = document.getElementById("chapLabel").closest(".hud-card").getBoundingClientRect();
+      const overlap = !(dock.right <= chap.left || chap.right <= dock.left ||
+                        dock.bottom <= chap.top || chap.bottom <= dock.top);
+      const coachVis = getComputedStyle(document.getElementById("coach")).visibility;
+      document.getElementById("bPause").click();
+      const paused = N.state.paused;
+      return { pauseHit: hit("bPause"), overlap, coachVis, paused };
+    })()`);
+  assert(r.coachVis === 'hidden', '教程气泡隐藏时应 visibility:hidden，实际 ' + r.coachVis);
+  assert(!r.overlap, '暂停/更多不应压住章节卡文字');
+  assert(r.pauseHit, '暂停按钮应可命中（不被人挡住）');
+  assert(r.paused, '点暂停应真的暂停');
+  return '气泡不挡、按钮不压字、暂停可点';
+});
+
 await session.close();
 
 const failed = results.filter((r) => !r.ok);
